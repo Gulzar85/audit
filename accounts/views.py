@@ -15,7 +15,7 @@ class ProfileView(LoginRequiredMixin, TemplateView):
         ctx['title'] = 'My Profile'
         user = self.request.user
 
-        audits = Audit.objects.filter(auditor=user)
+        audits = Audit.objects.filter(auditor=user, is_archived=False)
         ctx['audit_count'] = audits.count()
         ctx['submitted_audit_count'] = audits.filter(is_submitted=True).count()
         avg = audits.filter(is_submitted=True).aggregate(avg=Avg('total_percentage'))['avg']
@@ -76,7 +76,7 @@ class UserDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         user_obj = self.object
-        audits = Audit.objects.filter(auditor=user_obj)
+        audits = Audit.objects.filter(auditor=user_obj, is_archived=False)
         ctx['audit_count'] = audits.count()
         ctx['submitted_audit_count'] = audits.filter(is_submitted=True).count()
         avg = audits.filter(is_submitted=True).aggregate(avg=Avg('total_percentage'))['avg']

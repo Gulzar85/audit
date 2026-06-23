@@ -145,6 +145,8 @@ class Audit(BaseModel):
 
     is_submitted = models.BooleanField(default=False)
     submitted_at = models.DateTimeField(null=True, blank=True)
+    is_archived = models.BooleanField(default=False, db_index=True,
+        help_text=_("Soft-delete: mark as archived instead of deleting"))
 
     class Meta:
         verbose_name = _("Audit")

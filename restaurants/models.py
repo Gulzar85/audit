@@ -126,6 +126,9 @@ class Restaurant(BaseModel):
     )
 
     opening_date = models.DateField(null=True, blank=True)
+    is_archived = models.BooleanField(default=False, db_index=True,
+        help_text="Soft-delete: mark as archived instead of deleting")
+
 
     # -------------------------
     # META
@@ -170,19 +173,19 @@ class Restaurant(BaseModel):
     def latest_audit(self) -> Optional['Audit']:
         """Return the most recent submitted audit for this restaurant"""
         from audits.models import Audit
-        return Audit.objects.filter(restaurant=self, is_submitted=True).order_by('-audit_date').first()
+        return Audit.objects.filter(restaurant=self, is_submitted=True, is_archived=False).order_by('-audit_date').first()
 
     @property
     def submitted_audit_count(self) -> int:
         """Return count of submitted audits"""
         from audits.models import Audit
-        return Audit.objects.filter(restaurant=self, is_submitted=True).count()
+        return Audit.objects.filter(restaurant=self, is_submitted=True, is_archived=False).count()
 
     @property
     def submitted_average_score(self) -> Optional[Decimal]:
         """Return average score of submitted audits"""
         from audits.models import Audit
-        result = Audit.objects.filter(restaurant=self, is_submitted=True).aggregate(
+        result = Audit.objects.filter(restaurant=self, is_submitted=True, is_archived=False).aggregate(
             avg_score=models.Avg('total_percentage')
         )
         return result['avg_score']

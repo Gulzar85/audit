@@ -34,7 +34,7 @@ class AuditListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
     def get_queryset(self):
         qs = Audit.objects.select_related(
             'restaurant', 'template', 'auditor'
-        ).all()
+        ).filter(is_archived=False)
 
         user = self.request.user
         if not user.is_superuser:
@@ -112,7 +112,7 @@ class AuditDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
         ).prefetch_related(
             'audit_sections__section',
             'audit_sections__responses__question',
-        )
+        ).filter(is_archived=False)
         user = self.request.user
         if not user.is_superuser:
             qs = qs.filter(
@@ -134,7 +134,7 @@ class AuditScoreView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     fields = []
 
     def get_queryset(self):
-        qs = Audit.objects.all()
+        qs = Audit.objects.filter(is_archived=False)
         user = self.request.user
         if not user.is_superuser:
             qs = qs.filter(
@@ -271,7 +271,7 @@ class AuditResultView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
         ).prefetch_related(
             'audit_sections__section',
             'audit_sections__responses__question',
-        )
+        ).filter(is_archived=False)
         user = self.request.user
         if not user.is_superuser:
             qs = qs.filter(
@@ -297,7 +297,7 @@ class AuditReportPdfView(LoginRequiredMixin, PermissionRequiredMixin, DetailView
             'audit_sections__section',
             'audit_sections__responses__question',
             'corrective_actions',
-        )
+        ).filter(is_archived=False)
         user = self.request.user
         if not user.is_superuser:
             qs = qs.filter(
@@ -377,7 +377,7 @@ class DashboardView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
 
     def _base_qs(self):
         user = self.request.user
-        qs = Audit.objects.all()
+        qs = Audit.objects.filter(is_archived=False)
         if not user.is_superuser:
             qs = qs.filter(
                 Q(auditor=user) |
@@ -555,7 +555,7 @@ class DashboardExportView(LoginRequiredMixin, PermissionRequiredMixin, View):
 
     def get(self, request):
         user = request.user
-        qs = Audit.objects.select_related('restaurant', 'template', 'auditor').all()
+        qs = Audit.objects.select_related('restaurant', 'template', 'auditor').filter(is_archived=False)
         if not user.is_superuser:
             qs = qs.filter(
                 Q(auditor=user) |
@@ -688,7 +688,7 @@ class CorrectiveActionCreateView(LoginRequiredMixin, PermissionRequiredMixin, Cr
         kwargs['user'] = self.request.user
         audit_pk = self.request.GET.get('audit')
         if audit_pk:
-            qs = Audit.objects.all()
+            qs = Audit.objects.filter(is_archived=False)
             user = self.request.user
             if not user.is_superuser:
                 qs = qs.filter(
@@ -772,7 +772,7 @@ class AuditSubmitView(LoginRequiredMixin, PermissionRequiredMixin, View):
     permission_required = 'audits.change_audit'
 
     def _get_audit_or_404(self, request, pk):
-        qs = Audit.objects.all()
+        qs = Audit.objects.filter(is_archived=False)
         user = request.user
         if not user.is_superuser:
             qs = qs.filter(
@@ -801,7 +801,7 @@ class AuditDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View):
     permission_required = 'audits.delete_audit'
 
     def get_queryset(self):
-        qs = Audit.objects.all()
+        qs = Audit.objects.filter(is_archived=False)
         user = self.request.user
         if not user.is_superuser:
             qs = qs.filter(
@@ -894,7 +894,7 @@ class FillRemainingView(LoginRequiredMixin, PermissionRequiredMixin, View):
         if not audit_id:
             return JsonResponse({'success': False, 'message': 'Missing audit_id'}, status=400)
 
-        qs = Audit.objects.all()
+        qs = Audit.objects.filter(is_archived=False)
         user = request.user
         if not user.is_superuser:
             qs = qs.filter(
@@ -944,7 +944,7 @@ class AuditSubmitJSONView(LoginRequiredMixin, PermissionRequiredMixin, View):
     permission_required = 'audits.change_audit'
 
     def post(self, request, pk):
-        qs = Audit.objects.all()
+        qs = Audit.objects.filter(is_archived=False)
         user = request.user
         if not user.is_superuser:
             qs = qs.filter(

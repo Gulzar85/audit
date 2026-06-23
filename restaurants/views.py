@@ -13,7 +13,7 @@ class RestaurantListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
     permission_required = 'restaurants.view_restaurant'
 
     def get_queryset(self):
-        qs = Restaurant.objects.select_related('region').all()
+        qs = Restaurant.objects.select_related('region').filter(is_archived=False)
 
         user = self.request.user
         if not user.is_superuser:
@@ -43,7 +43,7 @@ class RestaurantListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
         ctx['current_filters'] = {
             k: v for k, v in self.request.GET.items() if v
         }
-        ctx['cities'] = Restaurant.objects.values_list('city', flat=True).distinct().order_by('city')
+        ctx['cities'] = Restaurant.objects.filter(is_archived=False).values_list('city', flat=True).distinct().order_by('city')
         return ctx
 
 
@@ -54,7 +54,7 @@ class RestaurantDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailVi
     permission_required = 'restaurants.view_restaurant'
 
     def get_queryset(self):
-        qs = Restaurant.objects.select_related('region').all()
+        qs = Restaurant.objects.select_related('region').filter(is_archived=False)
         user = self.request.user
         if not user.is_superuser:
             qs = qs.filter(pk__in=user.restaurants.values_list('pk', flat=True))
@@ -63,7 +63,7 @@ class RestaurantDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailVi
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         restaurant = self.object
-        audits = restaurant.audits.select_related('template', 'auditor').filter(is_submitted=True).order_by('-audit_date')[:10]
+        audits = restaurant.audits.select_related('template', 'auditor').filter(is_submitted=True, is_archived=False).order_by('-audit_date')[:10]
         ctx['recent_audits'] = audits
         ctx['audit_count'] = restaurant.submitted_audit_count
         ctx['avg_score'] = restaurant.submitted_average_score

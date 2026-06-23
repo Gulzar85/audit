@@ -13,7 +13,7 @@ def sidebar_badges(request):
     if request.user.is_authenticated:
         from audits.models import Audit, CorrectiveAction
         user = request.user
-        qs = Audit.objects.all()
+        qs = Audit.objects.filter(is_archived=False)
         if not user.is_superuser:
             qs = qs.filter(
                 Q(auditor=user) |
