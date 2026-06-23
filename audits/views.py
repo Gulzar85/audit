@@ -1,5 +1,6 @@
 import csv
 import json
+import logging
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
@@ -18,6 +19,9 @@ from core.models import Notification
 from .forms import AuditForm, AuditScoreForm, CorrectiveActionForm
 from .utils import notify_restaurant_users, notify_auditor_and_manager
 from .models import Audit, AuditTemplate, AuditSection, AuditQuestionResponse, CorrectiveAction
+
+logger = logging.getLogger(__name__)
+
 
 
 class AuditListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
@@ -91,6 +95,7 @@ class AuditCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
 
     def form_valid(self, form):
         self.object = form.save()
+        logger.info('Audit %s created for %s by %s', self.object.pk, self.object.restaurant, self.request.user)
         messages.success(self.request, 'Audit created successfully.')
         return redirect('audits:score', pk=self.object.pk)
 
@@ -227,6 +232,7 @@ class AuditScoreView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
             audit.calculate_totals()
             audit.is_submitted = True
             audit.save()
+            logger.info('Audit %s submitted via score form — grade %s (%.1f%%)', audit.pk, audit.get_grade_display(), audit.total_percentage)
             if audit.auditor:
                 Notification.objects.create(
                     recipient=audit.auditor,
@@ -696,6 +702,12 @@ class CorrectiveActionCreateView(LoginRequiredMixin, PermissionRequiredMixin, Cr
         ctx['title'] = 'Create Corrective Action'
         return ctx
 
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        logger.info('CorrectiveAction %s created by %s', self.object.pk, self.request.user)
+        messages.success(self.request, 'Corrective action created successfully.')
+        return response
+
     def get_success_url(self):
         return reverse('audits:corrective_actions')
 
@@ -726,6 +738,7 @@ class CorrectiveActionUpdateView(LoginRequiredMixin, PermissionRequiredMixin, Up
         return ctx
 
     def form_valid(self, form):
+        logger.info('CorrectiveAction %s updated by %s', form.instance.pk, self.request.user)
         messages.success(self.request, 'Corrective action updated successfully.')
         return super().form_valid(form)
 
@@ -746,6 +759,7 @@ class CorrectiveActionDeleteView(LoginRequiredMixin, PermissionRequiredMixin, Vi
     def post(self, request, pk):
         qs = self.get_queryset()
         action = get_object_or_404(qs, pk=pk)
+        logger.info('CorrectiveAction %s deleted by %s', pk, request.user)
         action.delete()
         messages.success(request, 'Corrective action deleted.')
         return redirect('audits:corrective_actions')
