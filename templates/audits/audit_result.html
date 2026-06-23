@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+{% load audit_filters %}
+
+{% block title %}{{ business_info.company_name }} — Audit Results: {{ audit.restaurant.name }}{% endblock %}
+{% block page_title %}{{ audit.restaurant.name }} — Results{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-8">
+    <div class="relative overflow-hidden rounded-2xl bg-gradient-dark">
+        <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50"></div>
+        <div class="absolute top-0 right-0 w-96 h-96 rounded-full bg-gradient-gold opacity-[0.04] blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+        <div class="px-6 sm:px-8 py-6 sm:py-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 relative">
+            <div class="text-white">
+                <div class="flex items-center gap-3 text-white/70 text-sm font-semibold mb-2">
+                    <i data-lucide="clipboard-check" class="w-4 h-4"></i><span>Audit Report</span>
+                    {% if audit.is_submitted %}<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-400/25 text-emerald-100 text-xs font-bold border border-emerald-300/30"><i data-lucide="check-circle" class="w-3 h-3"></i> Submitted {{ audit.submitted_at|date:"M d, Y" }}</span>{% else %}<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/25 text-amber-100 text-xs font-bold border border-amber-300/30"><i data-lucide="clock" class="w-3 h-3"></i> Draft</span>{% endif %}
+                </div>
+                <h1 class="text-4xl font-extrabold mb-1">{{ audit.restaurant.name }}</h1>
+                <p class="text-sm text-white/70 mb-1"><span class="font-mono font-bold text-white/90">#{{ audit.restaurant.code }}</span></p>
+                <p class="text-base text-white/80">Audited by <strong>{{ audit.auditor.get_full_name|default:audit.auditor.username }}</strong> on <strong>{{ audit.audit_date|date:"F d, Y" }}</strong></p>
+            </div>
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+                <a href="{% url 'audits:result_pdf' audit.pk %}" class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-gold text-accent font-extrabold hover:shadow-xl hover:shadow-yellow-500/30 transition-all duration-200"><i data-lucide="file-down" class="w-4 h-4"></i> Download PDF</a>
+                <a href="{% url 'audits:list' %}" class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white/15 text-white hover:bg-white/25 font-bold transition-all duration-200 border-2 border-white/30"><i data-lucide="arrow-left" class="w-4 h-4"></i> All Audits</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="group relative bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-lg hover:border-yellow-300/50 transition-all duration-200 overflow-hidden gold-card">
+            <div class="absolute top-0 right-0 w-32 h-32 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-300 {% if audit.grade == 'A' %}bg-emerald-100{% elif audit.grade == 'B' %}bg-blue-100{% elif audit.grade == 'C' %}bg-amber-100{% else %}bg-red-100{% endif %}"></div>
+            <div class="relative z-10">
+                <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-3">Grade</p>
+                <div class="flex items-center gap-4">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl text-3xl font-bold text-white {% if audit.grade == 'A' %}bg-emerald-500{% elif audit.grade == 'B' %}bg-blue-500{% elif audit.grade == 'C' %}bg-amber-500{% else %}bg-red-500{% endif %}"><i data-lucide="{% if audit.grade == 'A' %}check-circle-2{% elif audit.grade == 'B' %}trending-up{% elif audit.grade == 'C' %}alert-triangle{% else %}x-circle{% endif %}" class="w-8 h-8"></i></div>
+                    <div><p class="text-5xl font-extrabold {% if audit.grade == 'A' %}text-emerald-600{% elif audit.grade == 'B' %}text-blue-600{% elif audit.grade == 'C' %}text-amber-600{% else %}text-red-600{% endif %}">{{ audit.grade|default:'—' }}</p><p class="text-xs text-gray-500 font-bold mt-1">{{ audit.get_grade_display|default:'Not graded' }}</p></div>
+                </div>
+            </div>
+        </div>
+        <div class="group relative bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-lg hover:border-yellow-300/50 transition-all duration-200 overflow-hidden gold-card">
+            <div class="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-blue-100 to-blue-50 rounded-full -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-300"></div>
+            <div class="relative z-10"><p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-3">Overall Score</p><p class="text-5xl font-extrabold {% if audit.total_percentage >= 90 %}text-emerald-600{% elif audit.total_percentage >= 80 %}text-amber-600{% elif audit.total_percentage >= 70 %}text-orange-600{% else %}text-red-600{% endif %}">{{ audit.total_percentage|floatformat:1 }}<span class="text-2xl">%</span></p><p class="text-xs text-gray-500 mt-2">{{ audit.total_scored|floatformat:0 }}/{{ audit.total_possible|floatformat:0 }} Points</p></div>
+        </div>
+        <div class="group relative bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-lg hover:border-yellow-300/50 transition-all duration-200 overflow-hidden gold-card">
+            <div class="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-red-100 to-red-50 rounded-full -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-300"></div>
+            <div class="relative z-10"><p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-3">Critical Issues</p><p class="text-5xl font-extrabold {% if audit.has_critical_failure %}text-red-600{% else %}text-emerald-600{% endif %}">{% if audit.has_critical_failure %}<i data-lucide="alert-circle" class="w-10 h-10 inline"></i>{% else %}<i data-lucide="check-circle-2" class="w-10 h-10 inline"></i>{% endif %}</p><p class="text-xs text-gray-500 mt-2">{% if audit.has_critical_failure %}Attention Needed{% else %}All Clear{% endif %}</p></div>
+        </div>
+        <div class="group relative bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-lg hover:border-yellow-300/50 transition-all duration-200 overflow-hidden gold-card">
+            <div class="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-purple-100 to-purple-50 rounded-full -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-300"></div>
+            <div class="relative z-10"><p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-3">Sections</p><p class="text-5xl font-extrabold text-gray-700">{{ audit.audit_sections.count }}</p><p class="text-xs text-gray-500 mt-2">Total Sections</p></div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="lg:col-span-2 space-y-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden gold-card">
+                <div class="px-6 py-5 bg-gradient-primary-h flex items-center justify-between"><h3 class="text-white font-bold text-lg flex items-center gap-2"><i data-lucide="layers" class="w-5 h-5"></i> Section-wise Results</h3><span class="text-sm font-bold bg-white/20 text-white px-3 py-1 rounded-full">{{ audit.audit_sections.count }} sections</span></div>
+                <div class="p-6 space-y-4">
+                    {% for sec in audit.audit_sections.all %}
+                    <div class="group border-2 border-gray-200 rounded-2xl overflow-hidden hover:border-yellow-300/50 hover:shadow-lg transition-all duration-200">
+                        <div class="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-gray-50 to-gray-100/50 border-b-2 border-gray-200">
+                            <div class="flex items-center gap-4 min-w-0 flex-1">
+                                {% if sec.has_critical_failure %}<div class="w-3 h-3 rounded-full bg-red-500 ring-2 ring-red-200 shrink-0"></div>{% elif sec.section_percentage >= 90 %}<div class="w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-emerald-200 shrink-0"></div>{% elif sec.section_percentage >= 80 %}<div class="w-3 h-3 rounded-full bg-amber-500 ring-2 ring-amber-200 shrink-0"></div>{% else %}<div class="w-3 h-3 rounded-full bg-orange-500 ring-2 ring-orange-200 shrink-0"></div>{% endif %}
+                                <h4 class="font-bold text-base text-gray-900 truncate">{{ sec.section.name }}</h4>
+                            </div>
+                            <div class="flex items-center gap-3 shrink-0">
+                                <span class="text-sm font-bold text-gray-600">{{ sec.scored_points|floatformat:1 }}/{{ sec.possible_points|floatformat:1 }}</span>
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-extrabold {% if sec.section_percentage >= 90 %}bg-emerald-100 text-emerald-800{% elif sec.section_percentage >= 80 %}bg-amber-100 text-amber-800{% elif sec.section_percentage >= 70 %}bg-orange-100 text-orange-800{% else %}bg-red-100 text-red-800{% endif %}">{{ sec.section_percentage|floatformat:1 }}%</span>
+                                {% if sec.has_critical_failure %}<span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800"><i data-lucide="alert-triangle" class="w-3 h-3"></i> Critical</span>{% endif %}
+                            </div>
+                        </div>
+                        <div class="px-5 py-3 bg-white border-b-2 border-gray-100"><div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden"><div class="h-full rounded-full transition-all duration-700 {% if sec.section_percentage >= 90 %}bg-gradient-to-r from-emerald-400 to-emerald-500{% elif sec.section_percentage >= 80 %}bg-gradient-to-r from-amber-400 to-amber-500{% elif sec.section_percentage >= 70 %}bg-gradient-to-r from-orange-400 to-orange-500{% else %}bg-gradient-to-r from-red-400 to-red-500{% endif %}" style="width: {{ sec.section_percentage|floatformat:1 }}%"></div></div></div>
+                        <div class="px-5 py-4 space-y-4">
+                            {% if sec.section.description %}<p class="text-sm text-gray-600 leading-relaxed">{{ sec.section.description }}</p>{% endif %}
+                            {% if sec.has_critical_failure %}<div class="flex items-start gap-3 px-4 py-3 rounded-xl bg-red-50 border-l-4 border-red-500"><i data-lucide="alert-triangle" class="w-5 h-5 text-red-600 shrink-0 mt-0.5"></i><div><p class="font-bold text-red-900 text-sm">Critical Failure Detected</p><p class="text-xs text-red-700 mt-1">This section contains critical failures requiring immediate corrective action.</p></div></div>{% endif %}
+                            <div class="space-y-2">
+                                {% for resp in sec.responses.all %}{% if resp.is_answered %}
+                                <div class="p-3 rounded-xl border-2 transition-all duration-200 {% if resp.question.is_critical and resp.scored_points == 0 and not resp.is_na %}border-red-300 bg-red-50{% elif resp.question.is_critical %}border-amber-300 bg-amber-50{% else %}border-gray-200 bg-gray-50{% endif %}">
+                                    <div class="flex items-start justify-between gap-3">
+                                        <div class="min-w-0 flex-1">
+                                            <div class="flex items-center gap-2 flex-wrap mb-1"><span class="text-sm font-bold text-gray-900">{{ resp.question.question_text }}</span>{% if resp.question.is_critical %}<span class="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-bold {% if resp.scored_points == 0 and not resp.is_na %}bg-gray-800 text-white{% else %}bg-red-100 text-red-800{% endif %}">Critical</span>{% endif %}{% if resp.is_na %}<span class="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-bold bg-gray-200 text-gray-600">N/A</span>{% endif %}</div>
+                                            {% if resp.comments %}<p class="text-xs text-gray-600 mt-1"><strong>Notes:</strong> {{ resp.comments }}</p>{% endif %}
+                                        </div>
+                                        {% if resp.is_na %}<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-gray-200 text-gray-500 shrink-0">&mdash;</span>{% else %}<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-extrabold shrink-0 {% if resp.scored_points == resp.question.possible_points %}bg-emerald-100 text-emerald-800{% elif resp.scored_points > 0 %}bg-amber-100 text-amber-800{% else %}bg-red-100 text-red-800{% endif %}">{{ resp.scored_points|floatformat:0 }}/{{ resp.question.possible_points }}</span>{% endif %}
+                                    </div>
+                                    {% if resp.needs_corrective_action %}<div class="mt-2"><span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-bold bg-orange-100 text-orange-800"><i data-lucide="refresh-cw" class="w-3 h-3"></i> Action Required</span></div>{% endif %}
+                                </div>
+                                {% endif %}{% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="space-y-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden gold-card">
+                <div class="px-6 py-5 bg-gradient-primary-h"><h3 class="text-white font-bold text-lg flex items-center gap-2"><i data-lucide="info" class="w-5 h-5"></i> Audit Details</h3></div>
+                <div class="p-6 space-y-4 text-sm">
+                    <div class="flex justify-between items-start gap-2"><span class="text-gray-600 font-bold">Restaurant</span><span class="text-gray-900 font-bold text-right">{{ audit.restaurant.name }} <span class="text-sm font-mono text-gray-500">#{{ audit.restaurant.code }}</span></span></div>
+                    <div class="h-px bg-gray-100"></div>
+                    <div class="flex justify-between items-start gap-2"><span class="text-gray-600 font-bold">Audit Date</span><span class="text-gray-900 font-bold">{{ audit.audit_date|date:"M d, Y" }}</span></div>
+                    <div class="h-px bg-gray-100"></div>
+                    <div class="flex justify-between items-start gap-2"><span class="text-gray-600 font-bold">Manager</span><span class="text-gray-900 font-bold text-right">{{ audit.manager_on_duty }}</span></div>
+                    <div class="h-px bg-gray-100"></div>
+                    <div class="flex justify-between items-start gap-2"><span class="text-gray-600 font-bold">Auditor</span><span class="text-gray-900 font-bold text-right">{{ audit.auditor.get_full_name|default:audit.auditor.username }}</span></div>
+                    <div class="h-px bg-gray-100"></div>
+                    <div class="flex justify-between items-start gap-2"><span class="text-gray-600 font-bold">Checklist</span><span class="text-gray-900 font-bold text-right">{{ audit.template.name }} <span class="text-gray-500">v{{ audit.template.version }}</span></span></div>
+                    {% if audit.is_submitted %}<div class="h-px bg-gray-100"></div><div class="flex justify-between items-start gap-2"><span class="text-gray-600 font-bold">Submitted</span><span class="text-gray-900 font-bold">{{ audit.submitted_at|date:"M d, Y" }}</span></div>{% endif %}
+                    <div class="h-px bg-gray-100"></div>
+                    <div class="pt-2"><p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-2">Total Score</p><div class="flex items-center justify-between gap-3 mb-2"><p class="text-3xl font-extrabold {% if audit.total_percentage >= 90 %}text-emerald-600{% elif audit.total_percentage >= 80 %}text-amber-600{% elif audit.total_percentage >= 70 %}text-orange-600{% else %}text-red-600{% endif %}">{{ audit.total_percentage|floatformat:1 }}%</p></div><div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden"><div class="h-full rounded-full transition-all duration-700 {% if audit.total_percentage >= 90 %}bg-gradient-to-r from-emerald-400 to-emerald-500{% elif audit.total_percentage >= 80 %}bg-gradient-to-r from-amber-400 to-amber-500{% elif audit.total_percentage >= 70 %}bg-gradient-to-r from-orange-400 to-orange-500{% else %}bg-gradient-to-r from-red-400 to-red-500{% endif %}" style="width: {{ audit.total_percentage|floatformat:1 }}%"></div></div></div>
+                </div>
+            </div>
+
+            {% with prev=audit.previous_audit %}
+            {% if prev %}
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden gold-card">
+                <div class="px-6 py-5 bg-gradient-primary-h"><h3 class="text-white font-bold text-lg flex items-center gap-2"><i data-lucide="trending-up" class="w-5 h-5"></i> Trend Comparison</h3></div>
+                <div class="p-6 space-y-4">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="text-center p-4 rounded-xl bg-gray-50 border-2 border-gray-200"><p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Previous</p><p class="text-xs text-gray-600 mb-2">{{ prev.audit_date|date:"M d, Y" }}</p><p class="text-3xl font-extrabold text-gray-700">{{ prev.total_percentage|floatformat:1 }}%</p></div>
+                        <div class="text-center p-4 rounded-xl {% if audit.total_percentage >= prev.total_percentage %}bg-emerald-50 border-2 border-emerald-200{% else %}bg-red-50 border-2 border-red-200{% endif %}"><p class="text-[10px] font-bold uppercase tracking-widest {% if audit.total_percentage >= prev.total_percentage %}text-emerald-600{% else %}text-red-600{% endif %} mb-1">Current</p><p class="text-xs text-gray-600 mb-2">{{ audit.audit_date|date:"M d, Y" }}</p><p class="text-3xl font-extrabold {% if audit.total_percentage >= prev.total_percentage %}text-emerald-600{% else %}text-red-600{% endif %}">{{ audit.total_percentage|floatformat:1 }}%</p></div>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-500 font-bold"><span>Previous: {{ prev.total_percentage|floatformat:1 }}%</span><span>Change: <span class="{% if audit.total_percentage >= prev.total_percentage %}text-emerald-600 font-bold{% else %}text-red-600 font-bold{% endif %}">{{ audit.total_percentage|subtract:prev.total_percentage|floatformat:1 }}%</span></span></div>
+                </div>
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden gold-card">
+                <div class="px-6 py-5 bg-gradient-primary-h"><h3 class="text-white font-bold text-lg flex items-center gap-2"><i data-lucide="zap" class="w-5 h-5"></i> Quick Actions</h3></div>
+                <div class="p-6 space-y-3">
+                    <a href="{% url 'audits:detail' audit.pk %}" class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl border-2 border-gray-200 text-gray-700 hover:bg-gray-50 font-bold transition-all duration-200"><i data-lucide="eye" class="w-4 h-4"></i> Full Details</a>
+                    {% if perms.audits.add_correctiveaction %}<a href="{% url 'audits:corrective_action_create' %}?audit={{ audit.pk }}" class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-gold text-accent font-extrabold hover:shadow-xl hover:shadow-yellow-500/30 transition-all duration-200"><i data-lucide="plus-circle" class="w-4 h-4"></i> Add Corrective Action</a>{% endif %}
+                    <a href="{% url 'audits:list' %}" class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl border-2 border-gray-200 text-gray-700 hover:bg-gray-50 font-bold transition-all duration-200"><i data-lucide="arrow-left" class="w-4 h-4"></i> Back to List</a>
+                    <a href="{% url 'audits:dashboard' %}" class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl border-2 border-gray-200 text-gray-700 hover:bg-gray-50 font-bold transition-all duration-200"><i data-lucide="home" class="w-4 h-4"></i> Dashboard</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden gold-card">
+        <div class="px-6 py-5 bg-gradient-primary-h flex items-center justify-between"><h3 class="text-white font-bold text-lg flex items-center gap-2"><i data-lucide="alert-triangle" class="w-5 h-5"></i> Corrective Actions</h3><span class="text-sm font-bold bg-white/20 text-white px-3 py-1 rounded-full">{{ audit.corrective_actions.count }} total</span></div>
+        <div class="p-6">
+            {% if audit.has_critical_failure %}
+            <div class="flex items-start gap-4 px-5 py-4 rounded-xl bg-red-50 border-l-4 border-red-500 mb-6"><i data-lucide="alert-circle" class="w-5 h-5 text-red-600 shrink-0 mt-0.5"></i><div class="flex-1"><h4 class="font-bold text-red-900 text-sm mb-2">Critical Failures Found</h4><ul class="text-sm space-y-1 list-disc list-inside text-red-800">{% for sec in audit.audit_sections.all %}{% for resp in sec.responses.all %}{% if resp.is_answered and resp.question.is_critical and resp.scored_points == 0 and not resp.is_na %}<li><strong>{{ resp.question.question_text }}</strong>{% if resp.comments %} &mdash; <em>{{ resp.comments }}</em>{% endif %}</li>{% endif %}{% endfor %}{% endfor %}</ul></div></div>
+            {% else %}<div class="flex items-center gap-3 px-5 py-4 rounded-xl bg-emerald-50 border-l-4 border-emerald-500 mb-6"><i data-lucide="check-circle" class="w-5 h-5 text-emerald-600 shrink-0"></i><p class="text-sm text-emerald-800 font-bold">No critical failures found. Excellent work!</p></div>{% endif %}
+            {% if audit.corrective_actions.exists %}
+            <div class="border-2 border-gray-200 rounded-2xl overflow-hidden">
+                <div class="bg-gray-50 px-5 py-3 border-b-2 border-gray-200"><p class="text-sm font-bold text-gray-800">Items Requiring Corrective Action</p></div>
+                <div class="divide-y-2 divide-gray-100">
+                    {% for action in audit.corrective_actions.all %}
+                    <div class="flex items-start justify-between gap-3 px-5 py-4 hover:bg-gray-50/50 transition-colors">
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-2 flex-wrap mb-1">
+                                <span class="text-sm font-bold text-gray-900">{{ action.description|truncatewords:20 }}</span>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-bold {% if action.risk_level == 'CRITICAL' %}bg-red-100 text-red-800{% elif action.risk_level == 'HIGH' %}bg-orange-100 text-orange-800{% elif action.risk_level == 'MEDIUM' %}bg-amber-100 text-amber-800{% else %}bg-green-100 text-green-800{% endif %}">{{ action.get_risk_level_display }}</span>
+                                {% if action.completed %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold bg-green-100 text-green-800"><i data-lucide="check" class="w-3 h-3"></i> Completed</span>{% elif action.is_overdue %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold bg-red-100 text-red-800"><i data-lucide="clock" class="w-3 h-3"></i> Overdue</span>{% endif %}
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Assigned to: {{ action.assigned_to.get_full_name|default:action.assigned_to.username|default:'Unassigned' }} &middot; Due: {{ action.deadline|date:"M d, Y" }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}<div class="text-center py-8"><i data-lucide="check-circle-2" class="w-12 h-12 mx-auto mb-3 text-gray-300"></i><p class="text-base font-bold text-gray-600">No corrective actions required at this time.</p></div>{% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

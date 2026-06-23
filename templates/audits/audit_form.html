@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ business_info.company_name }} — {{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+  <div class="lg:col-span-2">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden gold-card">
+      <div class="px-6 py-4 bg-gradient-primary-h flex items-center gap-2">
+        <i data-lucide="file-text" class="w-4 h-4 text-white"></i>
+        <h3 class="text-white font-bold">Audit Details</h3>
+      </div>
+      <div class="p-6">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          {% crispy form %}
+
+          <div class="flex items-center gap-3 mt-8 pt-6 border-t border-gray-200">
+            <button type="submit" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-primary text-white text-sm font-bold hover:shadow-2xl hover:shadow-primary transition-all duration-300 shadow-lg shadow-primary">
+              <i data-lucide="play" class="h-4 w-4"></i> Start Audit
+            </button>
+            <a href="{% url 'audits:list' %}" class="inline-flex items-center gap-2 px-5 py-3 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
+              <i data-lucide="x" class="h-4 w-4"></i> Cancel
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="space-y-4">
+    <div class="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200 p-5 gold-card">
+      <h3 class="flex items-center gap-2 text-sm font-bold text-gray-700 mb-3">
+        <div class="w-6 h-6 rounded-lg bg-gradient-primary flex items-center justify-center"><i data-lucide="info" class="w-3.5 h-3.5 text-white"></i></div>
+        About Audit Creation
+      </h3>
+      <ul class="space-y-3 text-xs text-gray-500">
+        <li class="flex items-start gap-2.5"><i data-lucide="check-circle" class="h-4 w-4 text-emerald-500 mt-0.5 shrink-0"></i> Select a <strong>template</strong> to define which sections and questions are evaluated.</li>
+        <li class="flex items-start gap-2.5"><i data-lucide="check-circle" class="h-4 w-4 text-emerald-500 mt-0.5 shrink-0"></i> Choose the <strong>restaurant</strong> being audited.</li>
+        <li class="flex items-start gap-2.5"><i data-lucide="check-circle" class="h-4 w-4 text-emerald-500 mt-0.5 shrink-0"></i> Assign an <strong>auditor</strong> and optional <strong>manager on duty</strong>.</li>
+        <li class="flex items-start gap-2.5"><i data-lucide="check-circle" class="h-4 w-4 text-emerald-500 mt-0.5 shrink-0"></i> All section rows and question responses are created automatically.</li>
+      </ul>
+    </div>
+    <div class="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200 p-5 gold-card">
+      <h3 class="flex items-center gap-2 text-sm font-bold text-gray-700 mb-3">
+        <div class="w-6 h-6 rounded-lg bg-gradient-gold flex items-center justify-center"><i data-lucide="shield" class="w-3.5 h-3.5 text-accent"></i></div>
+        Scoring Tip
+      </h3>
+      <p class="text-xs text-gray-500 leading-relaxed">Enter scores per question on the scoring page. Each has a <strong>max point</strong> defined by the template. Use <strong>N/A</strong> to exclude a question. Scores are automatically tallied across sections.</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

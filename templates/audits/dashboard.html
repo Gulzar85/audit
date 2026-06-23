@@ -1,0 +1,627 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ business_info.company_name }} — Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+{% endblock %}
+
+{% block content %}
+<div x-data="{ activeTab: 'overview' }" class="max-w-7xl mx-auto space-y-6 animate-fade-in">
+
+  <!-- ===== HERO ===== -->
+  <div class="relative overflow-hidden rounded-2xl bg-gradient-dark p-6 sm:p-8">
+    <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50"></div>
+    <div class="absolute top-0 right-0 w-96 h-96 rounded-full bg-gradient-gold opacity-[0.04] blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+    <div class="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+      <div class="flex-1">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-white/10 text-white/70 border border-white/10">
+            <i data-lucide="calendar" class="w-3 h-3"></i> {% now "l, F j, Y" %}
+          </span>
+          {% if overdue_ca > 0 %}
+          <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-500/20 text-red-300 border border-red-500/20">
+            <i data-lucide="alert-circle" class="w-3 h-3"></i> {{ overdue_ca }} overdue
+          </span>
+          {% endif %}
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-white font-display">{{ business_info.company_name }}</h1>
+        <p class="text-white/60 text-sm mt-1 max-w-xl">Audit performance overview — track scores, trends, and corrective actions across all restaurants.</p>
+        <div class="flex flex-wrap items-center gap-2 mt-4">
+          {% if perms.audits.add_audit %}
+          <a href="{% url 'audits:create' %}" class="px-4 py-2.5 rounded-xl bg-gradient-gold text-accent text-sm font-bold hover:shadow-xl hover:shadow-yellow-500/20 transition-all duration-300 flex items-center gap-2 active:scale-[0.97]">
+            <i data-lucide="plus" class="w-4 h-4"></i> New Audit
+          </a>
+          {% endif %}
+          {% if perms.audits.view_audit %}
+          <a href="{% url 'audits:list' %}" class="px-4 py-2.5 rounded-xl bg-white/10 text-white text-sm font-semibold hover:bg-white/20 transition-all flex items-center gap-2 border border-white/10">
+            <i data-lucide="list" class="w-4 h-4"></i> All Audits
+          </a>
+          {% endif %}
+          {% if perms.audits.view_correctiveaction %}
+          <a href="{% url 'audits:corrective_actions' %}" class="px-4 py-2 rounded-xl bg-white/10 text-white text-sm font-semibold hover:bg-white/20 transition-all flex items-center gap-2 border border-white/10">
+            <i data-lucide="alert-triangle" class="w-4 h-4"></i> Actions
+            {% if open_ca > 0 %}<span class="w-5 h-5 rounded-full bg-amber-400 text-[10px] font-extrabold text-accent flex items-center justify-center">{{ open_ca }}</span>{% endif %}
+          </a>
+          {% endif %}
+        </div>
+      </div>
+      <div class="flex items-center gap-5 shrink-0">
+        <div class="text-center">
+          <div class="w-36 h-36 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/10 flex flex-col items-center justify-center shadow-xl">
+            <span class="text-3xl sm:text-4xl font-black text-white">{{ avg_score }}%</span>
+            <span class="text-[10px] font-bold text-white/50 uppercase tracking-wider mt-0.5">Avg Score</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TEMPLATE FILTER BAR ===== -->
+  <div class="bg-white/90 dark:bg-gray-800/90 rounded-xl border border-gray-200/60 dark:border-gray-700/60 p-4 gold-card">
+    <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+      <div class="flex items-center gap-2 shrink-0">
+        <i data-lucide="file-text" class="w-4 h-4 text-gray-400"></i>
+        <span class="text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Template</span>
+      </div>
+      <div class="flex-1 flex flex-col sm:flex-row sm:items-center gap-3">
+        <select onchange="if(this.value) window.location.href='?template=' + this.value; else window.location.href='.';"
+                class="w-full sm:w-64 px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 text-sm focus:border-primary focus:ring-2 focus:ring-primary outline-none transition-all bg-gray-50/50 dark:bg-gray-700/50 dark:text-gray-200 font-semibold">
+          <option value="">All Templates</option>
+          {% for t in templates %}
+          <option value="{{ t.id }}"{% if selected_template == t.id %} selected{% endif %}>{{ t.name }}</option>
+          {% endfor %}
+        </select>
+        {% if selected_template %}
+        <a href="." class="inline-flex items-center gap-1.5 text-xs font-bold text-primary dark:text-secondary hover:underline shrink-0">
+          <i data-lucide="x" class="w-3.5 h-3.5"></i> Clear filter
+        </a>
+        <span class="text-xs text-gray-500 dark:text-gray-400">
+          Showing stats for <strong class="text-gray-700 dark:text-gray-200">{{ selected_template_name }}</strong>
+        </span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== STATS ===== -->
+  <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+    <div class="bg-white/90 dark:bg-gray-800/90 rounded-xl border border-gray-200/60 dark:border-gray-700/60 p-4 gold-card">
+      <div class="flex items-center justify-between mb-1.5">
+        <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">Total Audits</p>
+        <div class="w-7 h-7 rounded-lg bg-gradient-primary flex items-center justify-center shadow-sm"><i data-lucide="clipboard-check" class="w-3.5 h-3.5 text-white"></i></div>
+      </div>
+      <p class="text-2xl font-extrabold text-gray-900 dark:text-white">{{ total_audits }}</p>
+    </div>
+    <div class="bg-white/90 dark:bg-gray-800/90 rounded-xl border border-gray-200/60 dark:border-gray-700/60 p-4 gold-card">
+      <div class="flex items-center justify-between mb-1.5">
+        <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">Submitted</p>
+        <div class="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center shadow-sm"><i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400"></i></div>
+      </div>
+      <p class="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">{{ submitted_audits }}</p>
+      {% if total_audits %}
+      <div class="mt-1.5 w-full h-1 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+        <div class="h-full bg-emerald-500 rounded-full" style="width:{% widthratio submitted_audits total_audits 100 %}%"></div>
+      </div>
+      {% endif %}
+    </div>
+    <div class="bg-white/90 dark:bg-gray-800/90 rounded-xl border border-gray-200/60 dark:border-gray-700/60 p-4 gold-card">
+      <div class="flex items-center justify-between mb-1.5">
+        <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">Drafts</p>
+        <div class="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center shadow-sm"><i data-lucide="clock" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400"></i></div>
+      </div>
+      <p class="text-2xl font-extrabold text-amber-600 dark:text-amber-400">{{ draft_audits }}</p>
+    </div>
+    <div class="bg-white/90 dark:bg-gray-800/90 rounded-xl border border-gray-200/60 dark:border-gray-700/60 p-4 gold-card">
+      <div class="flex items-center justify-between mb-1.5">
+        <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">Avg Score</p>
+        <div class="w-7 h-7 rounded-lg flex items-center justify-center shadow-sm {% if avg_score >= 90 %}bg-emerald-100 dark:bg-emerald-900/40{% elif avg_score >= 80 %}bg-amber-100 dark:bg-amber-900/40{% else %}bg-red-100 dark:bg-red-900/40{% endif %}"><i data-lucide="trending-up" class="w-3.5 h-3.5 {% if avg_score >= 90 %}text-emerald-600 dark:text-emerald-400{% elif avg_score >= 80 %}text-amber-600 dark:text-amber-400{% else %}text-red-600 dark:text-red-400{% endif %}"></i></div>
+      </div>
+      <p class="text-2xl font-extrabold {% if avg_score >= 90 %}text-emerald-600 dark:text-emerald-400{% elif avg_score >= 80 %}text-amber-600 dark:text-amber-400{% else %}text-red-600 dark:text-red-400{% endif %}">{{ avg_score }}%</p>
+    </div>
+    <div class="bg-white/90 dark:bg-gray-800/90 rounded-xl border border-gray-200/60 dark:border-gray-700/60 p-4 gold-card">
+      <div class="flex items-center justify-between mb-1.5">
+        <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">Open Actions</p>
+        <div class="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center shadow-sm"><i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400"></i></div>
+      </div>
+      <p class="text-2xl font-extrabold {% if open_ca > 0 %}text-amber-600 dark:text-amber-400{% else %}text-emerald-600 dark:text-emerald-400{% endif %}">{{ open_ca }}</p>
+    </div>
+    <div class="bg-white/90 dark:bg-gray-800/90 rounded-xl border border-gray-200/60 dark:border-gray-700/60 p-4 gold-card">
+      <div class="flex items-center justify-between mb-1.5">
+        <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">Overdue</p>
+        <div class="w-7 h-7 rounded-lg bg-red-100 dark:bg-red-900/40 flex items-center justify-center shadow-sm"><i data-lucide="alert-circle" class="w-3.5 h-3.5 text-red-600 dark:text-red-400"></i></div>
+      </div>
+      <p class="text-2xl font-extrabold {% if overdue_ca > 0 %}text-red-600 dark:text-red-400{% else %}text-emerald-600 dark:text-emerald-400{% endif %}">{{ overdue_ca }}</p>
+    </div>
+  </div>
+
+  <!-- ===== CHARTS ROW 1 ===== -->
+  <div>
+    <div class="flex items-center gap-2 mb-3">
+      <div class="w-1 h-5 bg-gradient-gold rounded-full"></div>
+      <h2 class="text-sm font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider">Performance Overview</h2>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
+      <!-- Score Trend -->
+      <div class="lg:col-span-2 bg-white/90 dark:bg-gray-800/90 rounded-xl border border-gray-200/60 dark:border-gray-700/60 p-5 gold-card">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-xs font-bold text-gray-600 dark:text-gray-300 flex items-center gap-2 uppercase tracking-wider">
+            <div class="w-6 h-6 rounded-lg bg-gradient-primary flex items-center justify-center"><i data-lucide="trending-up" class="w-3 h-3 text-white"></i></div>
+            Score Trend
+          </h3>
+          {% if score_trends %}<span class="text-[10px] font-semibold text-gray-400">Last 6 months</span>{% endif %}
+        </div>
+        {% if score_trends %}
+        <div id="scoreTrendChart" class="h-[200px]"></div>
+        {% else %}
+        <div class="flex flex-col items-center justify-center h-[200px] text-gray-400">
+          <i data-lucide="bar-chart-3" class="w-10 h-10 mb-2 text-gray-200 dark:text-gray-600"></i>
+          <p class="text-sm font-semibold">No trend data yet</p>
+          <p class="text-xs">Submit audits to see your score trend</p>
+        </div>
+        {% endif %}
+      </div>
+      <!-- Grade Donut -->
+      <div class="bg-white/90 dark:bg-gray-800/90 rounded-xl border border-gray-200/60 dark:border-gray-700/60 p-5 gold-card">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-xs font-bold text-gray-600 dark:text-gray-300 flex items-center gap-2 uppercase tracking-wider">
+            <div class="w-6 h-6 rounded-lg bg-gradient-gold flex items-center justify-center"><i data-lucide="pie-chart" class="w-3 h-3 text-accent"></i></div>
+            Grade Distribution
+          </h3>
+        </div>
+        {% if grade_distribution %}
+        <div id="gradeDonutChart" class="h-[180px]"></div>
+        <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 mt-2 px-2">
+          {% for grade, data in grade_distribution.items %}
+          <div class="flex items-center gap-1.5 text-[11px]">
+            <span class="w-2.5 h-2.5 rounded-sm {% if grade == 'A' %}bg-emerald-500{% elif grade == 'B' %}bg-blue-500{% elif grade == 'C' %}bg-amber-500{% elif grade == 'D' %}bg-orange-500{% else %}bg-red-500{% endif %}"></span>
+            <span class="font-semibold text-gray-600 dark:text-gray-400">Grade {{ grade }}</span>
+            <span class="font-bold text-gray-800 dark:text-gray-200">{{ data.count }}</span>
+            <span class="text-gray-400 dark:text-gray-500">({{ data.pct }}%)</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="flex flex-col items-center justify-center h-[200px] text-gray-400">
+          <i data-lucide="pie-chart" class="w-10 h-10 mb-2 text-gray-200 dark:text-gray-600"></i>
+          <p class="text-sm font-semibold">No grades yet</p>
+          <p class="text-xs">Submit audits to see grade distribution</p>
+        </div>
+        {% endif %}
+      </div>
+      <!-- Overall -->
+      <div class="bg-white/90 dark:bg-gray-800/90 rounded-xl border border-gray-200/60 dark:border-gray-700/60 p-5 gold-card">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-xs font-bold text-gray-600 dark:text-gray-300 flex items-center gap-2 uppercase tracking-wider">
+            <div class="w-6 h-6 rounded-lg bg-gradient-gold flex items-center justify-center"><i data-lucide="gauge" class="w-3 h-3 text-accent"></i></div>
+            Overall
+          </h3>
+        </div>
+        {% if submitted_audits %}
+        <div id="overallGauge" class="h-[200px]"></div>
+        {% else %}
+        <div class="flex flex-col items-center justify-center h-[200px] text-gray-400">
+          <i data-lucide="gauge" class="w-10 h-10 mb-2 text-gray-200 dark:text-gray-600"></i>
+          <p class="text-sm font-semibold">No data yet</p>
+          <p class="text-xs">Complete an audit to see your score</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ACTIVITY ===== -->
+  <div>
+    <div class="flex items-center gap-2 mb-3">
+      <div class="w-1 h-5 bg-gradient-primary rounded-full"></div>
+      <h2 class="text-sm font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider">Activity</h2>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <!-- Recent Audits -->
+      <div class="lg:col-span-2 bg-white/90 dark:bg-gray-800/90 rounded-xl border border-gray-200/60 dark:border-gray-700/60 p-5 gold-card">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-xs font-bold text-gray-600 dark:text-gray-300 flex items-center gap-2 uppercase tracking-wider">
+            <div class="w-6 h-6 rounded-lg bg-gradient-primary flex items-center justify-center"><i data-lucide="clock" class="w-3 h-3 text-white"></i></div>
+            Recent Audits
+          </h3>
+          <a href="{% url 'audits:list' %}" class="text-[10px] font-bold text-primary dark:text-secondary hover:underline flex items-center gap-1">View all <i data-lucide="arrow-right" class="w-3 h-3"></i></a>
+        </div>
+        {% if recent_audits %}
+        <div class="relative">
+          <div class="absolute left-[17px] top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700 hidden sm:block"></div>
+          <div class="divide-y divide-gray-100 dark:divide-gray-700/50 sm:divide-y-0">
+            {% for a in recent_audits %}
+            <a href="{% url 'audits:detail' a.pk %}" class="flex items-start gap-3 py-3 sm:pl-8 relative group hover:bg-gray-50 dark:hover:bg-gray-700/20 -mx-2 px-2 sm:-ml-2 rounded-xl transition-colors">
+              <div class="hidden sm:flex absolute left-[11px] top-[18px] w-3.5 h-3.5 rounded-full border-2 border-white dark:border-gray-800 shadow-sm {% if a.is_submitted %}{% if a.grade == 'A' %}bg-emerald-500{% elif a.grade == 'B' %}bg-blue-500{% elif a.grade == 'C' %}bg-amber-500{% else %}bg-red-500{% endif %}{% else %}bg-amber-400{% endif %}"></div>
+              <div class="w-9 h-9 rounded-lg bg-gradient-dark flex items-center justify-center text-white text-xs font-extrabold shrink-0 shadow-md">{{ a.restaurant.name|first|upper }}</div>
+              <div class="min-w-0 flex-1">
+                <p class="text-sm font-bold text-gray-800 dark:text-gray-100 truncate group-hover:text-primary dark:group-hover:text-secondary transition-colors">{{ a.restaurant.name }}</p>
+                <p class="text-xs text-gray-400 dark:text-gray-500 flex flex-wrap items-center gap-x-1.5">
+                  <span>{{ a.template.name }}</span>
+                  <span class="text-gray-300 dark:text-gray-600 hidden sm:inline">&middot;</span>
+                  <i data-lucide="calendar" class="w-3 h-3"></i> {{ a.audit_date }}
+                  {% if a.is_submitted %}<span class="text-gray-300 dark:text-gray-600 hidden sm:inline">&middot;</span>
+                  <span class="font-semibold">{{ a.auditor.get_short_name|default:a.auditor.username }}</span>{% endif %}
+                </p>
+              </div>
+              <div class="shrink-0 ml-3">
+                {% if a.is_submitted %}
+                <div class="flex items-center gap-1.5">
+                  <span class="text-xs font-extrabold {% if a.total_percentage >= 90 %}text-emerald-600 dark:text-emerald-400{% elif a.total_percentage >= 80 %}text-amber-600 dark:text-amber-400{% else %}text-red-600 dark:text-red-400{% endif %}">{{ a.total_percentage|floatformat:1 }}%</span>
+                  <span class="w-5 h-5 rounded flex items-center justify-center text-[9px] font-extrabold text-white {% if a.total_percentage >= 90 %}bg-emerald-500{% elif a.total_percentage >= 80 %}bg-amber-500{% elif a.total_percentage >= 70 %}bg-orange-500{% else %}bg-red-500{% endif %}">{{ a.grade }}</span>
+                </div>
+                {% else %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400">Draft</span>
+                {% endif %}
+              </div>
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+        {% else %}
+        <div class="flex flex-col items-center justify-center h-[200px] text-gray-400">
+          <i data-lucide="clipboard-list" class="w-10 h-10 mb-2 text-gray-200 dark:text-gray-600"></i>
+          <p class="text-sm font-semibold">No audits yet</p>
+          {% if perms.audits.add_audit %}<a href="{% url 'audits:create' %}" class="mt-2 text-xs font-bold text-primary dark:text-secondary hover:underline">Create your first audit</a>{% endif %}
+        </div>
+        {% endif %}
+      </div>
+      <!-- Sidebar: CA + Export -->
+      <div class="space-y-4">
+        <div class="bg-white/90 dark:bg-gray-800/90 rounded-xl border border-gray-200/60 dark:border-gray-700/60 p-5 gold-card">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-xs font-bold text-gray-600 dark:text-gray-300 flex items-center gap-2 uppercase tracking-wider">
+              <div class="w-6 h-6 rounded-lg bg-gradient-primary flex items-center justify-center"><i data-lucide="alert-triangle" class="w-3 h-3 text-white"></i></div>
+              Corrective Actions
+            </h3>
+            {% if perms.audits.view_correctiveaction %}<a href="{% url 'audits:corrective_actions' %}" class="text-[10px] font-bold text-primary dark:text-secondary hover:underline">View all</a>{% endif %}
+          </div>
+          {% if recent_ca %}
+          <div class="space-y-3">
+            {% for ca in recent_ca|slice:":3" %}
+            <div class="flex items-start gap-2.5 group">
+              <div class="w-1.5 h-1.5 rounded-full mt-2 shrink-0 {% if ca.completed %}bg-emerald-400{% elif ca.is_overdue %}bg-red-400{% else %}bg-amber-400{% endif %}"></div>
+              <div class="min-w-0 flex-1">
+                <p class="text-xs font-semibold text-gray-700 dark:text-gray-300 truncate group-hover:text-primary dark:group-hover:text-secondary transition-colors">{{ ca.description|truncatechars:45 }}</p>
+                <p class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 flex flex-wrap items-center gap-1">
+                  <a href="{% url 'restaurants:restaurant_detail' ca.restaurant.pk %}" class="hover:underline font-medium">{{ ca.restaurant.name }}</a>
+                  {% if ca.completed %}<span class="text-emerald-500 font-bold">Done</span>
+                  {% elif ca.is_overdue %}<span class="text-red-400 font-bold">Overdue</span>
+                  {% else %}<span>{{ ca.days_remaining }}d left</span>{% endif %}
+                </p>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="flex flex-col items-center justify-center py-8 text-gray-400">
+            <i data-lucide="check-circle" class="w-8 h-8 mb-1.5 text-gray-200 dark:text-gray-600"></i>
+            <p class="text-xs font-semibold">All clear — no pending actions</p>
+          </div>
+          {% endif %}
+        </div>
+        <div class="bg-white/90 dark:bg-gray-800/90 rounded-xl border border-gray-200/60 dark:border-gray-700/60 p-5 gold-card">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-xs font-bold text-gray-600 dark:text-gray-300 flex items-center gap-2 uppercase tracking-wider">
+              <div class="w-6 h-6 rounded-lg bg-gradient-gold flex items-center justify-center"><i data-lucide="download" class="w-3 h-3 text-accent"></i></div>
+              Export
+            </h3>
+          </div>
+          <form method="get" action="{% url 'audits:export' %}" class="space-y-3">
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1">From</label>
+              <div class="relative">
+                <i data-lucide="calendar" class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400"></i>
+                <input type="date" name="from_date" class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 text-sm focus:border-primary focus:ring-2 focus:ring-primary outline-none transition-all bg-gray-50/50 dark:bg-gray-700/50 dark:text-gray-200">
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1">To</label>
+              <div class="relative">
+                <i data-lucide="calendar" class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400"></i>
+                <input type="date" name="to_date" class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 text-sm focus:border-primary focus:ring-2 focus:ring-primary outline-none transition-all bg-gray-50/50 dark:bg-gray-700/50 dark:text-gray-200">
+              </div>
+            </div>
+            <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-dark text-white text-sm font-bold hover:shadow-lg transition-all duration-200 active:scale-[0.97]">
+              <i data-lucide="file-down" class="w-4 h-4"></i> Export CSV
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SECTION ANALYTICS ===== -->
+  <div>
+    <div class="flex items-center justify-between gap-2 mb-3 flex-wrap">
+      <div class="flex items-center gap-2">
+        <div class="w-1 h-5 bg-gradient-gold rounded-full"></div>
+        <h2 class="text-sm font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider">Section Analytics</h2>
+      </div>
+
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="bg-white/90 dark:bg-gray-800/90 rounded-xl border border-gray-200/60 dark:border-gray-700/60 p-5 gold-card">
+        <h3 class="text-xs font-bold text-gray-600 dark:text-gray-300 flex items-center gap-2 mb-3 uppercase tracking-wider">
+          <div class="w-6 h-6 rounded-lg bg-gradient-gold flex items-center justify-center"><i data-lucide="layers" class="w-3 h-3 text-accent"></i></div>
+          Section Performance
+        </h3>
+        {% if section_performance and section_performance != '[]' %}
+        <div id="sectionPerfChart" class="h-[220px]"></div>
+        {% else %}
+        <div class="flex flex-col items-center justify-center h-[220px] text-gray-400">
+          <i data-lucide="bar-chart-horizontal" class="w-10 h-10 mb-2 text-gray-200 dark:text-gray-600"></i>
+          <p class="text-sm font-semibold">No section data yet</p>
+          <p class="text-xs">Section breakdown will appear after audits</p>
+        </div>
+        {% endif %}
+      </div>
+      <div class="bg-white/90 dark:bg-gray-800/90 rounded-xl border border-gray-200/60 dark:border-gray-700/60 p-5 gold-card">
+        <h3 class="text-xs font-bold text-gray-600 dark:text-gray-300 flex items-center gap-2 mb-3 uppercase tracking-wider">
+          <div class="w-6 h-6 rounded-lg bg-gradient-primary flex items-center justify-center"><i data-lucide="bar-chart-3" class="w-3 h-3 text-white"></i></div>
+          Points Deducted
+        </h3>
+        {% if section_deductions and section_deductions != '[]' %}
+        <div id="sectionDedChart" class="h-[220px]"></div>
+        {% else %}
+        <div class="flex flex-col items-center justify-center h-[220px] text-gray-400">
+          <i data-lucide="bar-chart-3" class="w-10 h-10 mb-2 text-gray-200 dark:text-gray-600"></i>
+          <p class="text-sm font-semibold">No deduction data yet</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SECTION TREND + FREQUENT FINDINGS ===== -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div class="bg-white/90 dark:bg-gray-800/90 rounded-xl border border-gray-200/60 dark:border-gray-700/60 p-5 gold-card">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-xs font-bold text-gray-600 dark:text-gray-300 flex items-center gap-2 uppercase tracking-wider">
+          <div class="w-6 h-6 rounded-lg bg-gradient-gold flex items-center justify-center"><i data-lucide="trending-up" class="w-3 h-3 text-accent"></i></div>
+          Section Trend
+        </h3>
+      </div>
+      {% if section_trend_series and section_trend_series != '[]' %}
+      <div class="mb-3">
+        <select id="sectionTrendSelect" class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-xs focus:border-primary focus:ring-2 focus:ring-primary outline-none transition-all bg-gray-50/50 dark:bg-gray-700/50 dark:text-gray-200 font-semibold"></select>
+      </div>
+      <div id="sectionTrendChart" class="h-[220px]"></div>
+      {% else %}
+      <div class="flex flex-col items-center justify-center h-[220px] text-gray-400">
+        <i data-lucide="trending-up" class="w-10 h-10 mb-2 text-gray-200 dark:text-gray-600"></i>
+        <p class="text-sm font-semibold">No trend data yet</p>
+      </div>
+      {% endif %}
+    </div>
+    <div class="bg-white/90 dark:bg-gray-800/90 rounded-xl border border-gray-200/60 dark:border-gray-700/60 p-5 gold-card">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-xs font-bold text-gray-600 dark:text-gray-300 flex items-center gap-2 uppercase tracking-wider">
+          <div class="w-6 h-6 rounded-lg bg-gradient-primary flex items-center justify-center"><i data-lucide="alert-triangle" class="w-3 h-3 text-white"></i></div>
+          Frequent Findings
+        </h3>
+        <span class="text-[10px] font-semibold text-gray-400">{{ submitted_audits }} audits</span>
+      </div>
+      {% if frequent_findings and frequent_findings != '[]' %}
+      <div class="overflow-x-auto -mx-5 px-5">
+        <table class="w-full text-xs">
+          <thead>
+            <tr class="border-b border-gray-200 dark:border-gray-700 text-left text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
+              <th scope="col" class="pb-2.5 pr-2 w-8">#</th>
+              <th scope="col" class="pb-2.5 pr-2">Finding</th>
+              <th scope="col" class="pb-2.5 pr-2 hidden sm:table-cell w-24">Section</th>
+              <th scope="col" class="pb-2.5 text-right w-16">Lost</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 dark:divide-gray-700/50" id="findingsTableBody"></tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="flex flex-col items-center justify-center h-[220px] text-gray-400">
+        <i data-lucide="search" class="w-10 h-10 mb-2 text-gray-200 dark:text-gray-600"></i>
+        <p class="text-sm font-semibold">No frequent deductions</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#DA291C';
+  var secondaryColor = getComputedStyle(document.documentElement).getPropertyValue('--secondary').trim() || '#FFC72C';
+  var accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#27251F';
+  var el = document.getElementById('scoreTrendChart');
+  if (!el) { console.log('scoreTrendChart not found'); return; }
+  if (typeof ApexCharts === 'undefined') { console.error('ApexCharts not loaded'); return; }
+  {% if score_trends %}
+  var opts = {
+    chart: { type: 'area', height: 200, toolbar: { show: false } },
+    series: [{ name: 'Score', data: {{ score_trends.data|safe }} }],
+    xaxis: { categories: {{ score_trends.labels|safe }} },
+    yaxis: { min: 0, max: 100, labels: { formatter: function(v) { return v + '%'; } } },
+    colors: [primaryColor],
+    dataLabels: { enabled: false },
+    stroke: { curve: 'smooth', width: 2 },
+    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.3, opacityTo: 0.05, stops: [0, 100] } },
+    grid: { borderColor: '#e2e8f0' },
+    tooltip: { y: { formatter: function(v) { return v + '%'; } } },
+  };
+  new ApexCharts(el, opts).render();
+  {% endif %}
+  
+  {% if grade_distribution %}
+  var donutEl = document.getElementById('gradeDonutChart');
+  if (donutEl) {
+    var series = [{% for g, d in grade_distribution.items %}{{ d.count }}{% if not forloop.last %},{% endif %}{% endfor %}];
+    var labels = [{% for g, d in grade_distribution.items %}'{{ g }}'{% if not forloop.last %},{% endif %}{% endfor %}];
+    var colors = [{% for g, d in grade_distribution.items %}{% if g == 'A' %}'#10b981'{% elif g == 'B' %}'#3b82f6'{% elif g == 'C' %}'#f59e0b'{% elif g == 'D' %}'#f97316'{% else %}'#ef4444'{% endif %}{% if not forloop.last %},{% endif %}{% endfor %}];
+    if (series.some(function(v) { return v > 0; })) {
+      new ApexCharts(donutEl, {
+        chart: { type: 'donut', height: 180, toolbar: { show: false } },
+        series: series,
+        labels: labels,
+        colors: colors,
+        legend: { show: false },
+        dataLabels: { enabled: false },
+        stroke: { width: 0 },
+        tooltip: { y: { formatter: function(v) { return v + ' audits'; } } },
+      }).render();
+    }
+  }
+  {% endif %}
+  
+  {% if submitted_audits %}
+  var gaugeEl = document.getElementById('overallGauge');
+  if (gaugeEl) {
+    var score = {{ avg_score|default:0 }};
+    new ApexCharts(gaugeEl, {
+      chart: { type: 'radialBar', height: 200, toolbar: { show: false } },
+      series: [score],
+      colors: [score >= 90 ? '#10b981' : score >= 80 ? '#f59e0b' : '#ef4444'],
+      plotOptions: {
+        radialBar: {
+          startAngle: -90, endAngle: 90,
+          hollow: { size: '60%' },
+          track: { background: '#e2e8f0', strokeWidth: '100%' },
+          dataLabels: {
+            name: { show: false },
+            value: { show: true, fontSize: '28px', fontWeight: 800, formatter: function(v) { return Math.round(v) + '%'; }, offsetY: 5 },
+          },
+        },
+      },
+      stroke: { lineCap: 'round' },
+      tooltip: { enabled: false },
+    }).render();
+  }
+  {% endif %}
+  
+  {% if section_performance and section_performance != '[]' %}
+  var perfEl = document.getElementById('sectionPerfChart');
+  if (perfEl) {
+    var perfData = {{ section_performance|safe }};
+    new ApexCharts(perfEl, {
+      chart: { type: 'bar', height: Math.max(220, perfData.length * 42), toolbar: { show: false } },
+      series: [{ name: 'Avg %', data: perfData.map(function(s) { return s.avg; }) }],
+      plotOptions: { bar: { horizontal: true, borderRadius: 3, barHeight: '55%', distributed: true } },
+      xaxis: { categories: perfData.map(function(s) { return s.name; }), max: 100 },
+      yaxis: { labels: { style: { fontSize: '9px' } } },
+      colors: perfData.map(function(s) { return s.avg >= 90 ? '#10b981' : s.avg >= 80 ? '#f59e0b' : '#ef4444'; }),
+      dataLabels: { enabled: true, formatter: function(v) { return v + '%'; }, style: { fontSize: '9px', fontWeight: 700, colors: ['#fff'] }, offsetX: 20 },
+      grid: { borderColor: '#e2e8f0' },
+      tooltip: { y: { formatter: function(v) { return v + '%'; } } },
+    }).render();
+  }
+  {% endif %}
+  
+  {% if section_deductions and section_deductions != '[]' %}
+  var dedEl = document.getElementById('sectionDedChart');
+  if (dedEl) {
+    var dedData = {{ section_deductions|safe }};
+    new ApexCharts(dedEl, {
+      chart: { type: 'bar', height: Math.max(220, dedData.length * 45), toolbar: { show: false }, stacked: true },
+      series: [
+        { name: 'Scored', data: dedData.map(function(s) { return s.scored; }) },
+        { name: 'Deducted', data: dedData.map(function(s) { return s.deducted; }) },
+      ],
+      plotOptions: { bar: { horizontal: true, borderRadius: 2, barHeight: '60%' } },
+      xaxis: { categories: dedData.map(function(s) { return s.name; }) },
+      colors: ['#22c55e', '#ef4444'],
+      dataLabels: { enabled: false },
+      legend: { position: 'top', horizontalAlign: 'right', fontSize: '10px' },
+      grid: { borderColor: '#e2e8f0' },
+      tooltip: { y: { formatter: function(v) { return v + ' pts'; } } },
+    }).render();
+  }
+  {% endif %}
+  
+  {% if section_trend_series and section_trend_series != '[]' %}
+  var trendSeries = {{ section_trend_series|safe }};
+  var trendMonths = {{ section_trend_months|safe }};
+  var trendSelect = document.getElementById('sectionTrendSelect');
+  var trendContainer = document.getElementById('sectionTrendChart');
+  if (trendSelect && trendContainer) {
+    var trendChart = null;
+    function buildOpts() {
+      trendSelect.innerHTML = '<option value="__all__">All Sections</option>';
+      trendSeries.forEach(function(s) {
+        var opt = document.createElement('option');
+        opt.value = s.name; opt.textContent = s.name; trendSelect.appendChild(opt);
+      });
+    }
+    function renderTrend(selected) {
+      var series = selected === '__all__' ? trendSeries : trendSeries.filter(function(s) { return s.name === selected; });
+      if (trendChart) { trendChart.destroy(); }
+      trendChart = new ApexCharts(trendContainer, {
+        chart: { type: 'line', height: 220, toolbar: { show: false } },
+        series: series,
+        xaxis: { categories: trendMonths },
+        yaxis: { min: 0, max: 100, labels: { formatter: function(v) { return v + '%'; } } },
+        colors: [primaryColor, '#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'],
+        stroke: { curve: 'smooth', width: 2 },
+        dataLabels: { enabled: false },
+        markers: { size: 3, hover: { size: 5 } },
+        legend: { position: 'top', horizontalAlign: 'right', fontSize: '9px' },
+        grid: { borderColor: '#e2e8f0' },
+        tooltip: { y: { formatter: function(v) { return v + '%'; } } },
+      });
+      trendChart.render();
+    }
+    buildOpts();
+    renderTrend('__all__');
+    trendSelect.addEventListener('change', function(e) { renderTrend(e.target.value); });
+  }
+  {% endif %}
+  
+  {% if frequent_findings and frequent_findings != '[]' %}
+  var findings = {{ frequent_findings|safe }};
+  var tbody = document.getElementById('findingsTableBody');
+  if (tbody) {
+    findings.forEach(function(f, i) {
+      var tr = document.createElement('tr');
+      tr.className = 'hover:bg-gray-50 dark:hover:bg-gray-700/20 transition-colors';
+
+      var td1 = document.createElement('td');
+      td1.className = 'py-2.5 pr-2 align-middle';
+      var badge = document.createElement('span');
+      if (i < 3) {
+        badge.className = 'w-5 h-5 rounded inline-flex items-center justify-center text-[9px] font-extrabold shadow-sm ' + (i === 0 ? 'bg-secondary text-accent' : i === 1 ? 'bg-gray-400 text-white' : 'bg-amber-700 text-white');
+        badge.textContent = i + 1;
+      } else {
+        badge.className = 'text-[10px] font-bold text-gray-400 pl-1';
+        badge.textContent = i + 1;
+      }
+      td1.appendChild(badge);
+      tr.appendChild(td1);
+
+      var td2 = document.createElement('td');
+      td2.className = 'py-2.5 pr-2 font-semibold text-gray-800 dark:text-gray-200 max-w-[200px] truncate text-[11px]';
+      td2.textContent = f.text;
+      tr.appendChild(td2);
+
+      var td3 = document.createElement('td');
+      td3.className = 'py-2.5 pr-2 hidden sm:table-cell align-middle';
+      var sectionSpan = document.createElement('span');
+      sectionSpan.className = 'inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400';
+      sectionSpan.textContent = f.section;
+      td3.appendChild(sectionSpan);
+      tr.appendChild(td3);
+
+      var td4 = document.createElement('td');
+      td4.className = 'py-2.5 text-right align-middle';
+      var countSpan = document.createElement('span');
+      countSpan.className = 'inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold ' + (f.count >= 5 ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400' : 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400');
+      countSpan.textContent = f.count + 'x';
+      td4.appendChild(countSpan);
+      tr.appendChild(td4);
+
+      tbody.appendChild(tr);
+    });
+  }
+  {% endif %}
+});
+</script>
+{% endblock %}

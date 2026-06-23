@@ -1,0 +1,764 @@
+{% load audit_filters %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+    @page {
+        size: A4;
+        margin: 0;
+        @bottom-center {
+            content: "Page " counter(page);
+            font-family: 'Inter', 'Helvetica', 'Arial', sans-serif;
+            font-size: 6px;
+        }
+    }
+    @page :first { @bottom-center { content: none; } }
+
+    :root {
+        --primary: {{ business_info.primary_color|default:'#DA291C' }};
+        --secondary: {{ business_info.secondary_color|default:'#FFC72C' }};
+        --accent: {{ business_info.accent_color|default:'#27251F' }};
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+        font-family: 'Inter', 'Helvetica', 'Arial', sans-serif;
+        font-size: 8px;
+        color: var(--accent);
+        line-height: 1.5;
+        background: #fff;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    .page { padding: 0 32px; }
+
+    /* ===== HERO - Glossy Premium ===== */
+    .hero {
+        position: relative;
+        margin: 0;
+        padding: 36px 32px 28px;
+        background: linear-gradient(135deg, {{ business_info.primary_color|default:'#DA291C' }} 0%, #8b0000 100%);
+        overflow: hidden;
+    }
+    .hero::before {
+        content: '';
+        position: absolute;
+        top: -40%;
+        right: -10%;
+        width: 500px;
+        height: 500px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+    }
+    .hero::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 50%;
+        background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 100%);
+    }
+    .hero-content { position: relative; z-index: 1; }
+    .hero-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 20px;
+    }
+    .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 12px;
+        border-radius: 100px;
+        font-size: 6px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        background: rgba(255,255,255,0.12);
+        backdrop-filter: blur(4px);
+        border: 1px solid rgba(255,255,255,0.15);
+    }
+    .hero-badge-submitted { background: rgba(0,184,148,0.2); border-color: rgba(0,184,148,0.3); }
+    .hero-contact { font-size: 6px; color: rgba(255,255,255,0.5); text-align: right; line-height: 1.6; }
+    .hero-main { display: flex; align-items: center; gap: 24px; }
+    .hero-grade-wrap { flex-shrink: 0; text-align: center; }
+    .hero-grade {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.05) 100%);
+        border: 2px solid rgba(255,255,255,0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        font-weight: 900;
+        color: #fff;
+        text-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        position: relative;
+    }
+    .hero-grade::after {
+        content: '';
+        position: absolute;
+        top: 4px;
+        left: 8px;
+        right: 8px;
+        height: 50%;
+        border-radius: 50%;
+        background: linear-gradient(180deg, rgba(255,255,255,0.3) 0%, transparent 100%);
+    }
+    .hero-grade-label { font-size: 5.5px; color: rgba(255,255,255,0.5); margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+    .hero-info { flex: 1; }
+    .hero-eyebrow {
+        font-size: 6px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: rgba(255,255,255,0.5);
+        font-weight: 600;
+    }
+    .hero-title { font-size: 22px; font-weight: 800; color: #fff; margin-top: 1px; letter-spacing: -0.3px; }
+    .hero-meta {
+        font-size: 7px;
+        color: rgba(255,255,255,0.6);
+        margin-top: 4px;
+    }
+    .hero-meta strong { color: #fff; }
+
+    /* ===== STATS STRIP ===== */
+    .stats {
+        display: flex;
+        margin: 0;
+        background: #fff;
+        border-bottom: 1px solid #f0f0f5;
+    }
+    .stat {
+        flex: 1;
+        padding: 16px 20px;
+        text-align: center;
+        position: relative;
+    }
+    .stat + .stat { border-left: 1px solid #f0f0f5; }
+    .stat-number {
+        font-size: 22px;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        line-height: 1.1;
+    }
+    .stat-label {
+        font-size: 5.5px;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        font-weight: 600;
+        margin-top: 3px;
+    }
+    .stat-sub {
+        font-size: 6px;
+        margin-top: 1px;
+    }
+
+    /* ===== TWO-COLUMN LAYOUT ===== */
+    .layout {
+        display: flex;
+        gap: 0;
+        margin: 0;
+    }
+    .layout-main {
+        flex: 2;
+        padding: 20px 24px 20px 32px;
+    }
+    .layout-side {
+        flex: 1;
+        padding: 20px 32px 20px 24px;
+        background: #f7f8fa;
+    }
+
+    /* ===== SECTION ===== */
+    .section {
+        margin-bottom: 16px;
+        page-break-inside: avoid;
+    }
+    .section-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+    }
+    .section-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 800;
+        flex-shrink: 0;
+    }
+    .section-icon.good {
+        background: linear-gradient(135deg, var(--secondary) 0%, #FFD700 100%);
+        color: #fff;
+    }
+    .section-icon.warn {
+        background: linear-gradient(135deg, #fdcb6e 0%, #f39c12 100%);
+        color: #fff;
+    }
+    .section-icon.bad {
+        background: linear-gradient(135deg, #d63031 0%, #e17055 100%);
+        color: #fff;
+    }
+    .section-name {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--accent);
+        flex: 1;
+    }
+    .section-score {
+        font-size: 10px;
+        font-weight: 800;
+        text-align: right;
+    }
+    .section-sub {
+        font-size: 6px;
+        color: #aaa;
+        margin-top: 1px;
+        text-align: right;
+    }
+    .section-bar {
+        height: 4px;
+        background: #eef0f6;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 10px;
+    }
+    .section-bar-fill {
+        height: 100%;
+        border-radius: 4px;
+        background: linear-gradient(90deg, var(--secondary), #FFD700);
+    }
+    .section-bar-fill.warn { background: linear-gradient(90deg, #fdcb6e, #f39c12); }
+    .section-bar-fill.bad { background: linear-gradient(90deg, #d63031, #e17055); }
+    .section-desc {
+        font-size: 7px;
+        color: #999;
+        margin-bottom: 8px;
+        line-height: 1.5;
+    }
+
+    /* ===== ALERT ===== */
+    .alert {
+        padding: 8px 12px;
+        background: #fff0f0;
+        border-left: 3px solid #d63031;
+        border-radius: 6px;
+        margin-bottom: 10px;
+        box-shadow: 0 1px 3px rgba(214,48,49,0.08);
+    }
+    .alert-title { font-size: 7px; font-weight: 700; color: #c0392b; }
+    .alert-desc { font-size: 6px; color: #e74c3c; margin-top: 1px; }
+
+    /* ===== QUESTION ===== */
+    .question {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 6px 10px;
+        margin: 0 -10px;
+        border-radius: 6px;
+        transition: none;
+    }
+    .question.critical {
+        background: #fff8f8;
+    }
+    .question-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        margin-top: 5px;
+        flex-shrink: 0;
+    }
+    .question-dot.pass { background: var(--secondary); }
+    .question-dot.partial { background: #fdcb6e; }
+    .question-dot.fail { background: #d63031; }
+    .question-dot.na { background: #ddd; }
+    .question-body { flex: 1; min-width: 0; }
+    .question-text { font-size: 7.5px; color: #444; }
+    .question-text.critical { color: #d63031; font-weight: 700; }
+    .question-tags { margin-top: 2px; display: flex; flex-wrap: wrap; gap: 3px; }
+    .question-tag {
+        display: inline-block;
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-size: 5.5px;
+        font-weight: 600;
+    }
+    .tag-critical { background: #fff0f0; color: #d63031; }
+    .tag-na { background: #f5f5f8; color: #bbb; }
+    .tag-action { background: #fff4ec; color: #d35400; }
+    .question-note {
+        font-size: 6px;
+        color: #aaa;
+        margin-top: 2px;
+    }
+    .question-note strong { color: #888; font-weight: 600; }
+    .question-score {
+        flex-shrink: 0;
+        font-size: 7px;
+        font-weight: 700;
+        padding: 2px 10px;
+        border-radius: 20px;
+        white-space: nowrap;
+        margin-top: 2px;
+    }
+    .qs-pass { background: #e8f8f5; color: var(--secondary); }
+    .qs-partial { background: #fefce8; color: #B8860B; }
+    .qs-fail { background: #fff0f0; color: #d63031; }
+    .qs-na { background: #f5f5f8; color: #d0d0d0; }
+
+    /* ===== SIDEBAR ===== */
+    .sb-title {
+        font-size: 7px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        margin-bottom: 10px;
+        padding-bottom: 5px;
+        border-bottom: 2px solid {{ business_info.primary_color|default:'#DA291C' }};
+    }
+    .sb-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 4px 0;
+    }
+    .sb-row + .sb-row { border-top: 1px solid #eef0f6; }
+    .sb-label { font-size: 6.5px; color: #999; }
+    .sb-value { font-size: 6.5px; font-weight: 600; color: var(--accent); text-align: right; }
+    .sb-value .muted { font-weight: 400; color: #bbb; font-size: 6px; }
+    .sb-divider { border-top: 1px solid #e0e4ed; margin: 8px 0; }
+    .sb-total {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 2px 0;
+    }
+    .sb-total-label { font-size: 7px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #888; }
+    .sb-total-value { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+    .sb-bar {
+        height: 4px;
+        background: #eef0f6;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-top: 5px;
+    }
+    .sb-bar-fill {
+        height: 100%;
+        border-radius: 4px;
+    }
+    .sb-bar-fill.good { background: linear-gradient(90deg, var(--secondary), #FFD700); }
+    .sb-bar-fill.warn { background: linear-gradient(90deg, #fdcb6e, #f39c12); }
+    .sb-bar-fill.bad { background: linear-gradient(90deg, #d63031, #e17055); }
+
+    /* ===== TREND ===== */
+    .trd-space { margin-top: 16px; }
+    .trd-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 0;
+    }
+    .trd-item + .trd-item { border-top: 1px solid #eef0f6; }
+    .trd-label { font-size: 7px; font-weight: 600; color: var(--accent); }
+    .trd-date { font-size: 6px; color: #bbb; }
+    .trd-value { font-size: 9px; font-weight: 700; }
+    .trd-bar-sm {
+        height: 4px;
+        background: #eef0f6;
+        border-radius: 4px;
+        overflow: hidden;
+        margin: 2px 0 0;
+    }
+    .trd-bar-fill { height: 100%; border-radius: 4px; }
+    .trd-change {
+        margin-top: 4px;
+        font-size: 6.5px;
+        text-align: right;
+    }
+
+    /* ===== CORRECTIVE ACTIONS ===== */
+    .ca-section { margin-top: 4px; }
+    .ca-title {
+        font-size: 7px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        margin-bottom: 10px;
+        padding-bottom: 5px;
+        border-bottom: 2px solid {{ business_info.primary_color|default:'#DA291C' }};
+    }
+    .ca-alert {
+        padding: 8px 12px;
+        background: #fff0f0;
+        border-left: 3px solid #d63031;
+        border-radius: 6px;
+        margin-bottom: 10px;
+        box-shadow: 0 1px 3px rgba(214,48,49,0.08);
+    }
+    .ca-alert-title { font-size: 7px; font-weight: 700; color: #c0392b; margin-bottom: 2px; }
+    .ca-alert-item { font-size: 6px; color: #e74c3c; margin-left: 5px; line-height: 1.5; }
+    .ca-alert-item strong { color: #c0392b; }
+    .ca-ok {
+        padding: 7px 12px;
+        background: #e8f8f5;
+        border-left: 3px solid var(--secondary);
+        border-radius: 6px;
+        font-size: 7px;
+        font-weight: 600;
+        color: var(--secondary);
+        margin-bottom: 10px;
+    }
+    .ca-item {
+        padding: 7px 0;
+        border-bottom: 1px solid #eef0f6;
+    }
+    .ca-item:last-child { border-bottom: none; }
+    .ca-item-inner { display: flex; gap: 8px; align-items: flex-start; }
+    .ca-dot {
+        width: 5px; height: 5px;
+        border-radius: 50%;
+        margin-top: 6px;
+        flex-shrink: 0;
+    }
+    .ca-body { flex: 1; min-width: 0; }
+    .ca-text { font-size: 7px; font-weight: 600; color: var(--accent); }
+    .ca-meta {
+        font-size: 6px;
+        color: #999;
+        margin-top: 2px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+    .ca-tag {
+        display: inline-block;
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-size: 5.5px;
+        font-weight: 600;
+    }
+    .ct-critical, .ct-critical-failure { background: #fff0f0; color: #d63031; }
+    .ct-high { background: #fff4ec; color: #d35400; }
+    .ct-medium { background: #fefce8; color: #B8860B; }
+    .ct-low { background: #eef2ff; color: var(--primary); }
+    .ct-done { background: #e8f8f5; color: var(--secondary); }
+    .ct-overdue { background: #fff0f0; color: #d63031; }
+    .ca-empty {
+        text-align: center;
+        padding: 16px;
+        font-size: 7px;
+        color: #ddd;
+        font-weight: 600;
+    }
+
+    /* ===== SIGNATURES ===== */
+    .sig {
+        margin: 0;
+        padding: 16px 32px 12px;
+        border-top: 1px solid #eef0f6;
+    }
+    .sig-title {
+        font-size: 6.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #bbb;
+        margin-bottom: 10px;
+    }
+    .sig-flex { display: flex; gap: 14px; }
+    .sig-box {
+        flex: 1;
+        border: 1px solid #e8eaf0;
+        border-radius: 10px;
+        padding: 14px 10px 10px;
+        text-align: center;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.02);
+    }
+    .sig-icon {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        margin-bottom: 6px;
+    }
+    .sig-icon-auditor { background: #f0f0ff; color: var(--primary); }
+    .sig-icon-manager { background: #fff4ec; color: #d35400; }
+    .sig-label {
+        font-size: 5px;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        margin-bottom: 4px;
+        font-weight: 600;
+    }
+    .sig-label-auditor { color: var(--primary); }
+    .sig-label-manager { color: #d35400; }
+    .sig-line {
+        border-bottom: 1px solid #e0e4ed;
+        height: 24px;
+        margin: 0 6px 3px;
+    }
+    .sig-name { font-weight: 700; font-size: 7px; color: var(--accent); }
+    .sig-role { font-size: 5.5px; color: #ccc; margin-top: 1px; }
+
+    /* ===== FOOTER ===== */
+    .ftr {
+        margin: 0;
+        padding: 6px 32px;
+        text-align: center;
+        font-size: 6px;
+        background: #f7f8fa;
+        border-top: 1px solid #eef0f6;
+    }
+
+    @media print {
+        body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+    <div class="hero-content">
+        <div class="hero-top">
+            <span class="hero-badge {% if audit.is_submitted %}hero-badge-submitted{% endif %}">
+                {% if audit.is_submitted %}&#10003; Submitted {{ audit.submitted_at|date:"M d, Y" }}{% else %}&#9679; Draft{% endif %}
+            </span>
+            <div class="hero-contact">
+                {% if business_info.address %}{{ business_info.address }}<br>{% endif %}
+                {% if business_info.phone %}{{ business_info.phone }}{% endif %}
+            </div>
+        </div>
+        <div class="hero-main">
+            <div class="hero-grade-wrap">
+                <div class="hero-grade">{{ audit.grade|default:'&mdash;' }}</div>
+                <div class="hero-grade-label">{{ audit.get_grade_display|default:'Grade' }}</div>
+            </div>
+            <div class="hero-info">
+                <div class="hero-eyebrow">{{ audit.template.name }}</div>
+                <div class="hero-title">{{ audit.restaurant.name }}</div>
+                <div class="hero-meta">
+                    <strong>#{{ audit.restaurant.code }}</strong>
+                    &nbsp;&#8226;&nbsp; {{ audit.auditor.get_full_name|default:audit.auditor.username }}
+                    &nbsp;&#8226;&nbsp; {{ audit.audit_date|date:"F d, Y" }}
+                    &nbsp;&#8226;&nbsp; v{{ audit.template.version }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- STATS -->
+<div class="stats">
+    <div class="stat">
+        <div class="stat-number" style="{% if audit.total_percentage >= 90 %}color:var(--secondary){% elif audit.total_percentage >= 80 %}color:#B8860B{% else %}color:#d63031{% endif %}">
+            {{ audit.total_percentage|floatformat:1 }}<span style="font-size:12px;">%</span>
+        </div>
+        <div class="stat-label" style="{% if audit.total_percentage >= 90 %}color:var(--secondary){% elif audit.total_percentage >= 80 %}color:#B8860B{% else %}color:#d63031{% endif %}">Score</div>
+        <div class="stat-sub" style="color:#bbb;">{{ audit.total_scored|floatformat:0 }}/{{ audit.total_possible|floatformat:0 }}</div>
+    </div>
+    <div class="stat">
+        <div class="stat-number" style="color:{% if audit.has_critical_failure %}#d63031{% else %}var(--secondary){% endif %};">
+            {% if audit.has_critical_failure %}{{ critical_fail_count|default:'!' }}{% else %}0{% endif %}
+        </div>
+        <div class="stat-label" style="color:{% if audit.has_critical_failure %}#d63031{% else %}var(--secondary){% endif %};">Critical</div>
+        <div class="stat-sub" style="color:#bbb;">{% if audit.has_critical_failure %}Failures{% else %}All clear{% endif %}</div>
+    </div>
+    <div class="stat">
+<div class="stat-number text-primary">{{ audit.audit_sections.all|length }}</div>
+<div class="stat-label text-primary">Sections</div>
+        <div class="stat-sub" style="color:#bbb;">Total evaluated</div>
+    </div>
+    <div class="stat">
+        <div class="stat-number" style="color:#1a1a2e;font-size:16px;">{{ audit.grade|default:'&mdash;' }}</div>
+        <div class="stat-label" style="color:#1a1a2e;">Grade</div>
+        <div class="stat-sub" style="color:#bbb;">{{ audit.get_grade_display|default:'Not graded' }}</div>
+    </div>
+    <div class="stat">
+        <div class="stat-number" style="color:var(--accent);font-size:16px;">{{ audit.audit_date|date:"M d" }}</div>
+        <div class="stat-label text-accent">Date</div>
+        <div class="stat-sub" style="color:#bbb;">{{ audit.audit_date|date:"Y" }}</div>
+    </div>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout">
+<div class="layout-main">
+
+{% for sec in audit.audit_sections.all %}
+<div class="section">
+    <div class="section-header">
+        <span class="section-icon {% if sec.section_percentage >= 90 %}good{% elif sec.section_percentage >= 80 %}warn{% else %}bad{% endif %}">{{ forloop.counter }}</span>
+        <span class="section-name">{{ sec.section.name }}</span>
+        <div>
+            <div class="section-score {% if sec.section_percentage >= 90 %}" style="color:var(--secondary);{% elif sec.section_percentage >= 80 %}" style="color:#B8860B;{% else %}" style="color:#d63031;{% endif %}">{{ sec.section_percentage|floatformat:1 }}%</div>
+            <div class="section-sub">{{ sec.scored_points|floatformat:0 }}/{{ sec.possible_points|floatformat:0 }}</div>
+        </div>
+    </div>
+    <div class="section-bar">
+        <div class="section-bar-fill {% if sec.section_percentage >= 80 %}{% if sec.section_percentage >= 90 %}{% else %}warn{% endif %}{% else %}bad{% endif %}" style="width:{{ sec.section_percentage|floatformat:1 }}%;"></div>
+    </div>
+    {% if sec.section.description %}<div class="section-desc">{{ sec.section.description }}</div>{% endif %}
+    {% if sec.has_critical_failure %}
+    <div class="alert">
+        <div class="alert-title">&#9888; Critical Failure</div>
+        <div class="alert-desc">Immediate corrective action required.</div>
+    </div>
+    {% endif %}
+    {% for resp in sec.responses.all %}{% if resp.is_answered %}
+    <div class="question {% if resp.question.is_critical and resp.scored_points == 0 and not resp.is_na %}critical{% endif %}">
+        <span class="question-dot {% if resp.is_na %}na{% elif resp.scored_points == resp.question.possible_points %}pass{% elif resp.scored_points > 0 %}partial{% else %}fail{% endif %}"></span>
+        <div class="question-body">
+            <div class="question-text {% if resp.question.is_critical and resp.scored_points == 0 and not resp.is_na %}critical{% endif %}">{{ resp.question.question_text }}</div>
+            <div class="question-tags">
+                {% if resp.question.is_critical %}<span class="question-tag tag-critical">&#9673; Critical</span>{% endif %}
+                {% if resp.is_na %}<span class="question-tag tag-na">N/A</span>{% endif %}
+                {% if resp.needs_corrective_action %}<span class="question-tag tag-action">Action</span>{% endif %}
+            </div>
+            {% if resp.comments %}<div class="question-note"><strong>Note:</strong> {{ resp.comments }}</div>{% endif %}
+        </div>
+        <span class="question-score">
+            {% if resp.is_na %}
+            <span class="qs-na">&mdash;</span>
+            {% else %}
+            <span class="{% if resp.scored_points == resp.question.possible_points %}qs-pass{% elif resp.scored_points > 0 %}qs-partial{% else %}qs-fail{% endif %}">{{ resp.scored_points|floatformat:0 }}/{{ resp.question.possible_points }}</span>
+            {% endif %}
+        </span>
+    </div>
+    {% endif %}{% endfor %}
+</div>
+{% endfor %}
+
+</div>
+<div class="layout-side">
+
+<!-- DETAILS -->
+<div class="sb-title">Details</div>
+<div class="sb-row"><span class="sb-label">Restaurant</span><span class="sb-value">{{ audit.restaurant.name }} <span class="muted">#{{ audit.restaurant.code }}</span></span></div>
+<div class="sb-row"><span class="sb-label">Manager</span><span class="sb-value">{{ audit.manager_on_duty }}</span></div>
+<div class="sb-row"><span class="sb-label">Auditor</span><span class="sb-value">{{ audit.auditor.get_full_name|default:audit.auditor.username }}</span></div>
+<div class="sb-row"><span class="sb-label">Date</span><span class="sb-value">{{ audit.audit_date|date:"M d, Y" }}</span></div>
+{% if audit.is_submitted %}<div class="sb-row"><span class="sb-label">Submitted</span><span class="sb-value">{{ audit.submitted_at|date:"M d, Y" }}</span></div>{% endif %}
+<div class="sb-divider"></div>
+<div class="sb-total">
+    <span class="sb-total-label">Total</span>
+    <span class="sb-total-value {% if audit.total_percentage >= 90 %}" style="color:var(--secondary);{% elif audit.total_percentage >= 80 %}" style="color:#B8860B;{% else %}" style="color:#d63031;{% endif %}">{{ audit.total_percentage|floatformat:1 }}%</span>
+</div>
+<div class="sb-bar">
+    <div class="sb-bar-fill {% if audit.total_percentage >= 90 %}good{% elif audit.total_percentage >= 80 %}warn{% else %}bad{% endif %}" style="width:{{ audit.total_percentage|floatformat:1 }}%;"></div>
+</div>
+
+<div class="trd-space">
+<!-- TREND -->
+<div class="sb-title">Trend</div>
+{% with prev=audit.previous_audit %}
+{% if prev %}
+<div class="trd-item">
+    <div>
+        <div class="trd-label">Previous</div>
+        <div class="trd-date">{{ prev.audit_date|date:"M d, Y" }}</div>
+    </div>
+    <div class="trd-value" style="color:#636e72;">{{ prev.total_percentage|floatformat:1 }}%</div>
+</div>
+<div class="trd-bar-sm"><div class="trd-bar-fill" style="width:{{ prev.total_percentage|floatformat:1 }}%;background:#b2bec3;"></div></div>
+<div class="trd-item">
+    <div>
+        <div class="trd-label">Current</div>
+        <div class="trd-date">{{ audit.audit_date|date:"M d, Y" }}</div>
+    </div>
+    <div class="trd-value" style="color:{% if audit.total_percentage >= prev.total_percentage %}var(--secondary){% else %}#d63031{% endif %};">{{ audit.total_percentage|floatformat:1 }}%</div>
+</div>
+<div class="trd-bar-sm"><div class="trd-bar-fill" style="width:{{ audit.total_percentage|floatformat:1 }}%;background:var(--primary);"></div></div>
+<div class="trd-change">
+    Change: <span style="font-weight:700;{% if audit.total_percentage >= prev.total_percentage %}color:var(--secondary){% else %}color:#d63031{% endif %};">{{ audit.total_percentage|subtract:prev.total_percentage|floatformat:1 }}%</span>
+</div>
+{% else %}
+<div style="font-size:6.5px;color:#ccc;text-align:center;padding:8px;">No previous audit data available</div>
+{% endif %}
+{% endwith %}
+</div>
+
+</div>
+</div>
+
+<!-- CORRECTIVE ACTIONS -->
+{% if corrective_actions or audit.has_critical_failure %}
+<div class="page" style="padding-top:4px;">
+<div class="ca-section">
+    <div class="ca-title">Corrective Actions ({{ corrective_actions|length }})</div>
+    {% if audit.has_critical_failure %}
+    <div class="ca-alert">
+        <div class="ca-alert-title">&#9888; Critical Failures</div>
+        {% for sec in audit.audit_sections.all %}{% for resp in sec.responses.all %}{% if resp.is_answered and resp.question.is_critical and resp.scored_points == 0 and not resp.is_na %}
+        <div class="ca-alert-item"><strong>{{ resp.question.question_text }}</strong>{% if resp.comments %} &mdash; {{ resp.comments }}{% endif %}</div>
+        {% endif %}{% endfor %}{% endfor %}
+    </div>
+    {% else %}
+    <div class="ca-ok">&#10003; All critical standards met.</div>
+    {% endif %}
+
+    {% if corrective_actions %}
+    {% for ca in corrective_actions %}
+    <div class="ca-item">
+        <div class="ca-item-inner">
+            <span class="ca-dot" style="background:{% if ca.completed %}var(--secondary){% elif ca.is_overdue %}#d63031{% else %}#ddd{% endif %};"></span>
+            <div class="ca-body">
+                <div class="ca-text">{{ ca.description }}</div>
+                <div class="ca-meta">
+                    <span class="ca-tag ct-{{ ca.risk_level|lower }}">{{ ca.get_risk_level_display }}</span>
+                    {% if ca.completed %}<span class="ca-tag ct-done">Completed {{ ca.completion_date|date:"M d" }}</span>{% endif %}
+                    {% if ca.is_overdue %}<span class="ca-tag ct-overdue">Overdue</span>{% endif %}
+                    <span>{{ ca.assigned_to.get_full_name|default:ca.assigned_to.username|default:'Unassigned' }}</span>
+                    <span>Due {{ ca.deadline|date:"M d, Y" }}</span>
+                </div>
+                {% if ca.completion_notes %}<div style="font-size:6px;color:#bbb;margin-top:1px;">{{ ca.completion_notes }}</div>{% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="ca-empty">No corrective actions required.</div>
+    {% endif %}
+</div>
+</div>
+{% endif %}
+
+<!-- SIGNATURES -->
+<div class="sig">
+    <div class="sig-title">Signatures</div>
+    <div class="sig-flex">
+        <div class="sig-box">
+            <div class="sig-icon sig-icon-auditor">&#10003;</div>
+            <div class="sig-label sig-label-auditor">Auditor</div>
+            <div class="sig-line"></div>
+            <div class="sig-name">{{ audit.auditor_signature|default:audit.auditor.get_full_name|default:audit.auditor.username }}</div>
+            <div class="sig-role">{{ audit.auditor.get_role_display|default:'Auditor' }}</div>
+        </div>
+        <div class="sig-box">
+            <div class="sig-icon sig-icon-manager">&#10003;</div>
+            <div class="sig-label sig-label-manager">Manager</div>
+            <div class="sig-line"></div>
+            <div class="sig-name">{{ audit.auditee_signature|default:audit.manager_on_duty }}</div>
+            <div class="sig-role">Manager on Duty</div>
+        </div>
+    </div>
+</div>
+
+<!-- FOOTER -->
+<div class="ftr">{{ business_info.company_name|default:"Audit Report" }} &middot; Generated {% now "F d, Y" %} &middot; Confidential</div>
+</body>
+</html>

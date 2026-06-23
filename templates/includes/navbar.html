@@ -1,0 +1,81 @@
+<header class="h-16 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 flex items-center justify-between px-4 sm:px-6 shrink-0" style="box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+  <div class="flex items-center gap-3">
+    <h1 class="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-100">{% block page_title %}{% endblock %}</h1>
+  </div>
+  <div class="flex items-center gap-1 sm:gap-2" x-data="{ open: false, dark: localStorage.getItem('dark') === 'true' }" x-init="$watch('dark', val => { localStorage.setItem('dark', val); val ? document.documentElement.classList.add('dark') : document.documentElement.classList.remove('dark') }); if (document.documentElement.classList.contains('dark')) dark = true">
+    <button @click="dark = !dark" class="relative p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary" aria-label="Toggle dark mode">
+      <i data-lucide="moon" x-show="!dark" class="h-5 w-5" aria-hidden="true"></i>
+      <i data-lucide="sun" x-show="dark" class="h-5 w-5" aria-hidden="true"></i>
+    </button>
+    <div class="relative" x-data="{ notifOpen: false }" @keydown.escape.window="if (notifOpen) { notifOpen = false; $el.querySelector('button').focus(); }">
+      <button @click="notifOpen = !notifOpen" class="relative p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary" aria-label="Notifications" aria-haspopup="true" :aria-expanded="notifOpen">
+        <i data-lucide="bell" class="h-5 w-5" aria-hidden="true"></i>
+        {% if sidebar_badges.unread_notifications %}<span class="absolute -top-0.5 -right-0.5 h-4.5 w-4.5 rounded-full bg-gradient-gold text-accent text-[10px] font-extrabold flex items-center justify-center shadow-md shadow-yellow-500/30" aria-label="{{ sidebar_badges.unread_notifications }} unread notifications">{{ sidebar_badges.unread_notifications }}</span>{% endif %}
+      </button>
+      <div x-show="notifOpen" @click.outside="notifOpen = false" class="absolute right-0 mt-2 w-80 rounded-2xl bg-white dark:bg-gray-800 shadow-2xl border border-gray-100 dark:border-gray-700 py-2 z-50" x-cloak>
+        <div class="px-5 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+          <p class="text-sm font-bold text-gray-800 dark:text-gray-200">Notifications</p>
+          {% if sidebar_badges.unread_notifications %}
+          <form method="post" action="{% url 'core:notification_read_all' %}">
+            {% csrf_token %}
+            <button type="submit" class="text-xs font-bold text-primary hover:underline">Mark all read</button>
+          </form>
+          {% endif %}
+        </div>
+        {% if sidebar_badges.overdue_ca and perms.audits.view_correctiveaction %}
+        <a href="{% url 'audits:corrective_actions' %}?overdue=1" aria-label="{{ sidebar_badges.overdue_ca }} overdue corrective actions" class="flex items-center gap-3 px-5 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 border-b border-gray-50 dark:border-gray-700/50">
+          <span class="h-2 w-2 rounded-full bg-red-500 shrink-0 ring-2 ring-red-200"></span>
+          <span class="font-semibold">Overdue Actions</span>
+          <span class="ml-auto text-xs font-bold text-red-600 dark:text-red-400">{{ sidebar_badges.overdue_ca }}</span>
+        </a>
+        {% endif %}
+        {% if sidebar_badges.draft_count and perms.audits.view_audit %}
+        <a href="{% url 'audits:list' %}?status=draft" aria-label="{{ sidebar_badges.draft_count }} draft audits" class="flex items-center gap-3 px-5 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 border-b border-gray-50 dark:border-gray-700/50">
+          <span class="h-2 w-2 rounded-full bg-amber-500 shrink-0 ring-2 ring-amber-200"></span>
+          <span class="font-semibold">Draft Audits</span>
+          <span class="ml-auto text-xs font-bold text-amber-600 dark:text-amber-400">{{ sidebar_badges.draft_count }}</span>
+        </a>
+        {% endif %}
+        {% if not sidebar_badges.overdue_ca and not sidebar_badges.draft_count %}
+        <div class="px-5 py-8 text-center text-sm text-gray-400">No alerts — all clear</div>
+        {% endif %}
+        <div class="border-t border-gray-100 dark:border-gray-700 mt-1 pt-1">
+          <a href="{% url 'core:notifications' %}" class="flex items-center justify-center gap-2 px-5 py-3 text-sm font-bold text-primary hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-b-2xl">
+            <i data-lucide="bell" class="w-4 h-4" aria-hidden="true"></i> View all notifications
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="relative" x-data="{ open: false }" @keydown.escape.window="if (open) { open = false; $el.querySelector('button').focus(); }">
+      <button @click="open = !open" class="flex items-center gap-2 px-2 sm:px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary" aria-label="User menu" aria-haspopup="true" :aria-expanded="open">
+        <div class="h-8 w-8 rounded-xl bg-gradient-gold flex items-center justify-center text-accent text-sm font-extrabold shadow-md">
+          {{ user.get_full_name|default:user.username|make_list|first|upper }}
+        </div>
+        <div class="hidden sm:block text-left">
+          <p class="text-sm font-semibold text-gray-800 dark:text-gray-200 leading-tight">{{ user.get_full_name|default:user.username }}</p>
+          <p class="text-[11px] text-gray-400 dark:text-gray-500 font-medium">{{ user.get_role_display|default:user.role|title }}</p>
+        </div>
+        <i data-lucide="chevron-down" class="h-4 w-4 text-gray-400" aria-hidden="true"></i>
+      </button>
+      <div x-show="open" @click.outside="open = false" class="absolute right-0 mt-2 w-56 rounded-2xl bg-white dark:bg-gray-800 shadow-2xl border border-gray-100 dark:border-gray-700 py-2 z-50" x-cloak>
+        <div class="px-5 py-3 border-b border-gray-100 dark:border-gray-700">
+          <p class="text-sm font-bold text-gray-800 dark:text-gray-200">{{ user.get_full_name|default:user.username }}</p>
+          <p class="text-xs text-gray-400 dark:text-gray-500">{{ user.email }}</p>
+        </div>
+        <a href="{% url 'accounts:profile' %}" class="flex items-center gap-3 px-5 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium">
+          <i data-lucide="user" class="h-4 w-4 text-gray-400" aria-hidden="true"></i> Profile
+        </a>
+        {% if user.is_staff %}
+        <a href="{% url 'admin:index' %}" class="flex items-center gap-3 px-5 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium">
+          <i data-lucide="settings" class="h-4 w-4 text-gray-400" aria-hidden="true"></i> Settings
+        </a>
+        {% endif %}
+        <div class="border-t border-gray-100 dark:border-gray-700 mt-1 pt-1">
+          <a href="{% url 'accounts:logout' %}" class="flex items-center gap-3 px-5 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 font-medium">
+            <i data-lucide="log-out" class="h-4 w-4" aria-hidden="true"></i> Logout
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>

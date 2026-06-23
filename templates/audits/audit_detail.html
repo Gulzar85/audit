@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ business_info.company_name }} — {{ audit.restaurant.name }}{% endblock %}
+{% block page_title %}{{ audit.restaurant.name }} — Audit{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-6">
+  <div class="relative overflow-hidden rounded-2xl bg-gradient-dark">
+    <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50"></div>
+    <div class="absolute top-0 right-0 w-96 h-96 rounded-full bg-gradient-gold opacity-[0.04] blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+    <div class="px-6 sm:px-8 py-6 sm:py-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 relative">
+      <div class="text-white">
+        <div class="flex items-center gap-3 text-white/70 text-sm font-semibold mb-2">
+          <i data-lucide="clipboard-check" class="w-4 h-4"></i>
+          <span>Audit Overview</span>
+          {% if audit.is_submitted %}
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-400/25 text-emerald-100 text-xs font-bold border border-emerald-300/30"><i data-lucide="check-circle" class="w-3 h-3"></i> Submitted</span>
+          {% else %}
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/25 text-amber-100 text-xs font-bold border border-amber-300/30"><i data-lucide="clock" class="w-3 h-3"></i> Draft</span>
+          {% endif %}
+          {% if audit.has_critical_failure %}
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-400/25 text-red-100 text-xs font-bold border border-red-300/30"><i data-lucide="alert-triangle" class="w-3 h-3"></i> Critical</span>
+          {% endif %}
+        </div>
+        <h1 class="text-3xl font-extrabold">{{ audit.restaurant.name }}</h1>
+        <p class="text-sm text-white/70 mt-1"><span class="font-mono font-bold text-white/90">#{{ audit.restaurant.code }}</span> &middot; {{ audit.template.name }} v{{ audit.template.version }} &middot; {{ audit.audit_date|date:"F d, Y" }}</p>
+      </div>
+      <div class="flex flex-wrap items-stretch sm:items-center gap-3 shrink-0">
+        {% if not audit.is_submitted and perms.audits.change_audit %}
+        <a href="{% url 'audits:score' audit.pk %}" class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-gold text-accent hover:shadow-xl hover:shadow-yellow-500/30 font-extrabold transition-all duration-200"><i data-lucide="edit" class="w-4 h-4"></i> Score Audit</a>
+        <form method="post" action="{% url 'audits:submit' audit.pk %}" class="inline" onsubmit="return confirm('Submit this audit? This action cannot be undone.')">{% csrf_token %}<button type="submit" class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:shadow-xl hover:shadow-emerald-500/30 font-bold transition-all duration-200"><i data-lucide="check-circle-2" class="w-4 h-4"></i> Submit</button></form>
+        {% endif %}
+        {% if audit.is_submitted %}
+        <a href="{% url 'audits:result' audit.pk %}" class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white/15 text-white hover:bg-white/25 font-bold transition-all border-2 border-white/30"><i data-lucide="bar-chart-3" class="w-4 h-4"></i> Full Report</a>
+        {% endif %}
+        {% if perms.audits.delete_audit %}
+        <form method="post" action="{% url 'audits:delete' audit.pk %}" class="inline" onsubmit="return confirm('Delete this audit? This cannot be undone.')">{% csrf_token %}<button type="submit" class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white/10 text-white/70 hover:bg-red-500/30 hover:text-red-200 font-semibold transition-all border-2 border-white/20 hover:border-red-400/50"><i data-lucide="trash-2" class="w-4 h-4"></i> Delete</button></form>
+        {% endif %}
+        <a href="{% url 'audits:list' %}" class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white/15 text-white hover:bg-white/25 font-bold transition-all border-2 border-white/30"><i data-lucide="arrow-left" class="w-4 h-4"></i> Back</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 gold-card">
+    <div class="flex items-center justify-between mb-3">
+      <div class="flex items-center gap-3">
+        <span class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-lg font-extrabold {% if audit.grade == 'A' %}bg-emerald-100 text-emerald-800{% elif audit.grade == 'B' %}bg-blue-100 text-blue-800{% elif audit.grade == 'C' %}bg-amber-100 text-amber-800{% elif audit.grade == 'F' %}bg-red-100 text-red-800{% else %}bg-gray-100 text-gray-500{% endif %}">
+          <i data-lucide="{% if audit.grade == 'A' %}check-circle-2{% elif audit.grade == 'B' %}trending-up{% elif audit.grade == 'C' %}alert-triangle{% elif audit.grade == 'F' %}x-circle{% else %}help-circle{% endif %}" class="w-5 h-5"></i>
+          {{ audit.total_percentage|floatformat:1|default:'—' }}%
+        </span>
+        <span class="text-sm text-gray-500 font-semibold">{{ audit.get_grade_display|default:'Not graded' }}</span>
+      </div>
+      <div class="text-right text-sm text-gray-500"><span class="font-extrabold text-gray-800">{{ audit.total_scored|floatformat:1 }}</span> / {{ audit.total_possible|floatformat:1 }} pts</div>
+    </div>
+    <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+      <div class="h-full rounded-full transition-all duration-700 {% if audit.total_percentage >= 90 %}bg-gradient-to-r from-emerald-400 to-emerald-500{% elif audit.total_percentage >= 80 %}bg-gradient-to-r from-amber-400 to-amber-500{% elif audit.total_percentage >= 70 %}bg-gradient-to-r from-orange-400 to-orange-500{% else %}bg-gradient-to-r from-red-400 to-red-500{% endif %}" style="width: {{ audit.total_percentage|floatformat:1 }}%"></div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 gold-card"><p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Restaurant Code</p><p class="text-sm font-mono font-extrabold text-gray-900">#{{ audit.restaurant.code }}</p><p class="text-xs text-gray-400">{{ audit.restaurant.city }}</p></div>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 gold-card"><p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Auditor</p><p class="text-sm font-bold text-gray-900">{{ audit.auditor.get_full_name|default:audit.auditor.username|default:'—' }}</p><p class="text-xs text-gray-400">{{ audit.auditor.get_role_display|default:'' }}</p></div>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 gold-card"><p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Manager on Duty</p><p class="text-sm font-bold text-gray-900">{{ audit.manager_on_duty }}</p><p class="text-xs text-gray-400">{{ audit.audit_date|date:"M d, Y" }}</p></div>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 gold-card"><p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Template</p><p class="text-sm font-bold text-gray-900 truncate">{{ audit.template.name }}</p><p class="text-xs text-gray-400">v{{ audit.template.version }}</p></div>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 gold-card"><p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Critical</p><p class="text-sm font-bold {% if audit.has_critical_failure %}text-red-600{% else %}text-emerald-600{% endif %}">{% if audit.has_critical_failure %}Yes{% else %}None{% endif %}</p><p class="text-xs text-gray-400">{% if audit.is_submitted %}Submitted {{ audit.submitted_at|date:"M d, Y" }}{% else %}Not submitted{% endif %}</p></div>
+  </div>
+
+  <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden gold-card">
+    <div class="px-6 py-4 bg-gradient-primary-h flex items-center justify-between">
+      <h3 class="text-white font-bold flex items-center gap-2"><i data-lucide="layers" class="w-4 h-4"></i> Section Scores</h3>
+      <span class="text-xs font-bold bg-white/20 text-white px-3 py-1 rounded-full">{{ audit.audit_sections.count }} sections</span>
+    </div>
+    <div class="divide-y divide-gray-100">
+      {% for sec in audit.audit_sections.all %}
+      <div class="px-6 py-4 hover:bg-gray-50/50 transition-colors">
+        <div class="flex items-center justify-between gap-4 mb-2">
+          <div class="flex items-center gap-3 min-w-0 flex-1">
+            {% if sec.has_critical_failure %}<span class="w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-red-200 shrink-0"></span>{% elif sec.section_percentage >= 90 %}<span class="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-200 shrink-0"></span>{% elif sec.section_percentage >= 80 %}<span class="w-2.5 h-2.5 rounded-full bg-amber-500 ring-2 ring-amber-200 shrink-0"></span>{% else %}<span class="w-2.5 h-2.5 rounded-full bg-orange-500 ring-2 ring-orange-200 shrink-0"></span>{% endif %}
+            <span class="text-sm font-bold text-gray-900 truncate">{{ sec.section.name }}</span>
+            {% if sec.has_critical_failure %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-red-100 text-red-700 shrink-0"><i data-lucide="alert-triangle" class="w-3 h-3"></i> Critical</span>{% endif %}
+          </div>
+          <div class="flex items-center gap-3 shrink-0">
+            <span class="text-xs text-gray-500 font-semibold">{{ sec.scored_points|floatformat:0 }}/{{ sec.possible_points|floatformat:0 }}</span>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-extrabold {% if sec.section_percentage >= 90 %}bg-emerald-100 text-emerald-800{% elif sec.section_percentage >= 80 %}bg-amber-100 text-amber-800{% else %}bg-red-100 text-red-800{% endif %}">{{ sec.section_percentage|floatformat:1 }}%</span>
+          </div>
+        </div>
+        <div class="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden"><div class="h-full rounded-full {% if sec.section_percentage >= 90 %}bg-emerald-500{% elif sec.section_percentage >= 80 %}bg-amber-500{% else %}bg-red-500{% endif %}" style="width: {{ sec.section_percentage|floatformat:1 }}%"></div></div>
+      </div>
+      {% empty %}
+      <div class="px-6 py-8 text-center">
+        <i data-lucide="layers" class="w-10 h-10 text-gray-300 mx-auto mb-3"></i>
+        <p class="text-sm font-bold text-gray-500">No sections found for this audit.</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  {% if audit.is_submitted %}
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center gold-card">
+    <p class="text-sm text-gray-500"><i data-lucide="check-circle" class="w-4 h-4 inline text-emerald-500"></i> Submitted on {{ audit.submitted_at|date:"M d, Y H:i" }}{% if audit.previous_audit %} &middot; Previous: <a href="{% url 'audits:detail' audit.previous_audit.pk %}" class="text-primary hover:underline font-bold">{{ audit.previous_audit.audit_date }}</a>{% endif %}</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

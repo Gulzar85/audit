@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ business_info.company_name }} — Audit Templates{% endblock %}
+{% block page_title %}Audit Templates{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-6">
+    <div class="relative overflow-hidden rounded-2xl bg-gradient-dark p-6 sm:p-8">
+        <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50"></div>
+        <div class="absolute top-0 right-0 w-96 h-96 rounded-full bg-gradient-gold opacity-[0.04] blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+        <div class="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-white/10 text-white/70 border border-white/10">
+                        <i data-lucide="file-text" class="w-3 h-3"></i> {{ page_obj.paginator.count }} template{{ page_obj.paginator.count|pluralize }}
+                    </span>
+                </div>
+                <h1 class="text-xl sm:text-2xl font-extrabold text-white font-display">Audit Templates</h1>
+                <p class="text-white/60 text-sm mt-0.5">Manage audit checklist templates and their sections</p>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+                {% if perms.audits.add_audittemplate %}
+                <a href="{% url 'admin:audits_audittemplate_add' %}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-gold text-accent text-sm font-bold hover:shadow-xl hover:shadow-yellow-500/20 transition-all duration-300 active:scale-[0.97]">
+                    <i data-lucide="plus" class="w-4 h-4"></i> New Template
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200 p-4 gold-card">
+        <form method="get" class="flex flex-wrap items-end gap-3">
+            <div><label class="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-1.5">Search</label><input type="text" name="q" id="t-search" value="{{ current_filters.q|default:'' }}" placeholder="Template name..." class="w-56 px-3 py-2.5 rounded-xl border border-gray-300 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all bg-gray-50/50"></div>
+            <button type="submit" class="px-5 py-2.5 rounded-xl bg-gradient-dark text-white text-sm font-bold hover:shadow-xl transition-all duration-300"><i data-lucide="filter" class="h-4 w-4 inline mr-1"></i> Search</button>
+            {% if current_filters %}<a href="{% url 'audits:template_list' %}" class="px-5 py-2.5 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-all">Clear</a>{% endif %}
+        </form>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for template in templates %}
+        <a href="{% url 'audits:template_detail' template.pk %}" class="group bg-white rounded-2xl shadow-sm border border-gray-200 p-5 hover:shadow-lg hover:border-yellow-300/50 transition-all duration-200 block gold-card">
+            <div class="flex items-start justify-between gap-3 mb-3">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-md"><i data-lucide="file-text" class="w-5 h-5"></i></div>
+                    <div class="min-w-0"><h3 class="font-bold text-gray-900 truncate group-hover:text-primary transition-colors">{{ template.name }}</h3><p class="text-xs text-gray-500">v{{ template.version }}</p></div>
+                </div>
+            </div>
+            {% if template.description %}<p class="text-xs text-gray-600 line-clamp-2 mb-3">{{ template.description }}</p>{% endif %}
+            <div class="flex items-center gap-4 text-xs text-gray-500 pt-3 border-t border-gray-100">
+                <span class="flex items-center gap-1"><i data-lucide="layers" class="w-3 h-3"></i> {{ template.section_count|default:'0' }} sections</span>
+                <span class="flex items-center gap-1"><i data-lucide="help-circle" class="w-3 h-3"></i> {{ template.question_count|default:'0' }} questions</span>
+                {% if template.audit_count %}<span class="flex items-center gap-1"><i data-lucide="clipboard-check" class="w-3 h-3"></i> {{ template.audit_count }} audit(s)</span>{% endif %}
+            </div>
+        </a>
+        {% empty %}
+        <div class="col-span-full gold-card"><div class="bg-white/80 backdrop-blur-sm rounded-2xl p-12 text-center border border-gray-200"><i data-lucide="file-text" class="w-12 h-12 text-gray-300 mx-auto mb-3"></i><h3 class="text-lg font-bold text-gray-700">No templates found</h3><p class="text-sm text-gray-400 mt-1">Create a template in the admin panel to get started.</p></div></div>
+        {% endfor %}
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="flex items-center justify-center gap-2 pt-4">
+        {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}{% for k, v in current_filters.items %}&{{ k }}={{ v }}{% endfor %}" class="px-3.5 py-2 rounded-xl border border-gray-300 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"><i data-lucide="chevron-left" class="h-4 w-4"></i></a>{% endif %}
+        {% for num in page_obj.paginator.page_range %}{% if num == page_obj.number %}<span class="px-3.5 py-2 rounded-xl bg-gradient-primary text-white text-sm font-extrabold">{{ num }}</span>{% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}<a href="?page={{ num }}{% for k, v in current_filters.items %}&{{ k }}={{ v }}{% endfor %}" class="px-3.5 py-2 rounded-xl border border-gray-300 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors">{{ num }}</a>{% endif %}{% endfor %}
+        {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}{% for k, v in current_filters.items %}&{{ k }}={{ v }}{% endfor %}" class="px-3.5 py-2 rounded-xl border border-gray-300 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"><i data-lucide="chevron-right" class="h-4 w-4"></i></a>{% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

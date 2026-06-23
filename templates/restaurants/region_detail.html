@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ business_info.company_name }} — {{ region.name }}{% endblock %}
+{% block page_title %}Region: {{ region.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-6">
+    <div class="relative overflow-hidden rounded-2xl bg-gradient-dark">
+        <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50"></div>
+        <div class="absolute top-0 right-0 w-96 h-96 rounded-full bg-gradient-gold opacity-[0.04] blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+        <div class="px-6 sm:px-8 py-6 sm:py-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 relative">
+            <div class="text-white">
+                <div class="flex items-center gap-2 text-white/70 text-sm font-semibold mb-2"><i data-lucide="map-pin" class="w-4 h-4"></i><span>Region</span></div>
+                <h1 class="text-3xl font-extrabold">{{ region.name }}</h1>
+                <p class="text-sm text-white/70 mt-1">{{ region.restaurant_set.count }} restaurant{{ region.restaurant_set.count|pluralize }}</p>
+            </div>
+            <a href="{% url 'restaurants:restaurant_list' %}" class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white/15 text-white hover:bg-white/25 font-bold transition-all border-2 border-white/30"><i data-lucide="arrow-left" class="w-4 h-4"></i> All Restaurants</a>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden gold-card">
+        <div class="px-6 py-4 bg-gradient-primary-h"><h3 class="text-white font-bold flex items-center gap-2"><i data-lucide="store" class="w-4 h-4"></i> Restaurants in {{ region.name }}</h3></div>
+        {% if region.restaurant_set.all %}
+        <div class="divide-y divide-gray-100">
+            {% for r in region.restaurant_set.all %}
+            <a href="{% url 'restaurants:restaurant_detail' r.pk %}" class="px-6 py-4 flex items-center justify-between gap-4 hover:bg-gray-50/50 transition-colors group">
+                <div class="flex items-center gap-4 min-w-0">
+                    <div class="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0"><i data-lucide="store" class="w-5 h-5 text-primary"></i></div>
+                    <div class="min-w-0"><p class="text-sm font-bold text-gray-900 truncate group-hover:text-primary transition-colors">{{ r.name }}</p><p class="text-xs text-gray-500">{{ r.code }} &middot; {{ r.city|default:'N/A' }}</p></div>
+                </div>
+                <div class="flex items-center gap-3 shrink-0">
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-extrabold {% if r.status == 'active' %}bg-emerald-100 text-emerald-800{% elif r.status == 'inactive' %}bg-gray-100 text-gray-800{% elif r.status == 'renovation' %}bg-amber-100 text-amber-800{% else %}bg-red-100 text-red-800{% endif %}">{{ r.get_status_display }}</span>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors"></i>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}<div class="bg-white/80 backdrop-blur-sm rounded-2xl p-12 text-center border border-gray-200 gold-card"><i data-lucide="store" class="w-12 h-12 text-gray-300 mx-auto mb-3"></i><h3 class="text-lg font-bold text-gray-700">No restaurants in this region</h3><p class="text-sm text-gray-400 mt-1">Restaurants will appear here once assigned to this region.</p></div>{% endif %}
+    </div>
+</div>
+{% endblock %}

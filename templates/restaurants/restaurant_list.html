@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ business_info.company_name }} — Restaurants{% endblock %}
+{% block page_title %}Restaurants{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6 animate-fade-in">
+
+  <!-- STATS STRIP -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <div class="bg-white/90 dark:bg-gray-800/90 rounded-2xl shadow-sm border border-gray-200/60 dark:border-gray-700/60 p-4 gold-card">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-gold flex items-center justify-center shadow-md">
+          <i data-lucide="store" class="w-5 h-5 text-accent"></i>
+        </div>
+        <div>
+          <p class="text-2xl font-extrabold text-gray-900 dark:text-white">{{ page_obj.paginator.count }}</p>
+          <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total</p>
+        </div>
+      </div>
+    </div>
+    <div class="bg-white/90 dark:bg-gray-800/90 rounded-2xl shadow-sm border border-gray-200/60 dark:border-gray-700/60 p-4 gold-card">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center shadow-md">
+          <i data-lucide="check-circle" class="w-5 h-5 text-emerald-600 dark:text-emerald-400"></i>
+        </div>
+        <div>
+          <p class="text-2xl font-extrabold text-gray-900 dark:text-white">{{ restaurants.count_active|default:page_obj.paginator.count }}</p>
+          <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Active</p>
+        </div>
+      </div>
+    </div>
+    <div class="bg-white/90 dark:bg-gray-800/90 rounded-2xl shadow-sm border border-gray-200/60 dark:border-gray-700/60 p-4 gold-card">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center shadow-md">
+          <i data-lucide="map-pin" class="w-5 h-5 text-blue-600 dark:text-blue-400"></i>
+        </div>
+        <div>
+          <p class="text-2xl font-extrabold text-gray-900 dark:text-white">{{ cities|length }}</p>
+          <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cities</p>
+        </div>
+      </div>
+    </div>
+    <div class="bg-white/90 dark:bg-gray-800/90 rounded-2xl shadow-sm border border-gray-200/60 dark:border-gray-700/60 p-4 gold-card">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center shadow-md">
+          <i data-lucide="activity" class="w-5 h-5 text-amber-600 dark:text-amber-400"></i>
+        </div>
+        <div>
+          <p class="text-2xl font-extrabold text-gray-900 dark:text-white">{{ restaurants|length }}</p>
+          <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">This Page</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="relative overflow-hidden rounded-2xl bg-gradient-dark p-6 sm:p-8">
+    <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50"></div>
+    <div class="absolute top-0 right-0 w-96 h-96 rounded-full bg-gradient-gold opacity-[0.04] blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+    <div class="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-2 mb-1">
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-white/10 text-white/70 border border-white/10">
+            <i data-lucide="store" class="w-3 h-3"></i> {{ page_obj.paginator.count }} restaurant{{ page_obj.paginator.count|pluralize }} across {{ cities|length }} cit{{ cities|length|pluralize:"y,ies" }}
+          </span>
+        </div>
+        <h1 class="text-xl sm:text-2xl font-extrabold text-white font-display">Restaurants</h1>
+        <p class="text-white/60 text-sm mt-0.5">View and manage all restaurant locations</p>
+      </div>
+      <div class="flex items-center gap-2 shrink-0" x-data="{}">
+        <button type="button" @click="document.getElementById('filterPanel').classList.toggle('hidden')" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 text-white text-sm font-bold hover:bg-white/20 transition-all duration-200 border border-white/10">
+          <i data-lucide="sliders-horizontal" class="w-4 h-4"></i> Filters
+          {% if current_filters %}<span class="w-2 h-2 rounded-full bg-secondary ml-1"></span>{% endif %}
+        </button>
+        <a href="{% url 'restaurants:restaurant_list' %}" class="px-4 py-2.5 rounded-xl bg-white/10 text-white hover:bg-white/20 transition-all duration-200 border border-white/10 flex items-center justify-center">
+          <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- FILTER PANEL -->
+  <div id="filterPanel" class="{% if not current_filters %}hidden{% endif %} bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-5 transition-all gold-card">
+    <form method="get" class="flex flex-wrap items-end gap-4">
+      <div class="flex-1 min-w-[180px]">
+        <label for="r-search" class="block text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1.5">Search</label>
+        <div class="relative">
+          <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></i>
+          <input type="text" name="q" id="r-search" value="{{ current_filters.q|default:'' }}" placeholder="Name, code, or city..." class="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 text-sm focus:border-primary focus:ring-2 focus:ring-primary outline-none transition-all bg-gray-50/50 dark:bg-gray-700/50 dark:text-gray-200">
+        </div>
+      </div>
+      <div>
+        <label for="r-status" class="block text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1.5">Status</label>
+        <select name="status" id="r-status" class="px-3 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 text-sm focus:border-primary focus:ring-2 focus:ring-primary outline-none transition-all bg-gray-50/50 dark:bg-gray-700/50 dark:text-gray-200">
+          <option value="">All Statuses</option>
+          {% for key, label in status_choices %}
+          <option value="{{ key }}" {% if current_filters.status == key %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="r-city" class="block text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1.5">City</label>
+        <select name="city" id="r-city" class="px-3 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 text-sm focus:border-primary focus:ring-2 focus:ring-primary outline-none transition-all bg-gray-50/50 dark:bg-gray-700/50 dark:text-gray-200">
+          <option value="">All Cities</option>
+          {% for c in cities %}
+          <option value="{{ c }}" {% if current_filters.city == c %}selected{% endif %}>{{ c }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="flex items-center gap-2">
+        <button type="submit" class="px-5 py-2.5 rounded-xl bg-gradient-primary text-white text-sm font-bold hover:shadow-xl hover:shadow-primary transition-all duration-300 flex items-center gap-2">
+          <i data-lucide="filter" class="w-4 h-4"></i> Apply
+        </button>
+        {% if current_filters %}
+        <a href="{% url 'restaurants:restaurant_list' %}" class="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 text-sm font-semibold text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all">Clear</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
+  <!-- RESTAURANT GRID -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+    {% for restaurant in restaurants %}
+    <div class="group relative bg-white dark:bg-gray-800/90 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-lg hover:border-secondary/40 dark:hover:border-secondary/30 transition-all duration-300 gold-card overflow-hidden">
+      <!-- Top accent line -->
+      <div class="h-1 w-full bg-gradient-gold-h opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+
+      <a href="{% url 'restaurants:restaurant_detail' restaurant.pk %}" class="block p-5">
+        <!-- Row 1: Avatar + Name + Status -->
+        <div class="flex items-start justify-between gap-3 mb-3">
+          <div class="flex items-center gap-3 min-w-0">
+            <!-- Avatar with status ring -->
+            <div class="relative shrink-0">
+              <div class="w-11 h-11 rounded-xl bg-gradient-primary flex items-center justify-center text-white font-extrabold text-base shadow-lg shadow-primary">
+                {{ restaurant.name|first|upper }}
+              </div>
+              <div class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-gray-800 {% if restaurant.status == 'active' %}bg-emerald-500{% elif restaurant.status == 'inactive' %}bg-gray-400{% elif restaurant.status == 'renovation' %}bg-amber-400{% else %}bg-red-500{% endif %}"></div>
+            </div>
+            <div class="min-w-0">
+              <h3 class="font-bold text-gray-900 dark:text-white truncate group-hover:text-primary transition-colors text-base">{{ restaurant.name }}</h3>
+              <p class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-0.5">
+                <span class="font-mono font-semibold">{{ restaurant.code }}</span>
+                <span class="text-gray-300 dark:text-gray-600">&middot;</span>
+                <i data-lucide="map-pin" class="w-3 h-3 inline"></i> {{ restaurant.city }}
+              </p>
+            </div>
+          </div>
+          <!-- Status badge -->
+          <span class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold {% if restaurant.status == 'active' %}bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400{% elif restaurant.status == 'inactive' %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400{% elif restaurant.status == 'renovation' %}bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400{% else %}bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400{% endif %}">
+            <span class="w-1.5 h-1.5 rounded-full {% if restaurant.status == 'active' %}bg-emerald-500{% elif restaurant.status == 'inactive' %}bg-gray-400{% elif restaurant.status == 'renovation' %}bg-amber-500{% else %}bg-red-500{% endif %}"></span>
+            {{ restaurant.get_status_display }}
+          </span>
+        </div>
+
+        <!-- Row 2: Audit score + meta -->
+        <div class="flex items-center gap-4 text-xs">
+          {% with latest=restaurant.latest_audit %}
+          {% if latest %}
+          <div class="flex items-center gap-1.5 font-semibold">
+            <span class="w-6 h-6 rounded-md flex items-center justify-center text-white text-[10px] font-extrabold {% if latest.total_percentage >= 90 %}bg-emerald-500{% elif latest.total_percentage >= 80 %}bg-amber-500{% elif latest.total_percentage >= 70 %}bg-orange-500{% else %}bg-red-500{% endif %}">
+              {% if latest.total_percentage >= 90 %}A{% elif latest.total_percentage >= 80 %}B{% elif latest.total_percentage >= 70 %}C{% elif latest.total_percentage >= 60 %}D{% else %}F{% endif %}
+            </span>
+            <span class="text-gray-700 dark:text-gray-300">{{ latest.total_percentage|floatformat:1 }}%</span>
+          </div>
+          <span class="text-gray-300 dark:text-gray-600">|</span>
+          <span class="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+            <i data-lucide="calendar" class="w-3 h-3"></i> {{ latest.audit_date|date:"M d, Y" }}
+          </span>
+          {% else %}
+          <span class="text-gray-400 dark:text-gray-500 italic flex items-center gap-1.5">
+            <i data-lucide="clipboard-x" class="w-3.5 h-3.5"></i> No audits yet
+          </span>
+          {% endif %}
+          {% endwith %}
+        </div>
+
+        <!-- Row 3: Quick audit + details -->
+        <div class="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700/50 flex items-center justify-between">
+          <div class="flex items-center gap-3 text-xs text-gray-400 dark:text-gray-500">
+            {% if restaurant.region %}
+            <a href="{% url 'restaurants:region_detail' restaurant.region.pk %}" class="inline-flex items-center gap-1 hover:text-primary transition-colors font-semibold">
+              <i data-lucide="layers" class="w-3 h-3"></i> {{ restaurant.region.name }}
+            </a>
+            {% endif %}
+            {% if restaurant.phone %}
+            <span class="flex items-center gap-1">
+              <i data-lucide="phone" class="w-3 h-3"></i> {{ restaurant.phone }}
+            </span>
+            {% endif %}
+          </div>
+          <span class="text-xs text-gray-400 dark:text-gray-500 font-medium flex items-center gap-1">
+            <i data-lucide="clipboard-list" class="w-3 h-3"></i> {{ restaurant.submitted_audit_count }}
+          </span>
+        </div>
+      </a>
+    </div>
+    {% empty %}
+    <!-- EMPTY STATE -->
+    <div class="col-span-full">
+      <div class="text-center py-20">
+        <div class="w-20 h-20 rounded-3xl bg-gradient-gold mx-auto mb-5 flex items-center justify-center shadow-xl shadow-yellow-500/20">
+          <i data-lucide="store" class="w-10 h-10 text-accent"></i>
+        </div>
+        <h3 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-2">No restaurants found</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto leading-relaxed">Try adjusting your search or filters, or clear all filters to see all restaurants.</p>
+        {% if current_filters %}
+        <a href="{% url 'restaurants:restaurant_list' %}" class="inline-flex items-center gap-2 mt-6 px-6 py-3 rounded-xl bg-gradient-primary text-white font-bold text-sm hover:shadow-xl hover:shadow-primary transition-all duration-300">
+          <i data-lucide="x" class="w-4 h-4"></i> Clear Filters
+        </a>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if page_obj.has_other_pages %}
+  <div class="flex items-center justify-center gap-2 pt-4">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}{% for k, v in current_filters.items %}&{{ k }}={{ v }}{% endfor %}" class="px-3.5 py-2 rounded-xl border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"><i data-lucide="chevron-left" class="w-4 h-4"></i></a>
+    {% endif %}
+    {% for num in page_obj.paginator.page_range %}
+    {% if num == page_obj.number %}
+    <span class="px-3.5 py-2 rounded-xl bg-gradient-primary text-white text-sm font-extrabold shadow-sm">{{ num }}</span>
+    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+    <a href="?page={{ num }}{% for k, v in current_filters.items %}&{{ k }}={{ v }}{% endfor %}" class="px-3.5 py-2 rounded-xl border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">{{ num }}</a>
+    {% endif %}
+    {% endfor %}
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}{% for k, v in current_filters.items %}&{{ k }}={{ v }}{% endfor %}" class="px-3.5 py-2 rounded-xl border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"><i data-lucide="chevron-right" class="w-4 h-4"></i></a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

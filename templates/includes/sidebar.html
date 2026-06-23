@@ -1,0 +1,131 @@
+<aside class="fixed left-0 top-0 h-full z-30 sidebar-transition flex flex-col shadow-xl bg-gradient-dark"
+       :class="$store.app.sidebarOpen ? 'w-64' : 'w-16'">
+  <div class="relative flex items-center h-16 px-4" style="border-bottom: 1px solid color-mix(in srgb, var(--secondary) 15%, transparent);">
+    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.02] to-transparent pointer-events-none"></div>
+    <a href="{% url 'audits:dashboard' %}" class="flex items-center gap-3 min-w-0 relative z-10">
+      {% if business_info.logo %}
+        <img src="{{ business_info.logo.url }}" alt="Logo" class="h-9 w-9 shrink-0 object-contain">
+      {% else %}
+        <div class="h-9 w-9 rounded-xl bg-gradient-gold flex items-center justify-center text-accent font-black text-lg shrink-0 shadow-lg shadow-yellow-500/20 ring-2 ring-white/10">M</div>
+      {% endif %}
+      <div x-show="$store.app.sidebarOpen" x-cloak class="flex flex-col">
+        <span class="text-sm font-bold text-white/90 truncate leading-tight">{{ business_info.company_name|default:"McDonald's Pakistan" }}</span>
+        <span class="text-[10px] font-medium text-yellow-400/70 truncate tracking-wider uppercase">Audit System</span>
+      </div>
+    </a>
+  </div>
+
+  <nav class="flex-1 overflow-y-auto py-4 px-2 space-y-0.5 scrollbar-thin">
+    {% with url_name=request.resolver_match.url_name %}
+    <div class="px-3 pb-2" x-show="$store.app.sidebarOpen" x-cloak>
+      <span class="text-[10px] font-semibold uppercase tracking-widest text-yellow-400/70">Main Menu</span>
+    </div>
+
+    {% if perms.audits.view_audit %}
+    <a href="{% url 'audits:dashboard' %}" aria-label="Dashboard" title="Dashboard"
+       {% if url_name == 'dashboard' %}aria-current="page"{% endif %}
+       class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-secondary
+       {% if url_name == 'dashboard' %}bg-gradient-gold text-accent font-bold shadow-lg shadow-yellow-500/20{% else %}text-white/70 hover:text-white hover:bg-white/5{% endif %}">
+      <i data-lucide="layout-dashboard" class="h-5 w-5 shrink-0 transition-transform duration-200 group-hover:scale-110" aria-hidden="true"></i>
+      <span x-show="$store.app.sidebarOpen" class="text-sm font-medium truncate" x-cloak>Dashboard</span>
+      {% if url_name == 'dashboard' %}<span x-show="$store.app.sidebarOpen" class="ml-auto h-1.5 w-1.5 rounded-full bg-accent animate-pulse" x-cloak></span>{% endif %}
+    </a>
+    {% endif %}
+
+    {% if perms.audits.view_audit %}
+    <a href="{% url 'audits:list' %}" aria-label="Audits" title="Audits"
+       {% if url_name == 'list' %}aria-current="page"{% endif %}
+       class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-secondary
+       {% if url_name == 'list' %}bg-gradient-gold text-accent font-bold shadow-lg shadow-yellow-500/20{% else %}text-white/70 hover:text-white hover:bg-white/5{% endif %}">
+      <i data-lucide="clipboard-list" class="h-5 w-5 shrink-0 transition-transform duration-200 group-hover:scale-110" aria-hidden="true"></i>
+      <span x-show="$store.app.sidebarOpen" class="text-sm font-medium truncate" x-cloak>Audits</span>
+      {% if sidebar_badges.draft_count and url_name != 'list' %}<span x-show="$store.app.sidebarOpen" class="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30" x-cloak>{{ sidebar_badges.draft_count }}</span>{% endif %}
+      {% if url_name == 'list' %}<span x-show="$store.app.sidebarOpen" class="ml-auto h-1.5 w-1.5 rounded-full bg-accent animate-pulse" x-cloak></span>{% endif %}
+    </a>
+    {% endif %}
+
+    {% if perms.audits.add_audit %}
+    <a href="{% url 'audits:create' %}" aria-label="New Audit" title="New Audit"
+       {% if url_name == 'create' %}aria-current="page"{% endif %}
+       class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-secondary
+       {% if url_name == 'create' %}bg-gradient-gold text-accent font-bold shadow-lg shadow-yellow-500/20{% else %}text-white/70 hover:text-white hover:bg-white/5{% endif %}">
+      <i data-lucide="plus-circle" class="h-5 w-5 shrink-0 transition-transform duration-200 group-hover:scale-110 group-hover:rotate-90" aria-hidden="true"></i>
+      <span x-show="$store.app.sidebarOpen" class="text-sm font-medium truncate" x-cloak>New Audit</span>
+    </a>
+    {% endif %}
+
+    {% if perms.audits.view_correctiveaction %}
+    <a href="{% url 'audits:corrective_actions' %}" aria-label="Corrective Actions" title="Corrective Actions"
+       {% if 'corrective_action' in url_name %}aria-current="page"{% endif %}
+       class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-secondary
+       {% if 'corrective_action' in url_name %}bg-gradient-gold text-accent font-bold shadow-lg shadow-yellow-500/20{% else %}text-white/70 hover:text-white hover:bg-white/5{% endif %}">
+      <i data-lucide="alert-triangle" class="h-5 w-5 shrink-0 transition-transform duration-200 group-hover:scale-110" aria-hidden="true"></i>
+      <span x-show="$store.app.sidebarOpen" class="text-sm font-medium truncate" x-cloak>Corrective Actions</span>
+      {% if sidebar_badges.overdue_ca and 'corrective_action' not in url_name %}<span x-show="$store.app.sidebarOpen" class="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-400/20 text-red-300 border border-red-400/30" x-cloak>{{ sidebar_badges.overdue_ca }}</span>{% endif %}
+    </a>
+    {% endif %}
+
+    <div x-show="$store.app.sidebarOpen" x-cloak class="h-px my-3 mx-3" style="background: linear-gradient(to right, transparent, color-mix(in srgb, var(--secondary) 15%, transparent), transparent);"></div>
+
+    <a href="{% url 'core:notifications' %}" aria-label="Notifications" title="Notifications"
+       {% if 'notifications' in url_name %}aria-current="page"{% endif %}
+       class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-secondary
+       {% if 'notifications' in url_name %}bg-gradient-gold text-accent font-bold shadow-lg shadow-yellow-500/20{% else %}text-white/70 hover:text-white hover:bg-white/5{% endif %}">
+      <i data-lucide="bell" class="h-5 w-5 shrink-0 transition-transform duration-200 group-hover:scale-110" aria-hidden="true"></i>
+      <span x-show="$store.app.sidebarOpen" class="text-sm font-medium truncate" x-cloak>Notifications</span>
+      {% if sidebar_badges.unread_notifications and 'notifications' not in url_name %}<span x-show="$store.app.sidebarOpen" class="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-yellow-400/20 text-yellow-300 border border-yellow-400/30" x-cloak>{{ sidebar_badges.unread_notifications }}</span>{% endif %}
+    </a>
+
+    {% if perms.restaurants.view_restaurant %}
+    <a href="{% url 'restaurants:restaurant_list' %}" aria-label="Restaurants" title="Restaurants"
+       {% if url_name == 'restaurant_list' or url_name == 'restaurant_detail' or url_name == 'region_detail' %}aria-current="page"{% endif %}
+       class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-secondary
+       {% if url_name == 'restaurant_list' or url_name == 'restaurant_detail' or url_name == 'region_detail' %}bg-gradient-gold text-accent font-bold shadow-lg shadow-yellow-500/20{% else %}text-white/70 hover:text-white hover:bg-white/5{% endif %}">
+      <i data-lucide="store" class="h-5 w-5 shrink-0 transition-transform duration-200 group-hover:scale-110" aria-hidden="true"></i>
+      <span x-show="$store.app.sidebarOpen" class="text-sm font-medium truncate" x-cloak>Restaurants</span>
+    </a>
+    {% endif %}
+
+    {% if perms.audits.view_audittemplate %}
+    <a href="{% url 'audits:template_list' %}" aria-label="Templates" title="Templates"
+       {% if 'template' in url_name %}aria-current="page"{% endif %}
+       class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-secondary
+       {% if 'template' in url_name %}bg-gradient-gold text-accent font-bold shadow-lg shadow-yellow-500/20{% else %}text-white/70 hover:text-white hover:bg-white/5{% endif %}">
+      <i data-lucide="file-text" class="h-5 w-5 shrink-0 transition-transform duration-200 group-hover:scale-110" aria-hidden="true"></i>
+      <span x-show="$store.app.sidebarOpen" class="text-sm font-medium truncate" x-cloak>Templates</span>
+    </a>
+    {% endif %}
+
+    {% if perms.accounts.view_user %}
+    <a href="{% url 'accounts:user_list' %}" aria-label="Users" title="Users"
+       {% if url_name == 'user_list' %}aria-current="page"{% endif %}
+       class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-secondary
+       {% if url_name == 'user_list' %}bg-gradient-gold text-accent font-bold shadow-lg shadow-yellow-500/20{% else %}text-white/70 hover:text-white hover:bg-white/5{% endif %}">
+      <i data-lucide="users" class="h-5 w-5 shrink-0 transition-transform duration-200 group-hover:scale-110" aria-hidden="true"></i>
+      <span x-show="$store.app.sidebarOpen" class="text-sm font-medium truncate" x-cloak>Users</span>
+    </a>
+    {% endif %}
+
+    <div x-show="$store.app.sidebarOpen" x-cloak class="h-px my-3 mx-3" style="background: linear-gradient(to right, transparent, color-mix(in srgb, var(--secondary) 15%, transparent), transparent);"></div>
+
+    {% if user.is_staff %}
+    <a href="{% url 'admin:index' %}" aria-label="Admin Panel" title="Admin Panel"
+       class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary
+       text-white/60 hover:text-white hover:bg-white/5">
+      <i data-lucide="settings" class="h-5 w-5 shrink-0 transition-transform duration-200 group-hover:rotate-90" aria-hidden="true"></i>
+      <span x-show="$store.app.sidebarOpen" class="text-sm font-medium truncate" x-cloak>Admin Panel</span>
+    </a>
+    {% endif %}
+    {% endwith %}
+  </nav>
+
+  <div class="p-3 border-t" style="border-color: color-mix(in srgb, var(--secondary) 10%, transparent);">
+    <button @click="$store.app.sidebarOpen = !$store.app.sidebarOpen"
+            class="group flex items-center gap-3 w-full px-3 py-2 rounded-xl text-white/50 hover:text-white/80 hover:bg-white/5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary"
+            aria-label="Toggle sidebar">
+      <i data-lucide="panel-left-close" x-show="$store.app.sidebarOpen" x-cloak class="h-5 w-5 shrink-0 transition-transform duration-300"></i>
+      <i data-lucide="panel-left-open" x-show="!$store.app.sidebarOpen" x-cloak class="h-5 w-5 shrink-0 transition-transform duration-300 group-hover:scale-110"></i>
+      <span x-show="$store.app.sidebarOpen" x-cloak class="text-xs font-medium">Collapse</span>
+    </button>
+  </div>
+</aside>

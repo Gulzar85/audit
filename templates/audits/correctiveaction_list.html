@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ business_info.company_name }} — Corrective Actions{% endblock %}
+{% block page_title %}Corrective Actions{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-5">
+  <nav class="flex items-center gap-2 text-sm text-gray-400">
+    <a href="{% url 'audits:dashboard' %}" class="hover:text-primary transition-colors font-semibold">Home</a>
+    <i data-lucide="chevron-right" class="h-3.5 w-3.5"></i>
+    <span class="text-gray-600 font-bold">Corrective Actions</span>
+  </nav>
+
+  <div class="relative overflow-hidden rounded-2xl bg-gradient-dark p-6 sm:p-8">
+    <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50"></div>
+    <div class="absolute top-0 right-0 w-96 h-96 rounded-full bg-gradient-gold opacity-[0.04] blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+    <div class="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-2 mb-1">
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-white/10 text-white/70 border border-white/10">
+            <i data-lucide="alert-triangle" class="w-3 h-3"></i> {{ page_obj.paginator.count }} total action{{ page_obj.paginator.count|pluralize }}
+          </span>
+        </div>
+        <h1 class="text-xl sm:text-2xl font-extrabold text-white font-display">Corrective Actions</h1>
+        <p class="text-white/60 text-sm mt-0.5">Track and resolve restaurant compliance issues</p>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        {% if perms.audits.add_correctiveaction %}
+        <a href="{% url 'audits:corrective_action_create' %}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-gold text-accent text-sm font-bold hover:shadow-xl hover:shadow-yellow-500/20 transition-all duration-300 shadow-lg"><i data-lucide="plus" class="w-4 h-4"></i> New Action</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200 p-4 gold-card">
+    <form method="get" class="flex flex-wrap items-end gap-3">
+      <div><label class="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-1.5">Status</label>
+        <select name="status" id="ca-status" class="rounded-xl border border-gray-300 bg-white text-sm px-3 py-2.5 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all bg-gray-50/50">
+          <option value="open" {% if current_filters.status == 'open' or not current_filters.status %}selected{% endif %}>Open</option>
+          <option value="completed" {% if current_filters.status == 'completed' %}selected{% endif %}>Completed</option>
+          <option value="all" {% if current_filters.status == 'all' %}selected{% endif %}>All</option>
+        </select>
+      </div>
+      <div><label class="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-1.5">Risk Level</label>
+        <select name="risk" id="ca-risk" class="rounded-xl border border-gray-300 bg-white text-sm px-3 py-2.5 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all bg-gray-50/50">
+          <option value="">All Levels</option>
+          {% for key, label in risk_choices %}<option value="{{ key }}" {% if current_filters.risk == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div><label class="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-1.5">Overdue Only</label>
+        <select name="overdue" id="ca-overdue" class="rounded-xl border border-gray-300 bg-white text-sm px-3 py-2.5 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all bg-gray-50/50">
+          <option value="">All</option>
+          <option value="1" {% if current_filters.overdue == '1' %}selected{% endif %}>Overdue</option>
+        </select>
+      </div>
+      <button type="submit" class="px-5 py-2.5 rounded-xl bg-gradient-dark text-white text-sm font-bold hover:shadow-xl transition-all duration-300"><i data-lucide="filter" class="h-4 w-4 inline mr-1"></i> Apply</button>
+      {% if current_filters %}<a href="{% url 'audits:corrective_actions' %}" class="px-5 py-2.5 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-all"><i data-lucide="x" class="h-4 w-4 inline mr-1"></i> Clear</a>{% endif %}
+    </form>
+  </div>
+
+  {% if actions %}
+    <div class="space-y-3">
+      {% for action in actions %}
+        <div class="bg-white rounded-2xl border border-gray-200 hover:shadow-lg hover:border-yellow-300/50 transition-all duration-300 p-5 gold-card {% if action.is_overdue %}border-l-4 border-l-red-500{% elif action.risk_level == 'CRITICAL' %}border-l-4 border-l-red-500{% elif action.risk_level == 'HIGH' %}border-l-4 border-l-orange-500{% elif action.risk_level == 'MEDIUM' %}border-l-4 border-l-yellow-500{% endif %}">
+          <div class="flex items-start justify-between gap-4">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 flex-wrap"><span class="text-xs font-bold text-gray-400 uppercase tracking-wider">{{ action.restaurant.name }}</span><span class="text-xs text-gray-300">&middot;</span><span class="text-xs text-gray-500 font-semibold">{{ action.audit.audit_date|date:"M d, Y" }}</span></div>
+              <p class="text-sm font-bold text-gray-800 mt-1">{{ action.description|truncatechars:120 }}</p>
+              <div class="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                <span class="flex items-center gap-1"><i data-lucide="user" class="h-3.5 w-3.5"></i> {{ action.assigned_to.get_full_name|default:action.assigned_to.username|default:'Unassigned' }}</span>
+                <span class="flex items-center gap-1 {% if action.is_overdue %}text-red-600 font-bold{% endif %}"><i data-lucide="calendar" class="h-3.5 w-3.5"></i> {% if action.completed %}Done {{ action.completion_date|date:"M d, Y" }}{% elif action.is_overdue %}Overdue {{ action.deadline|date:"M d, Y" }}{% else %}Due {{ action.deadline|date:"M d, Y" }} ({{ action.days_remaining }}d){% endif %}</span>
+                {% if action.question_response %}<span class="flex items-center gap-1" title="{{ action.question_response.question.question_text }}"><i data-lucide="help-circle" class="h-3.5 w-3.5"></i> {{ action.question_response.question.question_text|truncatechars:40 }}</span>{% endif %}
+              </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <span class="px-2.5 py-1 rounded-full text-xs font-extrabold {% if action.risk_level == 'CRITICAL' %}bg-red-100 text-red-700{% elif action.risk_level == 'HIGH' %}bg-orange-100 text-orange-700{% elif action.risk_level == 'MEDIUM' %}bg-yellow-100 text-yellow-700{% else %}bg-blue-100 text-blue-700{% endif %}">{{ action.get_risk_level_display }}</span>
+              {% if action.completed %}<span class="px-2.5 py-1 rounded-full text-xs font-extrabold bg-green-100 text-green-700">Done</span>{% else %}<span class="px-2.5 py-1 rounded-full text-xs font-extrabold bg-amber-100 text-amber-700">Open</span>{% endif %}
+              {% if perms.audits.change_correctiveaction %}
+                <a href="{% url 'audits:corrective_action_edit' action.pk %}" class="p-1.5 rounded-lg hover:bg-gray-100 transition-colors" title="Edit"><i data-lucide="edit" class="h-4 w-4 text-gray-400"></i></a>
+                <form method="post" action="{% url 'audits:corrective_action_complete' action.pk %}" class="inline" onsubmit="return confirm('{% if action.completed %}Reopen this corrective action?{% else %}Mark this corrective action as complete?{% endif %}')">{% csrf_token %}<button type="submit" class="p-1.5 rounded-lg hover:bg-gray-100 transition-colors" title="{% if action.completed %}Reopen{% else %}Mark Complete{% endif %}">{% if action.completed %}<i data-lucide="rotate-ccw" class="h-4 w-4 text-gray-400"></i>{% else %}<i data-lucide="check-circle" class="h-4 w-4 text-green-500"></i>{% endif %}</button></form>
+              {% endif %}
+              {% if perms.audits.delete_correctiveaction %}
+              <form method="post" action="{% url 'audits:corrective_action_delete' action.pk %}" class="inline" onsubmit="return confirm('Delete this corrective action?')">{% csrf_token %}<button type="submit" class="p-1.5 rounded-lg hover:bg-red-50 transition-colors" title="Delete"><i data-lucide="trash-2" class="h-4 w-4 text-red-400"></i></button></form>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="flex items-center justify-center gap-2 pt-4">
+      {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}{% for k,v in current_filters.items %}&{{ k }}={{ v }}{% endfor %}" class="px-3.5 py-2 rounded-xl border border-gray-300 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"><i data-lucide="chevron-left" class="h-4 w-4"></i></a>{% endif %}
+      {% for num in page_obj.paginator.page_range %}{% if num == page_obj.number %}<span class="px-3.5 py-2 rounded-xl bg-gradient-primary text-white text-sm font-extrabold">{{ num }}</span>{% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}<a href="?page={{ num }}{% for k,v in current_filters.items %}&{{ k }}={{ v }}{% endfor %}" class="px-3.5 py-2 rounded-xl border border-gray-300 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors">{{ num }}</a>{% endif %}{% endfor %}
+      {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}{% for k,v in current_filters.items %}&{{ k }}={{ v }}{% endfor %}" class="px-3.5 py-2 rounded-xl border border-gray-300 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"><i data-lucide="chevron-right" class="h-4 w-4"></i></a>{% endif %}
+    </div>
+    {% endif %}
+  {% else %}
+    <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-12 text-center border border-gray-200 gold-card">
+      <i data-lucide="check-circle" class="w-12 h-12 text-gray-300 mx-auto mb-3"></i>
+      <h3 class="text-lg font-bold text-gray-700">All Clear</h3>
+      <p class="text-sm text-gray-400 mt-1">No corrective actions match your filters.</p>
+      {% if current_filters %}<a href="{% url 'audits:corrective_actions' %}" class="inline-flex items-center gap-1 mt-3 text-sm text-primary hover:underline font-bold"><i data-lucide="x" class="h-3.5 w-3.5"></i> Clear filters</a>{% endif %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

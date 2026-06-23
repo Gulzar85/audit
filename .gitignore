@@ -1,0 +1,39 @@
+# Environment variables
+.env
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+*.pyd
+*.pyo
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Editors
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Django specific
+db.sqlite3
+db_prod.sqlite3
+/media
+/staticfiles
+
+# Virtual environment
+venv/
+
+# Temporary & log files
+*.log
+errors.txt

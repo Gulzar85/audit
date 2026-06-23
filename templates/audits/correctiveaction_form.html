@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ business_info.company_name }} — {{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6">
+    <div class="relative overflow-hidden rounded-2xl bg-gradient-dark">
+        <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50"></div>
+        <div class="absolute top-0 right-0 w-96 h-96 rounded-full bg-gradient-gold opacity-[0.04] blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+        <div class="px-6 sm:px-8 py-6 sm:py-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 relative">
+            <div class="text-white">
+                <div class="flex items-center gap-2 text-white/70 text-sm font-semibold mb-2"><i data-lucide="alert-triangle" class="w-4 h-4"></i><span>{{ title }}</span></div>
+                <h1 class="text-3xl font-extrabold">{% if editing %}Edit{% else %}New{% endif %} Corrective Action</h1>
+            </div>
+            <a href="{% url 'audits:corrective_actions' %}" class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white/15 text-white hover:bg-white/25 font-bold transition-all border-2 border-white/30"><i data-lucide="arrow-left" class="w-4 h-4"></i> All Actions</a>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden gold-card">
+        <div class="px-6 py-4 bg-gradient-primary flex items-center gap-2"><i data-lucide="edit" class="w-4 h-4 text-white"></i><h3 class="text-white font-bold">Action Details</h3></div>
+        <div class="p-6">
+            <form method="post" enctype="multipart/form-data" novalidate id="caForm">
+                {% csrf_token %}
+                {% crispy form %}
+                <div class="flex items-center gap-3 mt-8 pt-6 border-t border-gray-200">
+                    <button type="submit" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-primary text-white font-bold hover:shadow-2xl hover:shadow-primary transition-all duration-300 shadow-lg shadow-primary"><i data-lucide="save" class="w-4 h-4"></i> {% if editing %}Update{% else %}Create{% endif %} Action</button>
+                    <a href="{% url 'audits:corrective_actions' %}" class="px-6 py-3 rounded-xl border-2 border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-all">Cancel</a>
+                </div>
+            </form>
+            {% if editing and perms.audits.delete_correctiveaction %}
+            <form method="post" action="{% url 'audits:corrective_action_delete' action.pk %}" class="mt-3" onsubmit="return confirm('Delete this corrective action? This cannot be undone.')">{% csrf_token %}<button type="submit" class="inline-flex items-center gap-2 px-4 py-3 rounded-xl border-2 border-red-200 text-red-600 font-bold hover:bg-red-50 transition-all"><i data-lucide="trash-2" class="w-4 h-4"></i> Delete</button></form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var auditField = document.getElementById('id_audit');
+    var responseField = document.getElementById('id_question_response');
+    if (!auditField || !responseField) return;
+
+    function loadResponses(auditId) {
+        responseField.innerHTML = '<option value="">Loading...</option>';
+        responseField.disabled = true;
+        if (!auditId) {
+            responseField.innerHTML = '<option value="">Select an audit first</option>';
+            return;
+        }
+        fetch('/audits/ajax/audit-responses/' + auditId + '/')
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                responseField.innerHTML = '<option value="">Select a question</option>';
+                data.responses.forEach(function (resp) {
+                    var opt = document.createElement('option');
+                    opt.value = resp.id;
+                    opt.textContent = resp.label;
+                    responseField.appendChild(opt);
+                });
+                responseField.disabled = false;
+            })
+            .catch(function () {
+                responseField.innerHTML = '<option value="">Failed to load</option>';
+            });
+    }
+
+    auditField.addEventListener('change', function () {
+        loadResponses(this.value);
+    });
+
+    if (auditField.value) {
+        loadResponses(auditField.value);
+    }
+});
+</script>
+{% endblock %}

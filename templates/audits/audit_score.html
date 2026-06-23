@@ -1,0 +1,402 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Score: {{ audit.restaurant.name }}{% endblock %}
+
+{% block title %}{{ business_info.company_name }} — Score: {{ audit.restaurant.name }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50"
+     x-data="scoreApp({{ sections_json }}, {{ audit.id }})"
+     x-init="init()"
+     @keydown.alt.arrow-left.window="navigateSection('prev')"
+     @keydown.alt.arrow-right.window="navigateSection('next')">
+
+    <meta name="csrf-token" content="{{ csrf_token }}">
+
+    <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <!-- ====== SIDEBAR PANEL ====== -->
+            <aside class="lg:col-span-3 order-2 lg:order-1">
+                <div class="sticky top-20 bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden gold-card">
+
+                    <div class="px-5 py-4 bg-gradient-primary-h">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2.5 bg-white/20 rounded-lg"><i data-lucide="chart-bars" class="w-5 h-5 text-white"></i></div>
+                            <h2 class="text-sm font-bold text-white">Audit Progress</h2>
+                        </div>
+                    </div>
+
+                    <div class="p-5 space-y-5">
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-start"><span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Restaurant</span><span class="text-sm font-bold text-gray-900 text-right max-w-[130px] line-clamp-2">{{ audit.restaurant.name }}</span></div>
+                            <div class="flex justify-between items-start"><span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Date</span><span class="text-sm font-bold text-gray-700">{{ audit.audit_date|date:"M d, Y" }}</span></div>
+                            <div class="flex justify-between items-start"><span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Auditor</span><span class="text-sm font-bold text-gray-700 text-right">{{ audit.auditor.get_full_name|default:audit.auditor.username }}</span></div>
+                            <div class="flex justify-between items-start"><span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Checklist</span><span class="text-sm font-bold text-gray-700 text-right">{{ audit.template.name }} <span class="text-gray-500">v{{ audit.template.version }}</span></span></div>
+                        </div>
+
+                        <div class="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
+
+                        <div>
+                            <label for="jump-section" class="block text-[10px] font-bold text-gray-600 mb-3 uppercase tracking-widest">Jump to Section</label>
+                            <select id="jump-section" :value="isNaN(currentSection) ? '' : currentSection" @change="handleSectionSelect($event)"
+                                    class="w-full px-4 py-2.5 rounded-xl border border-gray-300 bg-white text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
+                                <option value="">Select a section...</option>
+                                {% for group in section_formsets %}
+                                <option :value="{{ forloop.counter0 }}" x-text="sectionLabel({{ forloop.counter0 }})"></option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between"><span class="text-[10px] font-bold text-gray-600 uppercase tracking-widest">Progress</span><span class="text-xs font-bold text-gray-500" x-text="completedSections + '/' + sections.length + ' sections'"></span></div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                                <div class="h-full rounded-full transition-all duration-700"
+                                     :style="'width: ' + (sections.length > 0 ? (completedSections / sections.length * 100) : 0) + '%'"
+                                     :class="completedSections === sections.length ? 'bg-gradient-to-r from-emerald-500 to-emerald-600' : 'bg-gradient-to-r from-amber-500 to-amber-600'">
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between text-xs"><span class="font-extrabold" :class="gradeColorClass" x-text="totalPercentage.toFixed(1) + '%'"></span><span class="text-gray-500 font-bold" x-text="totalScored.toFixed(1) + '/' + totalPossible.toFixed(1) + ' pts'"></span></div>
+                        </div>
+
+                        <div class="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <button type="button" @click="navigateSection('prev')" :disabled="currentSection === 0"
+                                    class="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-gray-300 bg-white text-sm font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                                <i data-lucide="chevron-left" class="w-4 h-4"></i><span>Prev</span>
+                            </button>
+                            <button type="button" @click="navigateSection('next')" :disabled="currentSection === sections.length - 1"
+                                    class="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-gray-300 bg-white text-sm font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                                <span>Next</span><i data-lucide="chevron-right" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+
+                        <button type="button" @click="confirmSubmit()"
+                                class="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white text-sm font-bold transition-all shadow-md">
+                            <i data-lucide="check-circle-2" class="w-5 h-5"></i> Save &amp; Submit
+                        </button>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <a href="{% url 'audits:dashboard' %}" class="flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm font-semibold transition-colors"><i data-lucide="home" class="w-4 h-4"></i> Dashboard</a>
+                            <a href="{% url 'audits:list' %}" class="flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm font-semibold transition-colors"><i data-lucide="list" class="w-4 h-4"></i> Audits</a>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- ====== MAIN CONTENT ====== -->
+            <div class="lg:col-span-9 order-1 lg:order-2">
+                <div class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden gold-card">
+
+                    <div class="px-5 sm:px-7 py-5 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+                        <div class="flex items-center justify-between gap-4 flex-wrap">
+                            <div class="flex items-center gap-3 flex-1 min-w-0">
+                                <div class="p-2.5 bg-gradient-primary rounded-lg shrink-0"><i data-lucide="clipboard-check" class="w-5 h-5 text-white"></i></div>
+                                <div class="min-w-0"><h1 class="text-lg font-extrabold text-gray-900">{{ audit.restaurant.name }}</h1><p class="text-sm text-gray-500">{{ audit.template.name }} <span class="text-gray-400">v{{ audit.template.version }}</span></p></div>
+                            </div>
+                            <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold bg-emerald-50 text-emerald-700"><i data-lucide="save" class="w-4 h-4"></i><span>Auto-save</span></span>
+                        </div>
+                    </div>
+
+                    <div class="p-5 sm:p-7 space-y-6">
+                        {% for group in section_formsets %}
+                        <section x-show="currentSection === {{ forloop.counter0 }}"
+                                 x-cloak
+                                 x-transition:enter="transition ease-out duration-300"
+                                 x-transition:enter-start="opacity-0 translate-y-4"
+                                 x-transition:enter-end="opacity-100 translate-y-0">
+
+                            <div class="rounded-2xl border border-gray-200 overflow-hidden bg-gradient-to-br from-white to-gray-50">
+                                <div class="px-5 sm:px-7 py-4 bg-gradient-primary-h flex items-center justify-between gap-4">
+                                    <div class="flex-1 min-w-0">
+                                        <h3 class="text-base sm:text-lg font-bold text-white flex items-center gap-2"><i data-lucide="folder-open" class="w-5 h-5 shrink-0"></i><span class="truncate">{{ forloop.counter }}. {{ group.section.section.name }}</span> <span class="text-sm font-bold text-white/70 whitespace-nowrap" x-text="'(' + sectionAnswered({{ forloop.counter0 }}) + '/' + sectionTotal({{ forloop.counter0 }}) + ')'"></span></h3>
+                                        {% if group.section.section.description %}<p class="text-sm text-red-100 mt-1 truncate">{{ group.section.section.description }}</p>{% endif %}
+                                    </div>
+                                    <div class="flex items-center gap-3 shrink-0">
+                                        <button type="button" @click="fillSectionAJAX({{ forloop.counter0 }})" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/20 hover:bg-white/30 text-white text-sm font-bold transition-colors" title="Auto-fill unanswered questions"><i data-lucide="zap" class="w-4 h-4"></i><span class="hidden sm:inline">Fill</span></button>
+                                        <span class="px-3 py-1.5 rounded-full bg-white/20 text-white text-sm font-bold">{{ forloop.counter }}/{{ section_formsets|length }}</span>
+                                    </div>
+                                </div>
+
+                                <div class="divide-y divide-gray-100">
+                                    {% for form in group.formset %}
+                                    <div class="px-5 sm:px-7 py-4 transition-colors duration-200 hover:bg-red-50/50"
+                                         :class="{'bg-red-50/30': getResponse({{ form.instance.pk }}).is_critical}"
+                                         x-data="{ isNA: getResponse({{ form.instance.pk }}).is_na }">
+
+                                        {{ form.id }}
+
+                                        <div class="flex justify-between items-start gap-3 mb-3">
+                                            <div class="flex items-start gap-3 flex-1 min-w-0">
+                                                <span class="inline-block w-2.5 h-2.5 rounded-full shrink-0 mt-1.5 ring-2 ring-offset-2"
+                                                      :class="{'bg-gray-300 ring-gray-200': isNA,'bg-emerald-500 ring-emerald-100': !isNA && getResponse({{ form.instance.pk }}).scored > 0,'bg-amber-500 ring-amber-100': !isNA && getResponse({{ form.instance.pk }}).scored === 0 && (getResponse({{ form.instance.pk }}).comments || '').trim(),'bg-red-500 ring-red-100': !isNA && getResponse({{ form.instance.pk }}).scored === 0 && !(getResponse({{ form.instance.pk }}).comments || '').trim()}"
+                                                      :title="isNA ? 'Not Applicable' : getResponse({{ form.instance.pk }}).scored > 0 ? 'Answered' : (getResponse({{ form.instance.pk }}).comments || '').trim() ? 'Has Comments' : 'Unanswered'"></span>
+                                                <div class="flex-1 min-w-0">
+                                                    <div class="flex items-start gap-2 flex-wrap"><span class="text-sm font-extrabold text-gray-900 shrink-0">Q{{ forloop.counter }}.</span><p class="text-sm text-gray-800 leading-relaxed" :class="{ 'line-through opacity-50': isNA }">{{ form.instance.question.question_text }}</p></div>
+                                                    <div class="flex items-center gap-2 flex-wrap mt-2">
+                                                        <span class="text-[11px] font-bold text-gray-600 bg-gray-100 px-2.5 py-1 rounded-full">Max: {{ form.instance.question.possible_points }} pts</span>
+                                                        {% if form.instance.question.is_critical %}<span class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700"><i data-lucide="alert-circle" class="w-3 h-3"></i> Critical</span>{% endif %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div x-show="savingStates[{{ form.instance.pk }}]" x-cloak class="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg shrink-0"
+                                                 :class="{'text-amber-700 bg-amber-100': savingStates[{{ form.instance.pk }}] === 'saving','text-emerald-700 bg-emerald-100': savingStates[{{ form.instance.pk }}] === 'saved','text-red-700 bg-red-100': savingStates[{{ form.instance.pk }}] === 'error'}"
+                                                 role="status" aria-live="polite">
+                                                <template x-if="savingStates[{{ form.instance.pk }}] === 'saving'"><svg class="animate-spin w-3 h-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg></template>
+                                                <template x-if="savingStates[{{ form.instance.pk }}] === 'saved'"><i data-lucide="check-circle-2" class="w-3 h-3" aria-hidden="true"></i></template>
+                                                <template x-if="savingStates[{{ form.instance.pk }}] === 'error'"><i data-lucide="alert-circle" class="w-3 h-3" aria-hidden="true"></i></template>
+                                                <span x-text="{'saving': 'Saving','saved': 'Saved','error': 'Failed'}[savingStates[{{ form.instance.pk }}]] || ''"></span>
+                                            </div>
+                                        </div>
+
+                                        <div class="space-y-3">
+                                            <div class="grid grid-cols-4 gap-3">
+                                                <div class="col-span-1"><label :for="'score-' + form.instance.pk" class="block text-[10px] font-bold text-gray-600 mb-2 uppercase tracking-widest">Score</label>
+                                                    <input type="number" name="scored_points" :id="'score-' + form.instance.pk"
+                                                           class="w-full px-3 py-3 rounded-xl border border-gray-300 text-center text-base font-extrabold text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all disabled:opacity-50 disabled:bg-gray-100"
+                                                           :class="{'border-amber-500 bg-amber-50': savingStates[{{ form.instance.pk }}] === 'saving','border-red-500 bg-red-50': savingStates[{{ form.instance.pk }}] === 'error'}"
+                                                           min="0" :max="getResponse({{ form.instance.pk }}).max" step="0.5"
+                                                           :disabled="isNA" placeholder="0"
+                                                           @input="scheduleSave({{ form.instance.pk }})"
+                                                           x-model.number="getResponse({{ form.instance.pk }}).scored"></div>
+                                                <div class="col-span-1 flex items-end"><div class="w-full px-3 py-3 rounded-lg bg-gray-100 border border-gray-300 text-center font-bold text-gray-600">/ {{ form.instance.question.possible_points }}</div></div>
+                                                <div class="col-span-2"><label :for="'comments-' + form.instance.pk" class="block text-[10px] font-bold text-gray-600 mb-2 uppercase tracking-widest">Comments</label>
+                                                    <input type="text" name="comments" :id="'comments-' + form.instance.pk"
+                                                           class="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all disabled:opacity-50 disabled:bg-gray-100"
+                                                           :class="{'border-amber-500 bg-amber-50': savingStates[{{ form.instance.pk }}] === 'saving','border-red-500 bg-red-50': savingStates[{{ form.instance.pk }}] === 'error'}"
+                                                           :disabled="isNA" placeholder="Add notes..."
+                                                           @input="scheduleSave({{ form.instance.pk }})"
+                                                           x-model="getResponse({{ form.instance.pk }}).comments"></div>
+                                            </div>
+
+                                            <label class="flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all cursor-pointer hover:bg-gray-50"
+                                                   :class="isNA ? 'border-primary bg-red-50' : 'border-gray-200 bg-white'">
+                                                <input type="checkbox" name="is_na" x-model="isNA" @change="onNaToggle({{ form.instance.pk }}, $event.target.checked); scheduleSave({{ form.instance.pk }})" class="w-5 h-5 rounded accent-primary cursor-pointer">
+                                                <span class="text-sm font-bold text-gray-900">Mark as Not Applicable</span>
+                                            </label>
+
+                                            <label class="flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all cursor-pointer hover:bg-gray-50"
+                                                   :class="getResponse({{ form.instance.pk }}).needs_ca ? 'border-amber-500 bg-amber-50' : 'border-gray-200 bg-white'">
+                                                <input type="checkbox" name="needs_ca" x-model="getResponse({{ form.instance.pk }}).needs_ca" @change="scheduleSave({{ form.instance.pk }})" class="w-5 h-5 rounded accent-amber-500 cursor-pointer">
+                                                <span class="text-sm font-bold text-gray-900">Needs corrective action</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    {% empty %}
+                                    <div class="px-5 sm:px-7 py-8 text-center">
+                                        <div class="flex justify-center mb-3"><div class="p-3 bg-blue-100 rounded-full"><i data-lucide="info" class="w-6 h-6 text-blue-600"></i></div></div>
+                                        <p class="text-sm text-gray-600">No questions available for this section.</p>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </section>
+                        {% endfor %}
+
+                        <div class="flex flex-col sm:flex-row justify-between items-center gap-4 pt-6 border-t border-gray-200">
+                            <div class="flex gap-3">
+                                <button type="button" @click="navigateSection('prev')" :disabled="currentSection === 0"
+                                        class="flex items-center gap-2 px-5 py-3 rounded-xl border border-gray-300 bg-white text-gray-700 font-bold hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                                    <i data-lucide="chevron-left" class="w-5 h-5"></i><span>Previous</span>
+                                </button>
+                                <button type="button" @click="navigateSection('next')" :disabled="currentSection === sections.length - 1"
+                                        class="flex items-center gap-2 px-5 py-3 rounded-xl border border-gray-300 bg-white text-gray-700 font-bold hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                                    <span>Next</span><i data-lucide="chevron-right" class="w-5 h-5"></i>
+                                </button>
+                            </div>
+                            <div class="flex gap-3">
+                                <button type="button" @click="fillAllAJAX()"
+                                        class="flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold transition-all shadow-md">
+                                    <i data-lucide="zap" class="w-5 h-5"></i><span>Fill All</span>
+                                </button>
+                                <button type="button" @click="confirmSubmit()"
+                                        class="flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-bold transition-all shadow-md">
+                                    <i data-lucide="check-circle-2" class="w-5 h-5"></i><span>Save &amp; Submit</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <template x-teleport="body">
+         <div x-show="modal.type" x-cloak @keydown.escape.prevent="closeModal()"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             role="dialog" aria-modal="true" aria-labelledby="modal-title"
+             class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+
+            <div @click.away="modal.type && modal.type !== 'confirm' ? modal.type = '' : null"
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0 scale-90"
+                 x-transition:enter-end="opacity-100 scale-100"
+                 class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+
+                <div class="px-6 py-5 flex items-center gap-3"
+                     :class="{'bg-gradient-gold text-accent': modal.type === 'confirm','bg-emerald-600': modal.type === 'success','bg-red-600': modal.type === 'error'}">
+                    <template x-if="modal.type === 'confirm'"><i data-lucide="alert-circle" class="w-6 h-6 text-accent shrink-0"></i></template>
+                    <template x-if="modal.type === 'success'"><i data-lucide="check-circle-2" class="w-6 h-6 text-white shrink-0"></i></template>
+                    <template x-if="modal.type === 'error'"><i data-lucide="x-circle" class="w-6 h-6 text-white shrink-0"></i></template>
+                    <h3 id="modal-title" class="text-lg font-bold" :class="modal.type === 'confirm' ? 'text-accent' : 'text-white'" x-text="modal.title"></h3>
+                </div>
+
+                <div class="px-6 py-6">
+                    <p class="text-gray-700 text-base leading-relaxed" x-text="modal.body"></p>
+                    <p x-show="modal.note" class="text-sm text-gray-500 mt-3 italic" x-text="modal.note"></p>
+
+                    <div x-show="modal.type === 'confirm' && modal.showScoreSummary" class="mt-5 space-y-2 bg-gray-50 rounded-xl p-4">
+                        <div class="flex justify-between text-sm"><span class="text-gray-600 font-bold">Score</span><span class="font-extrabold" :class="gradeColorClass" x-text="totalPercentage.toFixed(1) + '%'"></span></div>
+                        <div class="flex justify-between text-sm"><span class="text-gray-600 font-bold">Points</span><span class="font-extrabold text-gray-900" x-text="totalScored.toFixed(1) + '/' + totalPossible.toFixed(1)"></span></div>
+                        <div class="flex justify-between text-sm"><span class="text-gray-600 font-bold">Grade</span><span class="font-extrabold" :class="gradeColorClass" x-text="gradeLabel"></span></div>
+                    </div>
+                </div>
+
+                <div class="px-6 py-5 border-t border-gray-200 flex justify-end gap-3">
+                    <button x-show="modal.type === 'confirm'" @click="modal.type = ''" class="px-5 py-2.5 rounded-xl border border-gray-300 text-gray-700 font-bold hover:bg-gray-50 transition-colors">Cancel</button>
+                    <button @click="modal.onConfirm()" :disabled="modal.loading"
+                            class="px-5 py-2.5 rounded-xl text-white font-bold transition-all disabled:opacity-50 flex items-center gap-2"
+                            :class="{'bg-gradient-gold text-accent': modal.type === 'confirm','bg-emerald-600': modal.type === 'success','bg-red-600': modal.type === 'error'}">
+                        <template x-if="modal.loading"><svg class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg></template>
+                        <span x-text="modal.actionText"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </template>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<style>
+    [x-cloak] { display: none !important; }
+    html { scroll-behavior: smooth; }
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+    }
+</style>
+<script>
+function scoreApp(sectionsData, auditId) {
+    return {
+        sections: [],
+        currentSection: 0,
+        auditId: auditId,
+        savingStates: {},
+        saveTimeouts: {},
+        modal: { type: '', title: '', body: '', note: '', actionText: '', loading: false, showScoreSummary: false, onConfirm: () => {} },
+        init() {
+            this.sections = sectionsData.map(sec => ({ ...sec, responses: sec.responses.map(r => ({ ...r, comments: r.comments || '' })) }));
+            if (typeof lucide !== 'undefined') setTimeout(() => lucide.createIcons(), 0);
+        },
+        csrf() { const m = document.querySelector('meta[name="csrf-token"]'); return m ? m.getAttribute('content') : ''; },
+        scheduleSave(responseId) { clearTimeout(this.saveTimeouts[responseId]); this.saveTimeouts[responseId] = setTimeout(() => this.saveResponse(responseId), 1500); },
+        saveResponse(responseId) {
+            const r = this.getResponse(responseId);
+            this.savingStates[responseId] = 'saving';
+            const fd = new FormData();
+            fd.append('response_id', responseId);
+            fd.append('scored_points', r.scored || 0);
+            fd.append('comments', r.comments || '');
+            fd.append('is_na', r.is_na ? 'true' : 'false');
+            fd.append('needs_ca', r.needs_ca ? 'true' : 'false');
+            fetch("{% url 'audits:save_response' %}", { method: 'POST', headers: { 'X-CSRFToken': this.csrf() }, body: fd })
+            .then(resp => resp.json())
+            .then(d => { if (d.success) { this.savingStates[responseId] = 'saved'; setTimeout(() => { if (this.savingStates[responseId] === 'saved') delete this.savingStates[responseId]; }, 2000); } else { this.savingStates[responseId] = 'error'; } })
+            .catch(() => { this.savingStates[responseId] = 'error'; });
+        },
+        flushAllSaves() { for (const id of Object.keys(this.saveTimeouts)) { clearTimeout(this.saveTimeouts[id]); this.saveResponse(parseInt(id)); } },
+        getResponse(id) { for (const sec of this.sections) { const found = sec.responses.find(r => r.id === id); if (found) return found; } return { scored: 0, max: 0, is_na: false, is_critical: false, comments: '', needs_ca: false }; },
+        onNaToggle(id, checked) {
+            const r = this.getResponse(id);
+            r.is_na = checked;
+            if (checked) {
+                r.scored = 0;
+                r.comments = '';
+                r.needs_ca = false;
+            }
+        },
+        fillSectionAJAX(sIdx) {
+            const sec = this.sections[sIdx]; if (!sec) return;
+            this.flushAllSaves(); this.modal.loading = true;
+            const fd = new FormData(); fd.append('audit_id', this.auditId); fd.append('section_id', sec.id);
+            fetch("{% url 'audits:fill_remaining' %}", { method: 'POST', headers: { 'X-CSRFToken': this.csrf() }, body: fd })
+            .then(r => r.json()).then(d => { this.modal.loading = false;
+                if (d.success) {
+                    if (d.filled_responses) { for (const [respId, score] of Object.entries(d.filled_responses)) { const r = this.getResponse(parseInt(respId)); if (r) r.scored = score; } }
+                    if (d.filled_count > 0) this.openModal('success', 'Filled!', d.message, 'OK', () => this.closeModal());
+                }
+            }).catch(() => { this.modal.loading = false; });
+        },
+        fillAllAJAX() {
+            this.flushAllSaves(); this.modal.loading = true;
+            const fd = new FormData(); fd.append('audit_id', this.auditId);
+            fetch("{% url 'audits:fill_remaining' %}", { method: 'POST', headers: { 'X-CSRFToken': this.csrf() }, body: fd })
+            .then(r => r.json()).then(d => { this.modal.loading = false;
+                if (d.success) {
+                    if (d.filled_responses) { for (const [respId, score] of Object.entries(d.filled_responses)) { const r = this.getResponse(parseInt(respId)); if (r) r.scored = score; } }
+                    if (d.filled_count > 0) this.openModal('success', 'Filled!', d.message, 'OK', () => this.closeModal());
+                    else this.openModal('success', 'All Done', 'No unanswered questions to fill.', 'OK', () => this.closeModal());
+                }
+            }).catch(() => { this.modal.loading = false; });
+        },
+        get isFirstSection() { return this.currentSection === 0; },
+        get isLastSection() { return this.currentSection === this.sections.length - 1; },
+        navigateSection(dir) { const next = dir === 'next' ? this.currentSection + 1 : this.currentSection - 1; if (next >= 0 && next < this.sections.length) { this.currentSection = next; window.scrollTo({ top: 0, behavior: 'smooth' }); } },
+        handleSectionSelect(e) { const val = parseInt(e.target.value); if (!isNaN(val) && val >= 0 && val < this.sections.length) { this.currentSection = val; window.scrollTo({ top: 0, behavior: 'smooth' }); } },
+        jumpToSection(idx) { if (idx >= 0 && idx < this.sections.length) { this.currentSection = idx; window.scrollTo({ top: 0, behavior: 'smooth' }); } },
+        sectionAnswered(sIdx) { const sec = this.sections[sIdx]; return sec ? sec.responses.filter(r => r.is_answered && !r.is_na).length : 0; },
+        sectionTotal(sIdx) { const sec = this.sections[sIdx]; return sec ? sec.responses.filter(r => !r.is_na).length : 0; },
+        sectionLabel(sIdx) { const sec = this.sections[sIdx]; if (!sec) return ''; return sec.name + ' (' + this.sectionAnswered(sIdx) + '/' + this.sectionTotal(sIdx) + ')'; },
+        sectionScore(sIdx) {
+            const sec = this.sections[sIdx];
+            if (!sec) return { scored: 0, possible: 0, pct: 0, answered: 0, total: 0 };
+            let scored = 0, possible = 0, answered = 0;
+            for (const r of sec.responses) { if (!r.is_na && r.is_answered) { scored += Math.min(r.scored || 0, r.max); possible += r.max; answered++; } }
+            const pct = possible > 0 ? (scored / possible) * 100 : 0;
+            return { scored, possible, pct, answered, total: sec.responses.filter(r => !r.is_na).length };
+        },
+        get totalScored() { return this.sections.reduce((sum, _, i) => sum + this.sectionScore(i).scored, 0); },
+        get totalPossible() { return this.sections.reduce((sum, _, i) => sum + this.sectionScore(i).possible, 0); },
+        get totalPercentage() { return this.totalPossible > 0 ? (this.totalScored / this.totalPossible) * 100 : 0; },
+        get criticalCount() { let count = 0; for (const sec of this.sections) { for (const r of sec.responses) { if (r.is_critical && r.scored === 0 && !r.is_na) count++; } } return count; },
+        get completedSections() { return this.sections.filter(sec => { const active = sec.responses.filter(r => !r.is_na); return active.length > 0 && active.every(r => r.is_answered); }).length; },
+        get gradeLabel() {
+            const p = this.totalPercentage;
+            if (p === 0 && this.totalPossible === 0) return 'Not started';
+            if (this.criticalCount > 0) return 'F (Critical failure)';
+            if (p >= 96) return 'A (96.0 - 100)'; if (p >= 90) return 'B (90.0 - 95.9)';
+            if (p >= 80) return 'C (80.0 - 89.9)'; return 'F (Less than 80)';
+        },
+        get gradeColorClass() {
+            const p = this.totalPercentage;
+            if (p === 0 && this.totalPossible === 0) return 'text-gray-400';
+            if (this.criticalCount > 0) return 'text-red-600';
+            if (p >= 90) return 'text-emerald-600'; if (p >= 80) return 'text-amber-600'; return 'text-red-600';
+        },
+        openModal(type, title, body, actionText, onConfirm) { this.modal.type = type; this.modal.title = title; this.modal.body = body; this.modal.note = type === 'confirm' ? 'This action cannot be undone.' : ''; this.modal.actionText = actionText; this.modal.loading = false; this.modal.showScoreSummary = false; this.modal.onConfirm = onConfirm; setTimeout(() => { if (typeof lucide !== 'undefined') lucide.createIcons(); }, 50); },
+        closeModal() { this.modal.type = ''; },
+        confirmSubmit() { this.openModal('confirm', 'Submit Audit', 'Are you sure you want to submit this audit? All changes will be locked and results will be finalized.', 'Yes, Submit', () => this.flushAndSubmit()); this.modal.showScoreSummary = true; },
+        flushAndSubmit() {
+            const pendingIds = Object.keys(this.saveTimeouts);
+            if (pendingIds.length === 0) { this.submitForm(); return; }
+            for (const id of pendingIds) { clearTimeout(this.saveTimeouts[id]); this.saveResponse(parseInt(id)); }
+            setTimeout(() => this.submitForm(), 300);
+        },
+        submitForm() {
+            this.modal.loading = true;
+            fetch("{% url 'audits:submit_json' audit.pk %}", { method: 'POST', headers: { 'X-CSRFToken': this.csrf() } })
+            .then(r => r.json()).then(d => { this.modal.loading = false;
+                if (d.success) { this.closeModal(); window.location.href = d.redirect_url; }
+                else { this.closeModal(); this.openModal('error', 'Submission Failed', d.message || 'Could not submit audit.', 'Close', () => this.closeModal()); }
+            }).catch(() => { this.modal.loading = false; this.closeModal(); this.openModal('error', 'Connection Error', 'Error submitting audit. Please try again.', 'Close', () => this.closeModal()); });
+        },
+    };
+}
+</script>
+{% endblock %}
