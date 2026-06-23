@@ -310,6 +310,13 @@ class CorrectiveAction(BaseModel):
         HIGH = 'HIGH', _('High')
         CRITICAL = 'CRITICAL', _('Critical')
 
+    class Status(models.TextChoices):
+        OPEN = 'OPEN', _('Open')
+        IN_PROGRESS = 'IN_PROGRESS', _('In Progress')
+        COMPLETED = 'COMPLETED', _('Completed')
+        VERIFIED = 'VERIFIED', _('Verified')
+        CLOSED = 'CLOSED', _('Closed')
+
     audit = models.ForeignKey(
         Audit, on_delete=models.CASCADE, related_name="corrective_actions")
     restaurant = models.ForeignKey(
@@ -320,8 +327,8 @@ class CorrectiveAction(BaseModel):
     risk_level = models.CharField(max_length=10, choices=RiskLevel)
     assigned_to = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_cas')
+    status = models.CharField(max_length=20, choices=Status, default=Status.OPEN)
     deadline = models.DateField()
-    completed = models.BooleanField(default=False)
     completion_date = models.DateField(null=True, blank=True)
     comments = models.TextField(blank=True)
     evidence_image = models.ImageField(
@@ -335,10 +342,23 @@ class CorrectiveAction(BaseModel):
         verbose_name = _("Corrective Action")
         verbose_name_plural = _("Corrective Actions")
         ordering = ['-created_at']
-        indexes = [models.Index(fields=['restaurant', 'completed'])]
+        indexes = [models.Index(fields=['restaurant', 'status'])]
 
     def __str__(self) -> str:
         return f"{self.audit} - {self.risk_level}"
+
+    @property
+    def completed(self) -> bool:
+        return self.status in (self.Status.COMPLETED, self.Status.VERIFIED, self.Status.CLOSED)
+
+    @completed.setter
+    def completed(self, value):
+        if value:
+            if self.status == self.Status.OPEN:
+                self.status = self.Status.COMPLETED
+        else:
+            if self.status in (self.Status.COMPLETED, self.Status.VERIFIED, self.Status.CLOSED):
+                self.status = self.Status.OPEN
 
     @property
     def is_overdue(self) -> bool:

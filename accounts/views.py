@@ -27,8 +27,8 @@ class ProfileView(LoginRequiredMixin, TemplateView):
 
         ctx['restaurant_count'] = user.restaurants.count()
         ctx['open_ca_count'] = CorrectiveAction.objects.filter(
-            restaurant__in=user.restaurants.all(), completed=False
-        ).count()
+            restaurant__in=user.restaurants.all()
+        ).exclude(status__in=['COMPLETED', 'VERIFIED', 'CLOSED']).count()
 
         ctx['designation_name'] = user.designation.name if user.designation else None
         ctx['department_name'] = user.department.name if user.department else None

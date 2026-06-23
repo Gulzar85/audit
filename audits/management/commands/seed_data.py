@@ -421,7 +421,7 @@ class Command(BaseCommand):
                     risk_level=ca['risk'],
                     assigned_to=assignee,
                     deadline=today + timedelta(days=ca['deadline_delta']),
-                    completed=ca['completed'],
+                    status=CorrectiveAction.Status.COMPLETED if ca['completed'] else CorrectiveAction.Status.OPEN,
                     completion_date=today if ca['completed'] else None,
                 )
 

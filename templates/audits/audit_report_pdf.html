@@ -720,8 +720,7 @@
                 <div class="ca-text">{{ ca.description }}</div>
                 <div class="ca-meta">
                     <span class="ca-tag ct-{{ ca.risk_level|lower }}">{{ ca.get_risk_level_display }}</span>
-                    {% if ca.completed %}<span class="ca-tag ct-done">Completed {{ ca.completion_date|date:"M d" }}</span>{% endif %}
-                    {% if ca.is_overdue %}<span class="ca-tag ct-overdue">Overdue</span>{% endif %}
+                    {% if ca.completed %}<span class="ca-tag ct-done">{{ ca.get_status_display }} {{ ca.completion_date|date:"M d" }}</span>{% elif ca.status == 'IN_PROGRESS' %}<span class="ca-tag" style="background:#e3f2fd;color:#1565c0;">{{ ca.get_status_display }}</span>{% elif ca.is_overdue %}<span class="ca-tag ct-overdue">{{ ca.get_status_display }}</span>{% else %}<span class="ca-tag" style="background:#fff8e1;color:#f57f17;">{{ ca.get_status_display }}</span>{% endif %}
                     <span>{{ ca.assigned_to.get_full_name|default:ca.assigned_to.username|default:'Unassigned' }}</span>
                     <span>Due {{ ca.deadline|date:"M d, Y" }}</span>
                 </div>

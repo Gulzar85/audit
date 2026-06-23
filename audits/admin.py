@@ -22,8 +22,8 @@ class AuditSectionInline(admin.TabularInline):
 class CorrectiveActionInline(admin.TabularInline):
     model = CorrectiveAction
     extra = 0
-    fields = ['risk_level', 'deadline', 'completed', 'assigned_to']
-    readonly_fields = ['risk_level', 'deadline', 'completed', 'assigned_to']
+    fields = ['risk_level', 'deadline', 'status', 'assigned_to']
+    readonly_fields = ['risk_level', 'deadline', 'status', 'assigned_to']
 
 
 @admin.register(AuditTemplate)
@@ -113,9 +113,9 @@ class AuditQuestionResponseAdmin(SimpleHistoryAdmin):
 
 @admin.register(CorrectiveAction)
 class CorrectiveActionAdmin(SimpleHistoryAdmin):
-    list_display = ['audit', 'risk_level', 'deadline',
-                    'completed', 'completion_date', 'is_overdue']
-    list_filter = ['risk_level', 'completed', 'deadline']
+    list_display = ['audit', 'risk_level', 'status', 'deadline',
+                    'completion_date', 'is_overdue']
+    list_filter = ['risk_level', 'status', 'deadline']
     search_fields = ['audit__restaurant__name', 'description']
     readonly_fields = ['created_at', 'updated_at']
     fieldsets = [
@@ -129,7 +129,7 @@ class CorrectiveActionAdmin(SimpleHistoryAdmin):
         ),
         (
             'Timeline',
-            {'fields': ['deadline', 'completed', 'completion_date', 'comments']}
+            {'fields': ['deadline', 'status', 'completion_date', 'comments']}
         ),
         (
             'Evidence',

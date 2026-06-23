@@ -26,8 +26,8 @@ def sidebar_badges(request):
         if not user.is_superuser:
             ca_qs = ca_qs.filter(restaurant__in=user.restaurants.all())
         ctx['sidebar_badges']['overdue_ca'] = ca_qs.filter(
-            completed=False, deadline__lt=timezone.now().date()
-        ).count()
+            deadline__lt=timezone.now().date()
+        ).exclude(status__in=['COMPLETED', 'VERIFIED', 'CLOSED']).count()
         ctx['sidebar_badges']['unread_notifications'] = Notification.objects.filter(
             recipient=user, is_read=False
         ).count()

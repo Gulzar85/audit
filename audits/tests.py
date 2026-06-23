@@ -324,7 +324,7 @@ class CorrectiveActionModelTest(TestCase):
             question_response=self.resp,
             description='Fix', risk_level=CorrectiveAction.RiskLevel.LOW,
             assigned_to=assignee, deadline=date.today() - timedelta(days=1),
-            completed=True, completion_date=date.today(),
+            status=CorrectiveAction.Status.COMPLETED, completion_date=date.today(),
         )
         self.assertFalse(ca.is_overdue)
         self.assertIsNone(ca.days_remaining)

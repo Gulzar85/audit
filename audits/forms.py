@@ -155,7 +155,7 @@ class CorrectiveActionForm(forms.ModelForm):
     class Meta:
         model = CorrectiveAction
         fields = ['audit', 'question_response', 'description',
-                  'risk_level', 'assigned_to', 'deadline', 'comments', 'evidence_image']
+                  'risk_level', 'assigned_to', 'status', 'deadline', 'comments', 'evidence_image']
         widgets = {
             'deadline': forms.DateInput(attrs={'type': 'date'}),
             'description': forms.Textarea(attrs={'rows': 3}),
@@ -187,6 +187,7 @@ class CorrectiveActionForm(forms.ModelForm):
             Field('description', css_class=css),
             Field('risk_level', css_class=css),
             Field('assigned_to', css_class=css),
+            Field('status', css_class=css),
             Field('deadline', css_class=css),
             Field('comments', css_class=css),
             Field('evidence_image', css_class=file_css),

@@ -17,7 +17,7 @@ from django.views.generic import ListView, CreateView, DetailView, UpdateView, T
 
 from core.models import Notification
 from .forms import AuditForm, AuditScoreForm, CorrectiveActionForm
-from .utils import notify_restaurant_users, notify_auditor_and_manager
+from .utils import notify_restaurant_users, notify_auditor_and_manager, auto_generate_corrective_actions
 from .models import Audit, AuditTemplate, AuditSection, AuditQuestionResponse, CorrectiveAction
 
 logger = logging.getLogger(__name__)
@@ -233,6 +233,7 @@ class AuditScoreView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
             audit.is_submitted = True
             audit.save()
             logger.info('Audit %s submitted via score form — grade %s (%.1f%%)', audit.pk, audit.get_grade_display(), audit.total_percentage)
+            auto_generate_corrective_actions(audit)
             if audit.auditor:
                 Notification.objects.create(
                     recipient=audit.auditor,
@@ -418,8 +419,8 @@ class DashboardView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
             ca_qs = ca_qs.filter(restaurant__in=user.restaurants.all())
         if selected_template_id:
             ca_qs = ca_qs.filter(audit__template_id=selected_template_id)
-        ctx['open_ca'] = ca_qs.filter(completed=False).count()
-        ctx['overdue_ca'] = ca_qs.filter(completed=False, deadline__lt=timezone.now().date()).count()
+        ctx['open_ca'] = ca_qs.exclude(status__in=['COMPLETED', 'VERIFIED', 'CLOSED']).count()
+        ctx['overdue_ca'] = ca_qs.filter(deadline__lt=timezone.now().date()).exclude(status__in=['COMPLETED', 'VERIFIED', 'CLOSED']).count()
 
         grade_counts = submitted.values('grade').annotate(count=Count('grade')).order_by('grade')
         submitted_count = submitted.count()
@@ -606,9 +607,9 @@ class CorrectiveActionListView(LoginRequiredMixin, PermissionRequiredMixin, List
 
         status = self.request.GET.get('status', 'open')
         if status == 'open':
-            qs = qs.filter(completed=False)
+            qs = qs.exclude(status__in=['COMPLETED', 'VERIFIED', 'CLOSED'])
         elif status == 'completed':
-            qs = qs.filter(completed=True)
+            qs = qs.filter(status__in=['COMPLETED', 'VERIFIED', 'CLOSED'])
 
         risk = self.request.GET.get('risk', '')
         if risk in dict(CorrectiveAction.RiskLevel.choices):
@@ -620,9 +621,9 @@ class CorrectiveActionListView(LoginRequiredMixin, PermissionRequiredMixin, List
 
         overdue = self.request.GET.get('overdue', '')
         if overdue == '1':
-            qs = qs.filter(deadline__lt=timezone.now().date(), completed=False)
+            qs = qs.filter(deadline__lt=timezone.now().date()).exclude(status__in=['COMPLETED', 'VERIFIED', 'CLOSED'])
 
-        return qs.order_by('completed', 'deadline')
+        return qs.order_by('status', 'deadline')
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -649,11 +650,12 @@ class CorrectiveActionCompleteView(LoginRequiredMixin, PermissionRequiredMixin, 
 
     def post(self, request, pk):
         action = self._get_action_or_404(request, pk)
-        was_completed = action.completed
-        action.completed = not action.completed
-        action.save()
-        msg = 'completed' if action.completed else 'reopened'
-        if action.completed and not was_completed:
+        if action.status in (action.Status.COMPLETED, action.Status.VERIFIED, action.Status.CLOSED):
+            action.status = action.Status.OPEN
+            msg = 'reopened'
+        else:
+            action.status = action.Status.COMPLETED
+            msg = 'completed'
             link = reverse('audits:corrective_action_edit', args=[action.pk])
             if action.audit.auditor:
                 notify_auditor_and_manager(
@@ -663,6 +665,7 @@ class CorrectiveActionCompleteView(LoginRequiredMixin, PermissionRequiredMixin, 
                     link,
                     action.audit.auditor,
                 )
+        action.save()
         messages.success(request, f'Corrective action {msg}.')
         return redirect('audits:corrective_actions')
 
@@ -956,6 +959,8 @@ class AuditSubmitJSONView(LoginRequiredMixin, PermissionRequiredMixin, View):
         audit.calculate_totals()
         audit.is_submitted = True
         audit.save()
+        logger.info('Audit %s submitted — grade %s (%.1f%%)', audit.pk, audit.get_grade_display(), audit.total_percentage)
+        auto_generate_corrective_actions(audit)
 
         if audit.auditor:
             Notification.objects.create(

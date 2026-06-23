@@ -1,9 +1,44 @@
+from datetime import timedelta
+
 from django.contrib.auth import get_user_model
 from django.db.models import Q
+from django.utils import timezone
 
 from core.models import Notification
 
 User = get_user_model()
+
+
+def auto_generate_corrective_actions(audit):
+    from .models import AuditQuestionResponse, CorrectiveAction
+
+    responses_needing_ca = AuditQuestionResponse.objects.filter(
+        audit_section__audit=audit,
+        needs_corrective_action=True,
+    ).exclude(
+        corrective_actions__isnull=False
+    ).select_related('question', 'audit_section__section')
+
+    created = 0
+    for resp in responses_needing_ca:
+        CorrectiveAction.objects.create(
+            audit=audit,
+            restaurant=audit.restaurant,
+            question_response=resp,
+            description=f'{resp.audit_section.section.name}: {resp.question.question_text}',
+            risk_level=CorrectiveAction.RiskLevel.CRITICAL,
+            assigned_to=audit.auditor,
+            deadline=timezone.now().date() + timedelta(days=7),
+            status=CorrectiveAction.Status.OPEN,
+        )
+        created += 1
+
+    if created:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info('Auto-generated %d corrective actions for audit %s', created, audit.pk)
+
+    return created
 
 
 def notify_restaurant_users(notification_type, title, message, link, restaurant):
