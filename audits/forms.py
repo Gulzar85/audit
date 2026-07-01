@@ -19,6 +19,7 @@ class AuditForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+        self.user = user
         self.helper = FormHelper()
         self.helper.form_tag = False
         self.helper.attrs = {'novalidate': ''}
@@ -87,6 +88,17 @@ class AuditForm(forms.ModelForm):
             ),
             HTML('</div>'),
         )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        restaurant = cleaned_data.get('restaurant')
+        
+        # Validate that non-superuser can access the selected restaurant
+        if self.user and not self.user.is_superuser and restaurant:
+            if restaurant not in self.user.restaurants.all():
+                self.add_error('restaurant', 'You do not have permission to access this restaurant.')
+        
+        return cleaned_data
 
     @transaction.atomic
     def save(self, commit=True):
@@ -165,6 +177,7 @@ class CorrectiveActionForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+        self.user = user
         self.fields['audit'].empty_label = 'Select an audit'
         self.fields['question_response'].empty_label = 'Select a question'
         self.fields['question_response'].required = False
@@ -192,3 +205,18 @@ class CorrectiveActionForm(forms.ModelForm):
             Field('comments', css_class=css),
             Field('evidence_image', css_class=file_css),
         )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        from django.utils import timezone
+        
+        deadline = cleaned_data.get('deadline')
+        if deadline and deadline < timezone.now().date():
+            self.add_error('deadline', 'Deadline cannot be in the past.')
+        
+        audit = cleaned_data.get('audit')
+        restaurant = cleaned_data.get('restaurant') if 'restaurant' in self.data else (audit.restaurant if audit else None)
+        if audit and audit.restaurant != restaurant:
+            self.add_error('audit', 'Selected audit does not belong to the selected restaurant.')
+        
+        return cleaned_data

@@ -309,6 +309,8 @@ class AuditReportPdfView(LoginRequiredMixin, PermissionRequiredMixin, DetailView
     def render_to_response(self, context, **response_kwargs):
         from weasyprint import HTML
         from core.models import BusinessInfo
+        from django.utils.text import slugify
+        import re
         audit = self.object
         template = get_template('audits/audit_report_pdf.html')
         html_str = template.render({
@@ -319,7 +321,10 @@ class AuditReportPdfView(LoginRequiredMixin, PermissionRequiredMixin, DetailView
 
         pdf = HTML(string=html_str).write_pdf()
 
-        filename = f'audit_{audit.restaurant.code}_{audit.audit_date}.pdf'.replace('/', '-')
+        # Sanitize filename to prevent path traversal and special characters
+        restaurant_code = re.sub(r'[^\w\-.]', '', audit.restaurant.code)
+        audit_date = audit.audit_date.isoformat()
+        filename = f'audit_{restaurant_code}_{audit_date}.pdf'
         response = HttpResponse(pdf, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
