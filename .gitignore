@@ -1,5 +1,7 @@
 # Environment variables
 .env
+.env.local
+.env.*.local
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -48,5 +50,28 @@ errors.txt
 *.swp
 *.swo
 *~
+*.temp
+
+# Sensitive files
+*.pem
+*.key
+*.crt
+*.pfx
+local_settings.py
+*.backup
+
+# Cache
+.cache/
+*.cache
+
+# Testing
+.coverage
+htmlcov/
+
+# IDE Cache
+.DS_Store
+.AppleDouble
+.LSOverride
+
 .DS_Store
 *.temp

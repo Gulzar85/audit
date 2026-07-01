@@ -1,6 +1,7 @@
 import csv
 import json
 import logging
+import re
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
@@ -16,6 +17,7 @@ from django.utils import timezone
 from django.views.generic import ListView, CreateView, DetailView, UpdateView, TemplateView, View
 
 from core.models import Notification
+from core.security import rate_limit, log_security_event
 from .forms import AuditForm, AuditScoreForm, CorrectiveActionForm
 from .utils import notify_restaurant_users, notify_auditor_and_manager, auto_generate_corrective_actions
 from .models import Audit, AuditTemplate, AuditSection, AuditQuestionResponse, CorrectiveAction
@@ -828,6 +830,14 @@ class SaveResponseView(LoginRequiredMixin, PermissionRequiredMixin, View):
 
     @transaction.atomic
     def post(self, request):
+        # Rate limiting: max 30 requests per minute
+        from core.security import check_suspicious_activity, get_client_ip
+        if check_suspicious_activity(request, 'save_response', threshold=100):
+            return JsonResponse(
+                {'success': False, 'message': 'Too many requests. Please try again later.'},
+                status=429
+            )
+        
         response_id = request.POST.get('response_id')
         if not response_id:
             return JsonResponse({'success': False, 'message': 'Missing response_id'}, status=400)
@@ -893,6 +903,14 @@ class FillRemainingView(LoginRequiredMixin, PermissionRequiredMixin, View):
 
     @transaction.atomic
     def post(self, request):
+        # Rate limiting: prevent abuse
+        from core.security import check_suspicious_activity
+        if check_suspicious_activity(request, 'fill_remaining', threshold=50):
+            return JsonResponse(
+                {'success': False, 'message': 'Too many requests. Please try again later.'},
+                status=429
+            )
+        
         audit_id = request.POST.get('audit_id')
         section_id = request.POST.get('section_id')
 
@@ -949,6 +967,20 @@ class AuditSubmitJSONView(LoginRequiredMixin, PermissionRequiredMixin, View):
     permission_required = 'audits.change_audit'
 
     def post(self, request, pk):
+        # Rate limiting: critical operation
+        from core.security import check_suspicious_activity, log_security_event
+        if check_suspicious_activity(request, 'audit_submit', threshold=30):
+            log_security_event(
+                'AUDIT_SUBMIT_RATE_LIMITED',
+                request.user,
+                f'Audit {pk}',
+                severity='WARNING'
+            )
+            return JsonResponse(
+                {'success': False, 'message': 'Too many requests. Please try again later.'},
+                status=429
+            )
+        
         qs = Audit.objects.filter(is_archived=False)
         user = request.user
         if not user.is_superuser:
