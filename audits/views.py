@@ -369,7 +369,7 @@ class AuditTemplateDetailView(LoginRequiredMixin, PermissionRequiredMixin, Detai
         ctx = super().get_context_data(**kwargs)
         sections = self.object.sections.all()
         ctx['sections'] = sections
-        ctx['total_questions'] = sum(s.questions.count() for s in sections)
+        ctx['total_questions'] = sum(len(list(s.questions.all())) for s in sections)
         ctx['total_points'] = sum(
             q.possible_points for s in sections for q in s.questions.all()
         )
