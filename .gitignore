@@ -37,3 +37,16 @@ venv/
 # Temporary & log files
 *.log
 errors.txt
+
+# Migration files (auto-generated)
+*/migrations/*.py
+!*/migrations/__init__.py
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*.swo
+*~
+.DS_Store
+*.temp
