@@ -1,5 +1,5 @@
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
-from django.db.models import Q, Avg, Count
+from django.db.models import Q, Count
 from django.views.generic import ListView, DetailView
 
 from .models import Region, Restaurant
@@ -35,6 +35,10 @@ class RestaurantListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
         if city:
             qs = qs.filter(city__icontains=city)
 
+        region = self.request.GET.get('region', '').strip()
+        if region:
+            qs = qs.filter(region__pk=region)
+
         return qs
 
     def get_context_data(self, **kwargs):
@@ -44,6 +48,9 @@ class RestaurantListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
             k: v for k, v in self.request.GET.items() if v
         }
         ctx['cities'] = Restaurant.objects.filter(is_archived=False).values_list('city', flat=True).distinct().order_by('city')
+        ctx['regions'] = Region.objects.annotate(
+            restaurant_count=Count('restaurants', filter=Q(restaurants__is_archived=False))
+        ).order_by('name')
         return ctx
 
 
@@ -76,3 +83,8 @@ class RegionDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     template_name = 'restaurants/region_detail.html'
     context_object_name = 'region'
     permission_required = 'restaurants.view_region'
+
+    def get_queryset(self):
+        return Region.objects.prefetch_related('restaurants').annotate(
+            restaurant_count=Count('restaurants', filter=Q(restaurants__is_archived=False))
+        )

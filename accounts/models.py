@@ -130,6 +130,12 @@ class User(AbstractUser):
         validators=[mobile_validator]
     )
 
+    email_notifications = models.BooleanField(
+        default=True,
+        verbose_name='Receive email notifications',
+        help_text='Send email copies of in-app notifications.',
+    )
+
     class Meta:
         db_table = "accounts_user"
         ordering = ["username"]

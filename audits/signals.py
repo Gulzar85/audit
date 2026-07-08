@@ -106,6 +106,17 @@ def ca_created_notification(sender, instance, created, **kwargs):
         f'A {instance.get_risk_level_display()} corrective action has been created '
         f'for {restaurant.name}.'
     )
+    email_context = {
+        'subject': title,
+        'restaurant_name': restaurant.name,
+        'risk_level': instance.get_risk_level_display(),
+        'description': instance.description,
+        'assigned_to': instance.assigned_to.get_full_name() or instance.assigned_to.username if instance.assigned_to else 'Unassigned',
+        'deadline': instance.deadline,
+        'audit_date': instance.audit.audit_date if instance.audit else None,
+        'ca_url': link,
+    }
     notify_restaurant_users(
-        Notification.Type.CA_CREATED, title, message, link, restaurant
+        Notification.Type.CA_CREATED, title, message, link, restaurant,
+        email_context=email_context,
     )

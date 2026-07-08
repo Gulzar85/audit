@@ -1,10 +1,10 @@
 {% extends 'base.html' %}
-{% load static %}
 
 {% block title %}{{ business_info.company_name }} — Corrective Actions{% endblock %}
 {% block page_title %}Corrective Actions{% endblock %}
 
 {% block content %}
+{% if perms.audits.view_correctiveaction %}
 <div class="max-w-6xl mx-auto space-y-5">
   <nav class="flex items-center gap-2 text-sm text-gray-400">
     <a href="{% url 'audits:dashboard' %}" class="hover:text-primary transition-colors font-semibold">Home</a>
@@ -101,10 +101,13 @@
   {% else %}
     <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-12 text-center border border-gray-200 gold-card">
       <i data-lucide="check-circle" class="w-12 h-12 text-gray-300 mx-auto mb-3"></i>
-      <h3 class="text-lg font-bold text-gray-700">All Clear</h3>
+      <h2 class="text-lg font-bold text-gray-700">All Clear</h2>
       <p class="text-sm text-gray-400 mt-1">No corrective actions match your filters.</p>
       {% if current_filters %}<a href="{% url 'audits:corrective_actions' %}" class="inline-flex items-center gap-1 mt-3 text-sm text-primary hover:underline font-bold"><i data-lucide="x" class="h-3.5 w-3.5"></i> Clear filters</a>{% endif %}
     </div>
   {% endif %}
 </div>
+{% else %}
+{% include 'includes/no_access.html' %}
+{% endif %}
 {% endblock %}

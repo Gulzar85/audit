@@ -5,6 +5,7 @@
 {% block title %}{{ business_info.company_name }} — Score: {{ audit.restaurant.name }}{% endblock %}
 
 {% block content %}
+{% if perms.audits.change_audit %}
 <div class="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50"
      x-data="scoreApp({{ sections_json }}, {{ audit.id }})"
      x-init="init()"
@@ -271,6 +272,9 @@
         </div>
     </template>
 </div>
+{% else %}
+{% include 'includes/no_access.html' %}
+{% endif %}
 {% endblock %}
 
 {% block extra_scripts %}

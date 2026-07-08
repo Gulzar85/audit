@@ -22,8 +22,8 @@ from django.conf.urls.static import static
 from django.views.generic import RedirectView
 
 # Determine admin URL - use custom path in production, default in development
-if settings.DEBUG:
-    admin_url = 'admin/'
+if settings.DEBUG or getattr(settings, 'ENVIRONMENT', 'production') == 'development':
+    admin_url = getattr(settings, 'ADMIN_URL', 'admin/')
 else:
     # In production, use ADMIN_URL from settings (set via environment variable)
     admin_url = getattr(settings, 'ADMIN_URL', 'admin/')

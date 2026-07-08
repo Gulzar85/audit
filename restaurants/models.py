@@ -140,7 +140,6 @@ class Restaurant(BaseModel):
         db_table = 'restaurants_restaurant'
         indexes = [
             models.Index(fields=['city', 'status']),
-            # models.Index(fields=['code']) -> Removed: Redundant due to unique=True
         ]
 
 # -------------------------

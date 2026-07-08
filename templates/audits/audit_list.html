@@ -4,6 +4,7 @@
 {% block page_title %}Audits{% endblock %}
 
 {% block content %}
+{% if perms.audits.view_audit %}
 <div class="space-y-6 max-w-7xl mx-auto animate-fade-in"
      x-data="{
        loading: false,
@@ -207,4 +208,7 @@
   </div>
   {% endif %}
 </div>
+{% else %}
+{% include 'includes/no_access.html' %}
+{% endif %}
 {% endblock %}

@@ -1,6 +1,7 @@
 import logging
 
 from django.contrib.auth.models import Group
+from django.contrib.auth.signals import user_login_failed
 from django.core.exceptions import ValidationError
 from django.db.models.signals import m2m_changed, post_save
 from django.dispatch import receiver
@@ -61,3 +62,22 @@ def validate_user_restaurants(sender, instance, action, **kwargs):
             "Auditor must have at least one restaurant.")
     if role == instance.Roles.MANAGER and new_count > 0:
         raise ValidationError("Manager cannot have restaurants.")
+
+
+# -----------------------------
+# Failed Login Event Logging
+# -----------------------------
+
+
+@receiver(user_login_failed)
+def log_failed_login(sender, credentials, request, **kwargs):
+    from core.security import log_security_event, get_client_ip
+    ip = get_client_ip(request) if request else 'unknown'
+    username = credentials.get('username', 'unknown')
+    log_security_event(
+        'FAILED_LOGIN_ATTEMPT',
+        None,
+        f"IP: {ip}, Username: {username}",
+        severity='WARNING'
+    )
+

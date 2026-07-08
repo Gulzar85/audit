@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.core.validators import RegexValidator
 from django.db import models
 from simple_history.models import HistoricalRecords
 
@@ -9,6 +10,12 @@ class BaseModel(models.Model):
 
     class Meta:
         abstract = True
+
+
+color_validator = RegexValidator(
+    regex=r'^#[0-9a-fA-F]{6}$',
+    message='Color must be a valid 6-digit hex code (e.g. #DA291C).'
+)
 
 
 class BusinessInfo(models.Model):
@@ -24,9 +31,9 @@ class BusinessInfo(models.Model):
     email = models.EmailField(blank=True)
     website = models.URLField(blank=True)
 
-    primary_color = models.CharField(max_length=7, default='#DA291C')
-    secondary_color = models.CharField(max_length=7, default='#FFC72C')
-    accent_color = models.CharField(max_length=7, default='#27251F')
+    primary_color = models.CharField(max_length=7, default='#DA291C', validators=[color_validator])
+    secondary_color = models.CharField(max_length=7, default='#FFC72C', validators=[color_validator])
+    accent_color = models.CharField(max_length=7, default='#27251F', validators=[color_validator])
 
     class Meta:
         verbose_name = "Business Info"

@@ -1,11 +1,20 @@
 import os
-import dj_database_url
 from .base import *
 
 DEBUG = False
 
-# Database — read from DATABASE_URL env var
-DATABASES = {'default': dj_database_url.config(default='sqlite:///db_prod.sqlite3')}
+ENVIRONMENT = 'production'
+
+# Database — SQLite with WAL mode (activated via base.py signal)
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+        'OPTIONS': {
+            'timeout': 20,
+        },
+    }
+}
 
 # Email — SMTP via environment variables
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -95,13 +104,14 @@ SESSION_SAVE_EVERY_REQUEST = False  # Reduce database hits
 
 # Password Hashing - explicitly set strong hasher
 PASSWORD_HASHERS = [
+    'django.contrib.auth.hashers.Argon2PasswordHasher',
     'django.contrib.auth.hashers.PBKDF2PasswordHasher',
     'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
-    'django.contrib.auth.hashers.Argon2PasswordHasher',
 ]
 
-# Validate required environment variables at startup
-REQUIRED_ENV_VARS = ['SECRET_KEY', 'ALLOWED_HOSTS', 'ADMIN_TOKEN']
-for var in REQUIRED_ENV_VARS:
-    if not os.getenv(var):
-        raise ValueError(f"Environment variable {var} is not set in production!")
+# Validate required environment variables at startup (only in production, not development)
+if not DEBUG:
+    REQUIRED_ENV_VARS = ['SECRET_KEY', 'ALLOWED_HOSTS', 'ADMIN_TOKEN']
+    for var in REQUIRED_ENV_VARS:
+        if not os.getenv(var):
+            raise ValueError(f"Environment variable {var} is not set in production!")

@@ -32,7 +32,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     # Third-party apps
-    'import_export',
     'crispy_forms',
     'crispy_tailwind',
     'simple_history',
@@ -55,7 +54,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'core.security.SecurityLoggingMiddleware',  # Log security events
+
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -103,6 +102,21 @@ AUTH_PASSWORD_VALIDATORS = [
 # Crispy Forms
 CRISPY_TEMPLATE_PACK = 'tailwind'
 CRISPY_ALLOWED_TEMPLATE_PACKS = 'tailwind'
+
+# Email — Gmail SMTP (override via .env for dev/prod)
+EMAIL_BACKEND = os.getenv(
+    'EMAIL_BACKEND',
+    'django.core.mail.backends.console.EmailBackend'
+)
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
+DEFAULT_FROM_EMAIL = os.getenv(
+    'DEFAULT_FROM_EMAIL',
+    "McDonald's Audit <noreply@mcdonalds.pk>"
+)
 
 # Authentication
 LOGIN_URL = 'accounts:login'
@@ -236,3 +250,18 @@ LOGGING = {
 }
 
 os.makedirs(LOG_DIR, exist_ok=True)
+
+# ---------------
+# SQLite WAL mode — enables concurrent reads + writes safely
+# ---------------
+from django.db.backends.signals import connection_created
+
+
+def _activate_sqlite_wal(sender, connection, **kwargs):
+    if connection.vendor == 'sqlite':
+        with connection.cursor() as cursor:
+            cursor.execute('PRAGMA journal_mode=WAL;')
+            cursor.execute('PRAGMA busy_timeout=20000;')
+
+
+connection_created.connect(_activate_sqlite_wal)

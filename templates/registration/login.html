@@ -1,6 +1,6 @@
 {% load crispy_forms_tags %}
 <!DOCTYPE html>
-<html lang="en" x-init="if (localStorage.getItem('dark') === null && window.matchMedia('(prefers-color-scheme: dark)').matches) { localStorage.setItem('dark', 'true'); document.documentElement.classList.add('dark'); } else if (localStorage.getItem('dark') === 'true') { document.documentElement.classList.add('dark'); }">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,6 +14,7 @@
       --primary: {{ business_info.primary_color|default:'#DA291C' }};
       --secondary: {{ business_info.secondary_color|default:'#FFC72C' }};
       --accent: {{ business_info.accent_color|default:'#27251F' }};
+      --gold-light: color-mix(in srgb, var(--secondary) 85%, white);
     }
     .bg-primary { background-color: var(--primary); }
     .text-primary { color: var(--primary); }
@@ -21,7 +22,7 @@
     .ring-primary { --tw-ring-color: var(--primary); }
     .focus\:ring-primary:focus { --tw-ring-color: var(--primary); }
     .bg-gradient-primary { background: linear-gradient(135deg, var(--primary) 0%, #8B0000 100%); }
-    .bg-gradient-gold { background: linear-gradient(135deg, var(--secondary) 0%, #FFD700 100%); }
+    .bg-gradient-gold { background: linear-gradient(135deg, var(--secondary) 0%, var(--gold-light) 100%); }
     body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
     .glass-premium {
       background: rgba(255, 255, 255, 0.9);
@@ -47,22 +48,15 @@
     .shimmer-line { background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--secondary) 10%, transparent) 50%, transparent 100%); background-size: 200% 100%; animation: shimmer 3s ease-in-out infinite; height: 1px; }
     .decoration-blob-1 { background: linear-gradient(to bottom right, color-mix(in srgb, var(--primary) 5%, transparent), color-mix(in srgb, var(--secondary) 5%, transparent)); }
     .decoration-blob-2 { background: linear-gradient(to top right, color-mix(in srgb, var(--secondary) 5%, transparent), color-mix(in srgb, var(--primary) 5%, transparent)); }
-    .dark body { background: #1a1a2e; }
-    .dark .glass-premium { background: rgba(30, 30, 60, 0.85); border-color: rgba(255, 255, 255, 0.08); }
-    .dark .text-gray-600 { color: #9ca3af !important; }
-    .dark .text-gray-700 dark:text-gray-300 { color: #d1d5db !important; }
-    .dark .text-gray-500 dark:text-gray-400 { color: #9ca3af !important; }
-    .dark .text-gray-400 { color: #9ca3af !important; }
-
   </style>
 </head>
-<body class="min-h-screen dark:bg-gray-900 flex items-center justify-center bg-gradient-to-br from-gray-50 via-gray-50 to-gray-100 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 p-4 pattern-grid">
+<body class="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-gray-50 to-gray-100 p-4 pattern-grid">
   <div class="fixed inset-0 pointer-events-none overflow-hidden">
     <div class="absolute -top-24 -right-24 w-96 h-96 rounded-full decoration-blob-1 blur-3xl"></div>
     <div class="absolute -bottom-24 -left-24 w-[30rem] h-[30rem] rounded-full decoration-blob-2 blur-3xl"></div>
   </div>
 
-  <div class="w-full max-w-md relative animate-fade-in">
+  <main class="w-full max-w-md relative animate-fade-in">
     <div class="text-center mb-8">
       {% if business_info.logo %}
         <img src="{{ business_info.logo.url }}" alt="Logo" class="h-16 mx-auto mb-4 animate-float drop-shadow-xl">
@@ -104,7 +98,7 @@
     <p class="text-center text-xs text-gray-400 mt-8 font-medium">
       &copy; {% now "Y" %} {{ business_info.company_name|default:"McDonald's Pakistan" }}. All rights reserved.
     </p>
-  </div>
+  </main>
   <script>lucide.createIcons();</script>
 </body>
 </html>

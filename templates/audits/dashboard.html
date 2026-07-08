@@ -8,6 +8,7 @@
 {% endblock %}
 
 {% block content %}
+{% if perms.audits.view_audit %}
 <div x-data="{ activeTab: 'overview' }" class="max-w-7xl mx-auto space-y-6 animate-fade-in">
 
   <!-- ===== HERO ===== -->
@@ -301,6 +302,7 @@
           </div>
           {% endif %}
         </div>
+        {% if perms.audits.view_audit %}
         <div class="bg-white/90 dark:bg-gray-800/90 rounded-xl border border-gray-200/60 dark:border-gray-700/60 p-5 gold-card">
           <div class="flex items-center justify-between mb-3">
             <h3 class="text-xs font-bold text-gray-600 dark:text-gray-300 flex items-center gap-2 uppercase tracking-wider">
@@ -328,6 +330,7 @@
             </button>
           </form>
         </div>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -426,6 +429,9 @@
     </div>
   </div>
 </div>
+{% else %}
+{% include 'includes/no_access.html' %}
+{% endif %}
 {% endblock %}
 
 {% block extra_scripts %}
@@ -457,7 +463,7 @@ document.addEventListener('DOMContentLoaded', function() {
   var donutEl = document.getElementById('gradeDonutChart');
   if (donutEl) {
     var series = [{% for g, d in grade_distribution.items %}{{ d.count }}{% if not forloop.last %},{% endif %}{% endfor %}];
-    var labels = [{% for g, d in grade_distribution.items %}'{{ g }}'{% if not forloop.last %},{% endif %}{% endfor %}];
+    var labels = [{% for g, d in grade_distribution.items %}'{{ g|escapejs }}'{% if not forloop.last %},{% endif %}{% endfor %}];
     var colors = [{% for g, d in grade_distribution.items %}{% if g == 'A' %}'#10b981'{% elif g == 'B' %}'#3b82f6'{% elif g == 'C' %}'#f59e0b'{% elif g == 'D' %}'#f97316'{% else %}'#ef4444'{% endif %}{% if not forloop.last %},{% endif %}{% endfor %}];
     if (series.some(function(v) { return v > 0; })) {
       new ApexCharts(donutEl, {

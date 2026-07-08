@@ -2,6 +2,22 @@
   <div class="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500">
     <p>&copy; {% now "Y" %} <span class="font-semibold text-gray-500 dark:text-gray-400">{{ business_info.company_name|default:"McDonald's Pakistan" }}</span>. All rights reserved.</p>
     <div class="flex items-center gap-3">
+      {% with social_links=business_info.social_media.all %}
+      {% if social_links %}
+      <div class="flex items-center gap-2">
+        {% for sm in social_links %}
+        <a href="{{ sm.url }}" target="_blank" rel="noopener noreferrer"
+           class="text-gray-400 hover:text-primary dark:hover:text-primary transition-colors"
+           title="{{ sm.get_platform_display }}" aria-label="{{ sm.get_platform_display }}">
+          {% if sm.icon_class %}<i class="{{ sm.icon_class }}"></i>{% else %}
+          <i class="fas fa-share-alt fa-fw"></i>
+          {% endif %}
+        </a>
+        {% endfor %}
+      </div>
+      <span class="h-3 w-px bg-gray-300 dark:bg-gray-600"></span>
+      {% endif %}
+      {% endwith %}
       <span class="hidden sm:inline">Audit Management System</span>
       <span class="h-3 w-px bg-gray-300 dark:bg-gray-600 hidden sm:block"></span>
       <span class="font-mono text-[10px] bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">v2.0</span>

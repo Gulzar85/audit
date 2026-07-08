@@ -1,7 +1,8 @@
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
-from django.db.models import Q, Avg, Count
+from django.db.models import Q, Avg
+from django.http import JsonResponse
 from django.utils import timezone
-from django.views.generic import TemplateView, DetailView, ListView
+from django.views.generic import TemplateView, DetailView, ListView, View
 
 from audits.models import Audit, CorrectiveAction
 from .models import User
@@ -33,9 +34,15 @@ class ProfileView(LoginRequiredMixin, TemplateView):
         ctx['designation_name'] = user.designation.name if user.designation else None
         ctx['department_name'] = user.department.name if user.department else None
 
-        now = timezone.now()
-        ctx['member_for_days'] = (now - user.date_joined).days if user.date_joined else 0
         return ctx
+
+
+class ToggleEmailNotificationsView(LoginRequiredMixin, View):
+    def post(self, request):
+        enabled = request.POST.get('enabled') == 'true'
+        request.user.email_notifications = enabled
+        request.user.save(update_fields=['email_notifications'])
+        return JsonResponse({'success': True, 'email_notifications': enabled})
 
 
 class UserListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):

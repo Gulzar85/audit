@@ -7,7 +7,7 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from decimal import Decimal
 from django.db import transaction
-from django.db.models import Q, Count, Avg, F, Sum, FloatField, Value, ExpressionWrapper
+from django.db.models import Q, Count, Avg, F, Sum, Value
 from django.db.models.functions import TruncMonth, Coalesce
 from django.forms import modelformset_factory
 from django.http import HttpResponse, JsonResponse
@@ -155,7 +155,7 @@ class AuditScoreView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
         section_formsets = []
         sections_json = []
         for sec in sections:
-            responses = sec.responses.all().select_related('question')
+            responses = sec.responses.all()
             FormSet = modelformset_factory(
                 AuditQuestionResponse,
                 form=AuditScoreForm,
@@ -203,7 +203,7 @@ class AuditScoreView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
             messages.warning(request, 'This audit has already been submitted.')
             return redirect('audits:result', pk=audit.pk)
 
-        sections = audit.audit_sections.all()
+        sections = audit.audit_sections.prefetch_related('responses__question').all()
         formsets = []
         all_valid = True
 
@@ -236,20 +236,25 @@ class AuditScoreView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
             audit.save()
             logger.info('Audit %s submitted via score form — grade %s (%.1f%%)', audit.pk, audit.get_grade_display(), audit.total_percentage)
             auto_generate_corrective_actions(audit)
-            if audit.auditor:
-                Notification.objects.create(
-                    recipient=audit.auditor,
-                    notification_type=Notification.Type.AUDIT_SUBMITTED,
-                    title=f'Audit submitted for {audit.restaurant.name}',
-                    message=f'Grade: {audit.get_grade_display()} ({audit.total_percentage:.1f}%)',
-                    link=reverse('audits:result', args=[audit.pk]),
-                )
+            email_context = {
+                'subject': f'Audit Completed: {audit.restaurant.name}',
+                'restaurant_name': audit.restaurant.name,
+                'score': audit.total_percentage,
+                'grade': audit.get_grade_display(),
+                'audit_date': audit.audit_date,
+                'template_name': audit.template.name,
+                'template_version': audit.template.version,
+                'auditor_name': audit.auditor.get_full_name() or audit.auditor.username if audit.auditor else 'N/A',
+                'result_url': request.build_absolute_uri(reverse('audits:result', args=[audit.pk])),
+            }
             notify_restaurant_users(
                 Notification.Type.AUDIT_SUBMITTED,
                 f'Audit Completed: {audit.restaurant.name}',
                 f'{audit.restaurant.name} scored {audit.total_percentage:.1f}% (Grade {audit.get_grade_display()}).',
                 reverse('audits:result', args=[audit.pk]),
                 audit.restaurant,
+                email_context=email_context,
+                extra_recipients=[audit.auditor],
             )
             messages.success(request, 'Audit scores saved and submitted successfully.')
             return redirect('audits:result', pk=audit.pk)
@@ -463,6 +468,8 @@ class DashboardView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
         # --- Section-wise Analytics ---
         submitted_audit_ids = submitted.values_list('id', flat=True)
 
+        from django.utils.html import escape
+
         # 1. Section Performance Overview
         section_perf = (
             AuditSection.objects.filter(audit_id__in=submitted_audit_ids)
@@ -475,7 +482,7 @@ class DashboardView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
         )
         ctx['section_performance'] = json.dumps([
             {
-                'name': s['section__name'],
+                'name': escape(s['section__name']),
                 'avg': float(round(s['avg_pct'], 1)) if s['avg_pct'] else 0,
                 'count': s['audit_count'],
             }
@@ -494,7 +501,7 @@ class DashboardView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
         )
         ctx['section_deductions'] = json.dumps([
             {
-                'name': s['section__name'],
+                'name': escape(s['section__name']),
                 'possible': float(s['total_possible']),
                 'scored': float(s['total_scored']),
                 'deducted': float(s['total_possible'] - s['total_scored']),
@@ -516,7 +523,7 @@ class DashboardView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
         trend_by_section = {}
         all_months_set = set()
         for row in sections_for_trend:
-            name = row['section__name']
+            name = escape(row['section__name'])
             label = row['month'].strftime('%b %Y') if row['month'] else ''
             if name not in trend_by_section:
                 trend_by_section[name] = {}
@@ -546,14 +553,12 @@ class DashboardView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
         )
         ctx['frequent_findings'] = json.dumps([
             {
-                'text': f['question__question_text'][:80],
-                'section': f['question__section__name'],
+                'text': escape(f['question__question_text'][:80]),
+                'section': escape(f['question__section__name']),
                 'count': f['deduction_count'],
             }
             for f in freq_findings
         ])
-        ctx['submitted_audit_count'] = submitted.count()
-
         return ctx
 
 
@@ -581,7 +586,7 @@ class DashboardExportView(LoginRequiredMixin, PermissionRequiredMixin, View):
         writer = csv.writer(resp)
         writer.writerow(['Restaurant', 'Template', 'Audit Date', 'Manager on Duty',
                          'Auditor', 'Score', 'Grade', 'Status', 'Submitted At'])
-        for a in qs:
+        for a in qs.iterator():
             writer.writerow([
                 a.restaurant.name,
                 a.template.name,
@@ -636,11 +641,6 @@ class CorrectiveActionListView(LoginRequiredMixin, PermissionRequiredMixin, List
         ctx = super().get_context_data(**kwargs)
         ctx['title'] = 'Corrective Actions'
         ctx['risk_choices'] = CorrectiveAction.RiskLevel.choices
-        ctx['status_choices'] = [
-            ('open', 'Open'),
-            ('completed', 'Completed'),
-            ('all', 'All'),
-        ]
         ctx['current_filters'] = {k: v for k, v in self.request.GET.items() if v}
         return ctx
 
@@ -657,6 +657,9 @@ class CorrectiveActionCompleteView(LoginRequiredMixin, PermissionRequiredMixin, 
 
     def post(self, request, pk):
         action = self._get_action_or_404(request, pk)
+        if request.user.role == 'restaurant_user' and action.status in (action.Status.VERIFIED, action.Status.CLOSED):
+            messages.error(request, 'You cannot reopen a verified or closed corrective action.')
+            return redirect('audits:corrective_actions')
         if action.status in (action.Status.COMPLETED, action.Status.VERIFIED, action.Status.CLOSED):
             action.status = action.Status.OPEN
             msg = 'reopened'
@@ -729,6 +732,17 @@ class CorrectiveActionUpdateView(LoginRequiredMixin, PermissionRequiredMixin, Up
     permission_required = 'audits.change_correctiveaction'
     context_object_name = 'action'
 
+    def dispatch(self, request, *args, **kwargs):
+        # Use get_queryset() for scoping, then check status.
+        # Store in self.object to avoid a second DB hit later.
+        qs = self.get_queryset()
+        obj = get_object_or_404(qs, pk=kwargs.get('pk'))
+        if request.user.role == 'restaurant_user' and obj.status in (obj.Status.VERIFIED, obj.Status.CLOSED):
+            messages.error(request, 'You cannot edit a verified or closed corrective action.')
+            return redirect('audits:corrective_actions')
+        return super().dispatch(request, *args, **kwargs)
+
+
     def get_queryset(self):
         qs = CorrectiveAction.objects.all()
         user = self.request.user
@@ -791,6 +805,8 @@ class AuditSubmitView(LoginRequiredMixin, PermissionRequiredMixin, View):
     @transaction.atomic
     def post(self, request, pk):
         audit = self._get_audit_or_404(request, pk)
+        # Lock row to prevent race condition on submission
+        audit = type(audit).objects.select_for_update().get(pk=audit.pk)
 
         if audit.is_submitted:
             messages.warning(request, 'Audit is already submitted.')
@@ -820,9 +836,15 @@ class AuditDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View):
     def post(self, request, pk):
         qs = self.get_queryset()
         audit = get_object_or_404(qs, pk=pk)
-        audit.delete()
-        messages.success(request, 'Audit deleted successfully.')
+        if audit.is_submitted:
+            messages.warning(request, 'Submitted audits cannot be deleted. Archive them instead.')
+            return redirect('audits:detail', pk=pk)
+        audit.is_archived = True
+        audit.save(update_fields=['is_archived', 'updated_at'])
+        logger.info('Audit %s archived (soft-deleted) by %s', pk, request.user)
+        messages.success(request, 'Audit archived successfully.')
         return redirect('audits:list')
+
 
 
 class SaveResponseView(LoginRequiredMixin, PermissionRequiredMixin, View):
@@ -989,6 +1011,8 @@ class AuditSubmitJSONView(LoginRequiredMixin, PermissionRequiredMixin, View):
                 Q(restaurant__in=user.restaurants.all())
             )
         audit = get_object_or_404(qs, pk=pk)
+        # Lock row to prevent race condition on submission
+        audit = type(audit).objects.select_for_update().get(pk=audit.pk)
 
         if audit.is_submitted:
             return JsonResponse({'success': False, 'message': 'Audit already submitted'}, status=400)
@@ -999,20 +1023,25 @@ class AuditSubmitJSONView(LoginRequiredMixin, PermissionRequiredMixin, View):
         logger.info('Audit %s submitted — grade %s (%.1f%%)', audit.pk, audit.get_grade_display(), audit.total_percentage)
         auto_generate_corrective_actions(audit)
 
-        if audit.auditor:
-            Notification.objects.create(
-                recipient=audit.auditor,
-                notification_type=Notification.Type.AUDIT_SUBMITTED,
-                title=f'Audit submitted for {audit.restaurant.name}',
-                message=f'Grade: {audit.get_grade_display()} ({audit.total_percentage:.1f}%)',
-                link=reverse('audits:result', args=[audit.pk]),
-            )
+        email_context = {
+            'subject': f'Audit Completed: {audit.restaurant.name}',
+            'restaurant_name': audit.restaurant.name,
+            'score': audit.total_percentage,
+            'grade': audit.get_grade_display(),
+            'audit_date': audit.audit_date,
+            'template_name': audit.template.name,
+            'template_version': audit.template.version,
+            'auditor_name': audit.auditor.get_full_name() or audit.auditor.username if audit.auditor else 'N/A',
+            'result_url': request.build_absolute_uri(reverse('audits:result', args=[audit.pk])),
+        }
         notify_restaurant_users(
             Notification.Type.AUDIT_SUBMITTED,
             f'Audit Completed: {audit.restaurant.name}',
             f'{audit.restaurant.name} scored {audit.total_percentage:.1f}% (Grade {audit.get_grade_display()}).',
             reverse('audits:result', args=[audit.pk]),
             audit.restaurant,
+            email_context=email_context,
+            extra_recipients=[audit.auditor],
         )
 
         return JsonResponse({
@@ -1028,6 +1057,14 @@ class AuditQuestionResponsesJSONView(LoginRequiredMixin, PermissionRequiredMixin
         qs = AuditQuestionResponse.objects.filter(
             audit_section__audit__pk=audit_pk,
         ).select_related('question', 'audit_section__section').order_by('audit_section__section__order', 'question__order')
+
+        user = request.user
+        if not user.is_superuser:
+            qs = qs.filter(
+                Q(audit_section__audit__auditor=user) |
+                Q(audit_section__audit__restaurant__in=user.restaurants.all())
+            )
+
         data = [{
             'id': r.pk,
             'label': f'{r.audit_section.section.name} → {r.question.question_text[:60]}',

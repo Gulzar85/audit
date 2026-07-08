@@ -4,6 +4,7 @@
 {% block page_title %}{{ audit.restaurant.name }} — Audit{% endblock %}
 
 {% block content %}
+{% if perms.audits.view_audit %}
 <div class="max-w-5xl mx-auto space-y-6">
   <div class="relative overflow-hidden rounded-2xl bg-gradient-dark">
     <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50"></div>
@@ -67,7 +68,7 @@
 
   <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden gold-card">
     <div class="px-6 py-4 bg-gradient-primary-h flex items-center justify-between">
-      <h3 class="text-white font-bold flex items-center gap-2"><i data-lucide="layers" class="w-4 h-4"></i> Section Scores</h3>
+      <h2 class="text-white font-bold flex items-center gap-2"><i data-lucide="layers" class="w-4 h-4"></i> Section Scores</h2>
       <span class="text-xs font-bold bg-white/20 text-white px-3 py-1 rounded-full">{{ audit.audit_sections.count }} sections</span>
     </div>
     <div class="divide-y divide-gray-100">
@@ -101,4 +102,7 @@
   </div>
   {% endif %}
 </div>
+{% else %}
+{% include 'includes/no_access.html' %}
+{% endif %}
 {% endblock %}

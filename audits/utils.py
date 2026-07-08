@@ -2,11 +2,34 @@ from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.db.models import Q
+from django.template.loader import render_to_string
 from django.utils import timezone
 
+from core.email_utils import send_notification_email
 from core.models import Notification
 
 User = get_user_model()
+
+EMAIL_TEMPLATES = {
+    Notification.Type.AUDIT_SUBMITTED: 'emails/audit_submitted.html',
+    Notification.Type.CA_CREATED: 'emails/ca_created.html',
+    Notification.Type.CA_COMPLETED: 'emails/ca_completed.html',
+}
+
+
+def _send_email_notifications(recipients, notification_type, email_context):
+    """Send email copies to users who have email_notifications enabled."""
+    template = EMAIL_TEMPLATES.get(notification_type)
+    if not template:
+        return
+    for user in recipients:
+        if user.email_notifications and user.email:
+            send_notification_email(
+                recipient_email=user.email,
+                subject=email_context.get('subject', 'Notification'),
+                template_name=template,
+                context=email_context,
+            )
 
 
 def auto_generate_corrective_actions(audit):
@@ -19,15 +42,21 @@ def auto_generate_corrective_actions(audit):
         corrective_actions__isnull=False
     ).select_related('question', 'audit_section__section')
 
+    # Assign to first active restaurant user of the restaurant, fallback to auditor
+    restaurant_user = audit.restaurant.users.filter(role=User.Roles.RESTAURANT_USER, is_active=True).first()
+    assignee = restaurant_user if restaurant_user else audit.auditor
+
     created = 0
     for resp in responses_needing_ca:
+        is_critical = getattr(resp.question, 'is_critical', False)
+        description = f'{resp.audit_section.section.name}: {resp.question.question_text}'
         CorrectiveAction.objects.create(
             audit=audit,
             restaurant=audit.restaurant,
             question_response=resp,
-            description=f'{resp.audit_section.section.name}: {resp.question.question_text}',
-            risk_level=CorrectiveAction.RiskLevel.CRITICAL,
-            assigned_to=audit.auditor,
+            description=description,
+            risk_level=CorrectiveAction.RiskLevel.CRITICAL if is_critical else CorrectiveAction.RiskLevel.HIGH,
+            assigned_to=assignee,
             deadline=timezone.now().date() + timedelta(days=7),
             status=CorrectiveAction.Status.OPEN,
         )
@@ -41,10 +70,12 @@ def auto_generate_corrective_actions(audit):
     return created
 
 
-def notify_restaurant_users(notification_type, title, message, link, restaurant):
+def notify_restaurant_users(notification_type, title, message, link, restaurant, email_context=None, extra_recipients=None):
     restaurant_users = restaurant.users.filter(is_active=True)
     managers = User.objects.filter(role=User.Roles.MANAGER, is_active=True)
     recipients = set(restaurant_users) | set(managers)
+    if extra_recipients:
+        recipients |= {u for u in extra_recipients if u}
     notifications = [
         Notification(
             recipient=user,
@@ -56,9 +87,11 @@ def notify_restaurant_users(notification_type, title, message, link, restaurant)
         for user in recipients
     ]
     Notification.objects.bulk_create(notifications)
+    if email_context:
+        _send_email_notifications(recipients, notification_type, email_context)
 
 
-def notify_auditor_and_manager(notification_type, title, message, link, auditor):
+def notify_auditor_and_manager(notification_type, title, message, link, auditor, email_context=None):
     recipients = [auditor]
     if auditor.manager and auditor.manager.is_active:
         recipients.append(auditor.manager)
@@ -77,3 +110,5 @@ def notify_auditor_and_manager(notification_type, title, message, link, auditor)
         for user in set(recipients)
     ]
     Notification.objects.bulk_create(notifications)
+    if email_context:
+        _send_email_notifications(set(recipients), notification_type, email_context)

@@ -5,8 +5,7 @@ import logging
 from functools import wraps
 from django.core.cache import cache
 from django.http import JsonResponse
-from django.utils import timezone
-from django.views.decorators.cache import never_cache
+
 
 logger = logging.getLogger('django.security')
 
@@ -27,7 +26,7 @@ def log_security_event(event_type, user, details, severity='INFO'):
 
 def rate_limit(key_prefix, max_requests=5, window=300):
     """
-    Rate limiting decorator using Django cache.
+    Rate limiting decorator using Django cache (Fixed Window).
     
     Args:
         key_prefix: Cache key prefix (e.g., 'login_attempts')
@@ -42,10 +41,18 @@ def rate_limit(key_prefix, max_requests=5, window=300):
             user_identifier = request.user.id if request.user.is_authenticated else 'anonymous'
             cache_key = f"{key_prefix}:{ip}:{user_identifier}"
             
-            # Get current attempt count
-            attempts = cache.get(cache_key, 0)
+            # Atomically increment counter with a fixed window
+            if cache.add(cache_key, 1, window):
+                attempts = 1
+            else:
+                try:
+                    attempts = cache.incr(cache_key)
+                except ValueError:
+                    # Fallback in case of race condition or cache backend differences
+                    cache.set(cache_key, 1, window)
+                    attempts = 1
             
-            if attempts >= max_requests:
+            if attempts > max_requests:
                 log_security_event(
                     'RATE_LIMIT_EXCEEDED',
                     request.user,
@@ -64,9 +71,6 @@ def rate_limit(key_prefix, max_requests=5, window=300):
                         'Too many requests. Please try again later.',
                         status=429
                     )
-            
-            # Increment counter
-            cache.set(cache_key, attempts + 1, window)
             
             return view_func(request, *args, **kwargs)
         
@@ -159,31 +163,6 @@ def secure_redirect(request, next_url, allowed_hosts=None):
 
 # Middleware classes
 
-class SecurityLoggingMiddleware:
-    """Middleware to log security-relevant events."""
-    
-    def __init__(self, get_response):
-        self.get_response = get_response
-        self.protected_paths = ['/admin/', '/accounts/login/', '/accounts/logout/']
-    
-    def __call__(self, request):
-        # Log failed authentication attempts
-        if request.path in self.protected_paths and request.method == 'POST':
-            response = self.get_response(request)
-            
-            if request.path == '/accounts/login/' and response.status_code in [401, 403]:
-                ip = get_client_ip(request)
-                log_security_event(
-                    'FAILED_LOGIN_ATTEMPT',
-                    None,
-                    f"IP: {ip}, Username: {request.POST.get('username', 'unknown')}",
-                    severity='WARNING'
-                )
-        else:
-            response = self.get_response(request)
-        
-        return response
-
 
 class SecurityHeadersMiddleware:
     """Middleware to add additional security headers."""
@@ -208,5 +187,14 @@ class SecurityHeadersMiddleware:
         
         # Referrer policy
         response['Referrer-Policy'] = 'same-origin'
+        
+        # Content Security Policy
+        from django.conf import settings
+        csp = getattr(settings, 'SECURE_CONTENT_SECURITY_POLICY', None)
+        if csp:
+            policies = []
+            for directive, sources in csp.items():
+                policies.append(f"{directive} {' '.join(sources)}")
+            response['Content-Security-Policy'] = '; '.join(policies)
         
         return response

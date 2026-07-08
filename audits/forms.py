@@ -1,10 +1,23 @@
 from django import forms
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.contrib.auth import get_user_model
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit, Row, Column, HTML, Field, Div
 
 from .models import Audit, AuditQuestionResponse, CorrectiveAction
+
+
+ALLOWED_IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'}
+MAX_UPLOAD_SIZE = 5 * 1024 * 1024  # 5 MB
+
+
+def validate_uploaded_image(file):
+    if file.size > MAX_UPLOAD_SIZE:
+        raise ValidationError(f'File size must be under 5 MB. Current size: {file.size / 1024 / 1024:.1f} MB')
+    ext = str(file.name).rsplit('.', 1)[-1].lower() if '.' in file.name else ''
+    if f'.{ext}' not in ALLOWED_IMAGE_EXTENSIONS:
+        raise ValidationError(f'Unsupported file extension ".{ext}". Allowed: {", ".join(sorted(ALLOWED_IMAGE_EXTENSIONS))}')
 
 
 class AuditForm(forms.ModelForm):
@@ -139,7 +152,6 @@ class AuditScoreForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_tag = False
-        self.helper.disable_csrf = True
         self.helper.layout = Layout(
             Row(
                 Column('scored_points', css_class='w-24'),
@@ -184,9 +196,13 @@ class CorrectiveActionForm(forms.ModelForm):
         self.fields['assigned_to'].empty_label = 'Select a user'
         self.fields['assigned_to'].required = False
         if user:
+            from .models import Audit
             qs = get_user_model().objects.filter(is_active=True)
             if not user.is_superuser:
                 qs = qs.filter(restaurants__in=user.restaurants.all()).distinct()
+                self.fields['audit'].queryset = Audit.objects.filter(
+                    restaurant__in=user.restaurants.all(), is_archived=False
+                )
             self.fields['assigned_to'].queryset = qs
             self.fields['assigned_to'].initial = user
         css = 'w-full rounded-xl border-slate-300 focus:border-red-400 focus:ring-2 focus:ring-red-200 outline-none'
@@ -206,17 +222,19 @@ class CorrectiveActionForm(forms.ModelForm):
             Field('evidence_image', css_class=file_css),
         )
 
+    def clean_evidence_image(self):
+        file = self.cleaned_data.get('evidence_image')
+        if file:
+            validate_uploaded_image(file)
+        return file
+
     def clean(self):
         cleaned_data = super().clean()
         from django.utils import timezone
         
         deadline = cleaned_data.get('deadline')
-        if deadline and deadline < timezone.now().date():
-            self.add_error('deadline', 'Deadline cannot be in the past.')
-        
-        audit = cleaned_data.get('audit')
-        restaurant = cleaned_data.get('restaurant') if 'restaurant' in self.data else (audit.restaurant if audit else None)
-        if audit and audit.restaurant != restaurant:
-            self.add_error('audit', 'Selected audit does not belong to the selected restaurant.')
+        if self.instance.pk is None:  # Only enforce on creation
+            if deadline and deadline < timezone.now().date():
+                self.add_error('deadline', 'Deadline cannot be in the past.')
         
         return cleaned_data

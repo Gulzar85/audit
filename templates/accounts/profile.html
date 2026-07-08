@@ -75,7 +75,7 @@
     <!-- Account Details -->
     <div class="lg:col-span-2 space-y-6">
       <div class="bg-white/90 dark:bg-gray-800/90 rounded-xl border border-gray-200/60 dark:border-gray-700/60 p-5 gold-card">
-        <h3 class="text-sm font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2 mb-4">
+        <h2 class="text-sm font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2 mb-4">
           <div class="w-7 h-7 rounded-lg bg-gradient-primary flex items-center justify-center"><i data-lucide="user" class="w-4 h-4 text-white"></i></div>
           Account Details
         </h3>
@@ -109,7 +109,7 @@
 
       {% if latest_audit %}
       <div class="bg-white/90 dark:bg-gray-800/90 rounded-xl border border-gray-200/60 dark:border-gray-700/60 p-5 gold-card">
-        <h3 class="text-sm font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2 mb-4">
+        <h2 class="text-sm font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2 mb-4">
           <div class="w-7 h-7 rounded-lg bg-gradient-gold flex items-center justify-center"><i data-lucide="trending-up" class="w-4 h-4 text-accent"></i></div>
           Latest Activity
         </h3>
@@ -140,7 +140,7 @@
     <div class="space-y-6">
       <!-- Assigned Restaurants -->
       <div class="bg-white/90 dark:bg-gray-800/90 rounded-xl border border-gray-200/60 dark:border-gray-700/60 p-5 gold-card">
-        <h3 class="text-sm font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2 mb-4">
+        <h2 class="text-sm font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2 mb-4">
           <div class="w-7 h-7 rounded-lg bg-gradient-gold flex items-center justify-center"><i data-lucide="store" class="w-4 h-4 text-accent"></i></div>
           Restaurants
           <span class="ml-auto text-[10px] font-bold text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">{{ restaurant_count }}</span>
@@ -167,7 +167,7 @@
 
       <!-- Permissions -->
       <div class="bg-white/90 dark:bg-gray-800/90 rounded-xl border border-gray-200/60 dark:border-gray-700/60 p-5 gold-card">
-        <h3 class="text-sm font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2 mb-4">
+        <h2 class="text-sm font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2 mb-4">
           <div class="w-7 h-7 rounded-lg bg-gradient-gold flex items-center justify-center"><i data-lucide="shield" class="w-4 h-4 text-accent"></i></div>
           Permissions
         </h3>
@@ -190,14 +190,28 @@
 
       <!-- Actions -->
       <div class="bg-white/90 dark:bg-gray-800/90 rounded-xl border border-gray-200/60 dark:border-gray-700/60 p-5 gold-card">
-        <h3 class="text-sm font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2 mb-4">
+        <h2 class="text-sm font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2 mb-4">
           <div class="w-7 h-7 rounded-lg bg-gradient-primary flex items-center justify-center"><i data-lucide="settings" class="w-4 h-4 text-white"></i></div>
           Actions
-        </h3>
+        </h2>
         <div class="space-y-2">
           <a href="{% url 'accounts:password_change' %}" class="flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-dark text-white text-sm font-bold hover:shadow-xl transition-all duration-300 active:scale-[0.97]"><i data-lucide="lock" class="w-4 h-4"></i> Change Password</a>
-          <a href="{% url 'audits:list' %}" class="flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm font-bold hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-all"><i data-lucide="clipboard-list" class="w-4 h-4"></i> View My Audits</a>
+          {% if perms.audits.view_audit %}<a href="{% url 'audits:list' %}" class="flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm font-bold hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-all"><i data-lucide="clipboard-list" class="w-4 h-4"></i> View My Audits</a>{% endif %}
         </div>
+      </div>
+
+      <!-- Email Notifications -->
+      <div class="bg-white/90 dark:bg-gray-800/90 rounded-xl border border-gray-200/60 dark:border-gray-700/60 p-5 gold-card" x-data="{ emailOn: {{ user.email_notifications|lower }} }">
+        <h2 class="text-sm font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2 mb-4">
+          <div class="w-7 h-7 rounded-lg bg-gradient-gold flex items-center justify-center"><i data-lucide="bell" class="w-4 h-4 text-accent"></i></div>
+          Email Notifications
+        </h2>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Receive email copies of audit and corrective action notifications.</p>
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" class="sr-only peer" x-model="emailOn" @change="fetch('{% url 'accounts:toggle_email_notifications' %}', { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'enabled=' + emailOn })">
+          <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+          <span class="ms-3 text-sm font-bold text-gray-700 dark:text-gray-300" x-text="emailOn ? 'On' : 'Off'"></span>
+        </label>
       </div>
     </div>
   </div>

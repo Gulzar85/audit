@@ -76,7 +76,7 @@ class UserAdmin(SimpleHistoryAdmin, BaseUserAdmin):
                 'classes': ['wide'],
                 'fields': [
                     'username', 'email', 'password1', 'password2',
-                    'role', 'designation', 'department',
+                    'role', 'designation', 'department', 'manager',
                 ],
             },
         ),

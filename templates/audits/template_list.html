@@ -4,6 +4,7 @@
 {% block page_title %}Audit Templates{% endblock %}
 
 {% block content %}
+{% if perms.audits.view_audittemplate %}
 <div class="max-w-6xl mx-auto space-y-6">
     <div class="relative overflow-hidden rounded-2xl bg-gradient-dark p-6 sm:p-8">
         <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50"></div>
@@ -53,7 +54,7 @@
             </div>
         </a>
         {% empty %}
-        <div class="col-span-full gold-card"><div class="bg-white/80 backdrop-blur-sm rounded-2xl p-12 text-center border border-gray-200"><i data-lucide="file-text" class="w-12 h-12 text-gray-300 mx-auto mb-3"></i><h3 class="text-lg font-bold text-gray-700">No templates found</h3><p class="text-sm text-gray-400 mt-1">Create a template in the admin panel to get started.</p></div></div>
+        <div class="col-span-full gold-card"><div class="bg-white/80 backdrop-blur-sm rounded-2xl p-12 text-center border border-gray-200"><i data-lucide="file-text" class="w-12 h-12 text-gray-300 mx-auto mb-3"></i><h2 class="text-lg font-bold text-gray-700">No templates found</h2><p class="text-sm text-gray-400 mt-1">Create a template in the admin panel to get started.</p></div></div>
         {% endfor %}
     </div>
 
@@ -65,4 +66,7 @@
     </div>
     {% endif %}
 </div>
+{% else %}
+{% include 'includes/no_access.html' %}
+{% endif %}
 {% endblock %}

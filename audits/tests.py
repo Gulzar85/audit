@@ -521,3 +521,220 @@ class TemplateViewTest(TestCase):
         self.client.force_login(other)
         resp = self.client.get(f'/audits/templates/{self.template.pk}/')
         self.assertEqual(resp.status_code, 403)
+
+
+# -----------------------------------------------------------
+# setup_groups management command
+# -----------------------------------------------------------
+
+class SetupGroupsCommandTest(TestCase):
+
+    def _run_command(self):
+        from django.core.management import call_command
+        from io import StringIO
+        out = StringIO()
+        call_command('setup_groups', stdout=out)
+        return out.getvalue()
+
+    def test_creates_expected_groups(self):
+        from django.contrib.auth.models import Group
+        self._run_command()
+        group_names = list(Group.objects.values_list('name', flat=True))
+        self.assertIn('Manager', group_names)
+        self.assertIn('Auditor', group_names)
+        self.assertIn('Restaurant User', group_names)
+
+    def test_manager_has_view_audit_permission(self):
+        from django.contrib.auth.models import Group
+        from django.contrib.contenttypes.models import ContentType
+        from django.contrib.auth.models import Permission
+        self._run_command()
+        group = Group.objects.get(name='Manager')
+        ct = ContentType.objects.get_for_model(Audit)
+        perm = Permission.objects.get(content_type=ct, codename='view_audit')
+        self.assertIn(perm, group.permissions.all())
+
+    def test_restaurant_user_cannot_add_audit(self):
+        from django.contrib.auth.models import Group
+        from django.contrib.contenttypes.models import ContentType
+        from django.contrib.auth.models import Permission
+        self._run_command()
+        group = Group.objects.get(name='Restaurant User')
+        ct = ContentType.objects.get_for_model(Audit)
+        perm = Permission.objects.get(content_type=ct, codename='add_audit')
+        self.assertNotIn(perm, group.permissions.all())
+
+    def test_idempotent_multiple_runs(self):
+        """Running the command twice must not duplicate groups or permissions."""
+        from django.contrib.auth.models import Group
+        self._run_command()
+        self._run_command()
+        self.assertEqual(Group.objects.filter(name='Manager').count(), 1)
+        self.assertEqual(Group.objects.filter(name='Auditor').count(), 1)
+        self.assertEqual(Group.objects.filter(name='Restaurant User').count(), 1)
+
+    def test_auditor_has_full_corrective_action_permissions(self):
+        from django.contrib.auth.models import Group
+        from django.contrib.contenttypes.models import ContentType
+        from django.contrib.auth.models import Permission
+        self._run_command()
+        group = Group.objects.get(name='Auditor')
+        ct = ContentType.objects.get_for_model(CorrectiveAction)
+        for action in ('view', 'add', 'change', 'delete'):
+            perm = Permission.objects.get(
+                content_type=ct, codename=f'{action}_correctiveaction')
+            self.assertIn(perm, group.permissions.all(),
+                          msg=f'Auditor missing {action}_correctiveaction')
+
+
+# -----------------------------------------------------------
+# Verified/Closed corrective action workflow protection
+# -----------------------------------------------------------
+
+class CorrectiveActionWorkflowProtectionTest(TestCase):
+
+    def setUp(self):
+        self.region = Region.objects.create(name='R')
+        self.restaurant = Restaurant.objects.create(
+            code='9990001', name='WF Restaurant', city='C', address='A',
+            region=self.region)
+
+        # Auditor
+        self.auditor = User.objects.create_user('wf_auditor', 'wa@t.com', 'pass')
+        self.auditor.role = User.Roles.AUDITOR
+        self.auditor.save()
+        self.auditor.restaurants.add(self.restaurant)
+
+        # Restaurant user
+        self.ru = User.objects.create_user('wf_ru', 'wr@t.com', 'pass')
+        self.ru.role = User.Roles.RESTAURANT_USER
+        self.ru.save()
+        self.ru.restaurants.add(self.restaurant)
+
+        ct_ca = ContentType.objects.get_for_model(CorrectiveAction)
+        for u in (self.auditor, self.ru):
+            u.user_permissions.add(
+                *Permission.objects.filter(content_type=ct_ca)
+            )
+
+        self.template = AuditTemplate.objects.create(name='WF T')
+        self.section = Section.objects.create(
+            template=self.template, name='S', order=1)
+        q = Question.objects.create(
+            section=self.section, question_text='Q',
+            possible_points=5, order=1)
+
+        ct_audit = ContentType.objects.get_for_model(Audit)
+        self.auditor.user_permissions.add(
+            *Permission.objects.filter(content_type=ct_audit))
+
+        self.audit = Audit.objects.create(
+            template=self.template, restaurant=self.restaurant,
+            audit_date='2026-06-15', manager_on_duty='M', auditor=self.auditor,
+        )
+        audit_section = AuditSection.objects.create(
+            audit=self.audit, section=self.section, possible_points=5)
+        self.response = AuditQuestionResponse.objects.create(
+            audit_section=audit_section, question=q, is_answered=True)
+
+        from datetime import date, timedelta
+        self.ca = CorrectiveAction.objects.create(
+            audit=self.audit,
+            restaurant=self.restaurant,
+            question_response=self.response,
+            description='Fix the issue',
+            risk_level=CorrectiveAction.RiskLevel.LOW,
+            assigned_to=self.ru,
+            deadline=date.today() + timedelta(days=30),
+        )
+
+    def test_restaurant_user_cannot_edit_verified_ca(self):
+        self.ca.status = CorrectiveAction.Status.VERIFIED
+        self.ca.save()
+        self.client.force_login(self.ru)
+        url = reverse('audits:corrective_action_edit', args=[self.ca.pk])
+        resp = self.client.get(url)
+        # Should redirect away, not render the form
+        self.assertEqual(resp.status_code, 302)
+
+    def test_restaurant_user_cannot_edit_closed_ca(self):
+        self.ca.status = CorrectiveAction.Status.CLOSED
+        self.ca.save()
+        self.client.force_login(self.ru)
+        url = reverse('audits:corrective_action_edit', args=[self.ca.pk])
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 302)
+
+    def test_auditor_can_edit_verified_ca(self):
+        self.ca.status = CorrectiveAction.Status.VERIFIED
+        self.ca.save()
+        self.client.force_login(self.auditor)
+        url = reverse('audits:corrective_action_edit', args=[self.ca.pk])
+        resp = self.client.get(url)
+        # Auditor is not blocked — should either render form or redirect to success
+        self.assertNotEqual(resp.status_code, 403)
+
+    def test_restaurant_user_cannot_complete_verified_ca(self):
+        self.ca.status = CorrectiveAction.Status.VERIFIED
+        self.ca.save()
+        self.client.force_login(self.ru)
+        url = f'/audits/corrective-actions/{self.ca.pk}/complete/'
+        resp = self.client.post(url)
+        self.assertEqual(resp.status_code, 302)
+        self.ca.refresh_from_db()
+        # Status must remain VERIFIED — not changed by restaurant user
+        self.assertEqual(self.ca.status, CorrectiveAction.Status.VERIFIED)
+
+
+# -----------------------------------------------------------
+# AuditDeleteView — soft-delete (archive) tests
+# -----------------------------------------------------------
+
+class AuditSoftDeleteTest(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user('del_auditor', 'da@t.com', 'pass')
+        self.user.role = User.Roles.AUDITOR
+        self.user.save()
+
+        self.restaurant = Restaurant.objects.create(
+            code='8880001', name='Del R', city='C', address='A')
+        self.user.restaurants.add(self.restaurant)
+
+        ct = ContentType.objects.get_for_model(Audit)
+        self.user.user_permissions.add(*Permission.objects.filter(content_type=ct))
+
+        self.template = AuditTemplate.objects.create(name='Del T')
+        self.audit = Audit.objects.create(
+            template=self.template, restaurant=self.restaurant,
+            audit_date='2026-06-15', manager_on_duty='M', auditor=self.user,
+        )
+        self.client.force_login(self.user)
+
+    def test_delete_archives_audit_not_hard_deletes(self):
+        pk = self.audit.pk
+        self.client.post(f'/audits/{pk}/delete/')
+        # Record must still exist in DB
+        self.assertTrue(Audit.objects.filter(pk=pk).exists())
+        self.audit.refresh_from_db()
+        self.assertTrue(self.audit.is_archived)
+
+    def test_submitted_audit_cannot_be_archived(self):
+        self.audit.is_submitted = True
+        self.audit.save()
+        pk = self.audit.pk
+        resp = self.client.post(f'/audits/{pk}/delete/')
+        # Should redirect to detail, not archive
+        self.assertRedirects(resp, f'/audits/{pk}/', fetch_redirect_response=False)
+        self.audit.refresh_from_db()
+        self.assertFalse(self.audit.is_archived)
+
+    def test_archived_audit_not_visible_in_list(self):
+        self.audit.is_archived = True
+        self.audit.save()
+        resp = self.client.get('/audits/')
+        self.assertEqual(resp.status_code, 200)
+        # The archived audit's pk should not appear in the queryset context
+        audit_pks = [a.pk for a in resp.context.get('audits', [])]
+        self.assertNotIn(self.audit.pk, audit_pks)
+

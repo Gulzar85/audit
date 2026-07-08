@@ -724,7 +724,7 @@
                     <span>{{ ca.assigned_to.get_full_name|default:ca.assigned_to.username|default:'Unassigned' }}</span>
                     <span>Due {{ ca.deadline|date:"M d, Y" }}</span>
                 </div>
-                {% if ca.completion_notes %}<div style="font-size:6px;color:#bbb;margin-top:1px;">{{ ca.completion_notes }}</div>{% endif %}
+                {% if ca.comments %}<div style="font-size:6px;color:#bbb;margin-top:1px;">{{ ca.comments }}</div>{% endif %}
             </div>
         </div>
     </div>

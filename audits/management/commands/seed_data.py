@@ -31,6 +31,9 @@ class Command(BaseCommand):
             Designation.objects.all().delete()
             Department.objects.all().delete()
 
+        from django.core.management import call_command
+        call_command('setup_groups')
+
         self._seed_departments()
         self._seed_designations()
         self._seed_regions()

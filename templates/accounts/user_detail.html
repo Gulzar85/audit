@@ -4,6 +4,7 @@
 {% block page_title %}{{ user_obj.get_full_name|default:user_obj.username }}{% endblock %}
 
 {% block content %}
+{% if perms.accounts.view_user %}
 <div class="max-w-5xl mx-auto space-y-6">
 
   <!-- ===== HERO ===== -->
@@ -79,10 +80,10 @@
     <div class="lg:col-span-2 space-y-6">
       <!-- Account Details -->
       <div class="bg-white/90 dark:bg-gray-800/90 rounded-xl border border-gray-200/60 dark:border-gray-700/60 p-5 gold-card">
-        <h3 class="text-sm font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2 mb-4">
+        <h2 class="text-sm font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2 mb-4">
           <div class="w-7 h-7 rounded-lg bg-gradient-primary flex items-center justify-center"><i data-lucide="user" class="w-4 h-4 text-white"></i></div>
           Account Details
-        </h3>
+        </h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
           <div class="flex items-center gap-3 p-3 rounded-lg bg-gray-50/50 dark:bg-gray-700/20 border border-gray-100 dark:border-gray-700/30">
             <div class="w-8 h-8 rounded-lg bg-primary/10 dark:bg-primary/20 flex items-center justify-center shrink-0"><i data-lucide="at-sign" class="w-4 h-4 text-primary"></i></div>
@@ -114,10 +115,10 @@
       <!-- Recent Audits -->
       {% if recent_audits %}
       <div class="bg-white/90 dark:bg-gray-800/90 rounded-xl border border-gray-200/60 dark:border-gray-700/60 p-5 gold-card">
-        <h3 class="text-sm font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2 mb-4">
+        <h2 class="text-sm font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2 mb-4">
           <div class="w-7 h-7 rounded-lg bg-gradient-gold flex items-center justify-center"><i data-lucide="clipboard-list" class="w-4 h-4 text-accent"></i></div>
           Recent Audits
-        </h3>
+        </h2>
         <div class="space-y-2">
           {% for audit in recent_audits %}
           {% if perms.audits.view_audit %}
@@ -149,11 +150,11 @@
     <div class="space-y-6">
       <!-- Assigned Restaurants -->
       <div class="bg-white/90 dark:bg-gray-800/90 rounded-xl border border-gray-200/60 dark:border-gray-700/60 p-5 gold-card">
-        <h3 class="text-sm font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2 mb-4">
+        <h2 class="text-sm font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2 mb-4">
           <div class="w-7 h-7 rounded-lg bg-gradient-gold flex items-center justify-center"><i data-lucide="store" class="w-4 h-4 text-accent"></i></div>
           Restaurants
           <span class="ml-auto text-[10px] font-bold text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">{{ restaurant_count }}</span>
-        </h3>
+        </h2>
         {% if user_obj.restaurants.all %}
         <div class="space-y-2">
           {% for r in user_obj.restaurants.all %}
@@ -179,10 +180,10 @@
 
       <!-- Permissions -->
       <div class="bg-white/90 dark:bg-gray-800/90 rounded-xl border border-gray-200/60 dark:border-gray-700/60 p-5 gold-card">
-        <h3 class="text-sm font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2 mb-4">
+        <h2 class="text-sm font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2 mb-4">
           <div class="w-7 h-7 rounded-lg bg-gradient-gold flex items-center justify-center"><i data-lucide="shield" class="w-4 h-4 text-accent"></i></div>
           Permissions
-        </h3>
+        </h2>
         {% if user_obj.get_all_permissions %}
         <div class="space-y-1 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
           {% for perm in user_obj.get_all_permissions %}
@@ -203,4 +204,7 @@
   </div>
 
 </div>
+{% else %}
+{% include 'includes/no_access.html' %}
+{% endif %}
 {% endblock %}

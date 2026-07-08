@@ -4,6 +4,7 @@
 {% block page_title %}{{ template.name }}{% endblock %}
 
 {% block content %}
+{% if perms.audits.view_audittemplate %}
 <div class="max-w-5xl mx-auto space-y-6">
     <div class="relative overflow-hidden rounded-2xl bg-gradient-dark">
         <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50"></div>
@@ -42,7 +43,10 @@
         </div>
     </div>
     {% empty %}
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 text-center gold-card"><i data-lucide="layers" class="w-12 h-12 text-gray-300 mx-auto mb-3"></i><h3 class="text-lg font-bold text-gray-700">No sections defined</h3><p class="text-sm text-gray-400 mt-1">Add sections and questions in the admin panel.</p></div>
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 text-center gold-card"><i data-lucide="layers" class="w-12 h-12 text-gray-300 mx-auto mb-3"></i><h2 class="text-lg font-bold text-gray-700">No sections defined</h2><p class="text-sm text-gray-400 mt-1">Add sections and questions in the admin panel.</p></div>
     {% endfor %}
 </div>
+{% else %}
+{% include 'includes/no_access.html' %}
+{% endif %}
 {% endblock %}
