@@ -402,7 +402,7 @@ class AuditViewTest(TestCase):
     def test_audit_score_loads(self):
         resp = self.client.get(f'/audits/{self.audit.pk}/score/')
         self.assertEqual(resp.status_code, 200)
-        self.assertContains(resp, 'id_section')
+        self.assertContains(resp, 'jump-section')
 
     def test_audit_submit(self):
         resp = self.client.post(f'/audits/{self.audit.pk}/submit/', {})

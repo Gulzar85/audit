@@ -68,7 +68,7 @@ Key settings in `config/settings/`:
 
 - `base.py` — shared settings (apps, middleware, crispy template pack, etc.)
 - `development.py` — local dev (SQLite, debug on)
-- `production.py` — production (PostgreSQL via DATABASE_URL, debug off)
+- `production.py` — production (SQLite with WAL mode, HSTS, secure cookies)
 
 ## Project Structure
 
@@ -103,5 +103,5 @@ python manage.py test
 | Backend | Django 6.0, Python 3.11 |
 | Frontend | Tailwind CSS (CDN), Alpine.js 3.x, Lucide Icons, ApexCharts |
 | PDF | WeasyPrint |
-| Database | SQLite (dev) / PostgreSQL (prod) |
+| Database | SQLite (WAL mode, both dev & prod) |
 | Auth | Django auth + custom roles/permissions |

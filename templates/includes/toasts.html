@@ -1,30 +1,30 @@
-<div class="fixed top-4 right-4 z-50 space-y-2" x-data>
+<div class="fixed top-4 right-4 z-50 space-y-2 w-[calc(100%-2rem)] sm:w-auto" x-data>
   {% for message in messages %}
-    <div class="toast-enter flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl border min-w-[340px] max-w-md backdrop-blur-sm"
+    <div class="toast-enter flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl border min-w-0 sm:min-w-[360px] max-w-md backdrop-blur-md"
          x-data="toast"
          x-show="show"
          x-init="setTimeout(() => dismiss(), 5000)"
          :class="{
-           'bg-emerald-50 border-emerald-200 text-emerald-800': '{{ message.tags }}' === 'success',
-           'bg-red-50 border-red-200 text-red-800': '{{ message.tags }}' === 'error',
-           'bg-amber-50 border-amber-200 text-amber-800': '{{ message.tags }}' === 'warning',
-           'bg-blue-50 border-blue-200 text-blue-800': '{{ message.tags }}' === 'info'
+           'glass-premium border-emerald-200/60': '{{ message.tags }}' === 'success',
+           'glass-premium border-red-200/60': '{{ message.tags }}' === 'error',
+           'glass-premium border-amber-200/60': '{{ message.tags }}' === 'warning',
+           'glass-premium border-blue-200/60': '{{ message.tags }}' === 'info'
          }">
-      <i :class="{
-        'text-emerald-500': '{{ message.tags }}' === 'success',
-        'text-red-500': '{{ message.tags }}' === 'error',
-        'text-amber-500': '{{ message.tags }}' === 'warning',
-        'text-blue-500': '{{ message.tags }}' === 'info'
-      }"
-      :data-lucide="{
-        'success': 'check-circle-2',
-        'error': 'alert-circle',
-        'warning': 'alert-triangle',
-        'info': 'info'
-      }['{{ message.tags }}'] || 'info'"
-      class="h-5 w-5 shrink-0"></i>
-      <p class="text-sm font-semibold flex-1">{{ message }}</p>
-      <button @click="dismiss()" class="shrink-0 opacity-40 hover:opacity-100 transition-opacity">
+      <div :class="{
+        'bg-emerald-100 text-emerald-600': '{{ message.tags }}' === 'success',
+        'bg-red-100 text-red-600': '{{ message.tags }}' === 'error',
+        'bg-amber-100 text-amber-600': '{{ message.tags }}' === 'warning',
+        'bg-blue-100 text-blue-600': '{{ message.tags }}' === 'info'
+      }" class="h-8 w-8 rounded-xl flex items-center justify-center shrink-0">
+        <i :data-lucide="{
+          'success': 'check-circle-2',
+          'error': 'alert-circle',
+          'warning': 'alert-triangle',
+          'info': 'info'
+        }['{{ message.tags }}'] || 'info'" class="h-4 w-4"></i>
+      </div>
+      <p class="text-sm font-semibold flex-1 text-gray-800 dark:text-gray-200">{{ message }}</p>
+      <button @click="dismiss()" class="shrink-0 opacity-40 hover:opacity-100 transition-opacity btn btn-icon btn-ghost !min-h-0 !min-w-0 !p-1 !rounded-lg">
         <i data-lucide="x" class="h-4 w-4"></i>
       </button>
     </div>

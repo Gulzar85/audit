@@ -2,7 +2,6 @@
 Tests for core security utilities:
   - Fixed-window rate limiter
   - SecurityHeadersMiddleware (CSP injection)
-  - SecurityLoggingMiddleware
 """
 from unittest.mock import patch, MagicMock
 
@@ -15,7 +14,6 @@ from core.security import (
     get_client_ip,
     log_security_event,
     SecurityHeadersMiddleware,
-    SecurityLoggingMiddleware,
 )
 
 
