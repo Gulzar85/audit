@@ -33,6 +33,16 @@ db_prod.sqlite3
 /media
 /staticfiles
 
+# Ignore Django migrations
+**/migrations/*.py
+!**/migrations/__init__.py
+
+# Ignore temporary Python files
+*.py~
+*.py.swp
+*.py.tmp
+*.tmp.py
+
 # Virtual environment
 venv/
 
