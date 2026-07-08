@@ -135,75 +135,64 @@
   <section aria-label="Restaurant list">
     <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
       {% for restaurant in restaurants %}
-      <article class="group relative bg-white dark:bg-gray-800/90 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-lg hover:border-secondary/40 dark:hover:border-secondary/30 transition-all duration-300 gold-card overflow-hidden">
-        <div class="h-1 w-full bg-gradient-gold-h opacity-0 group-hover:opacity-100 transition-opacity duration-300" aria-hidden="true"></div>
-        <a href="{% url 'restaurants:restaurant_detail' restaurant.pk %}" class="block p-5">
-          <div class="flex items-start justify-between gap-3 mb-3">
-            <div class="flex items-center gap-3 min-w-0">
-              <div class="relative shrink-0">
-                <div class="w-11 h-11 rounded-xl bg-gradient-primary flex items-center justify-center text-white font-extrabold text-base shadow-lg shadow-primary/30">
-                  {{ restaurant.name|first|upper }}
-                </div>
-                <div class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-gray-800 {% if restaurant.status == 'active' %}bg-emerald-500{% elif restaurant.status == 'inactive' %}bg-gray-400{% elif restaurant.status == 'renovation' %}bg-amber-400{% else %}bg-red-500{% endif %}" aria-hidden="true"></div>
-              </div>
-              <div class="min-w-0">
+      <article class="group relative bg-white dark:bg-gray-800/90 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 gold-card overflow-hidden">
+        <div class="absolute left-0 inset-y-0 w-1 opacity-60 group-hover:opacity-100 transition-opacity duration-300
+          {% if restaurant.status == 'active' %}bg-emerald-500{% elif restaurant.status == 'inactive' %}bg-gray-400{% elif restaurant.status == 'renovation' %}bg-amber-400{% else %}bg-red-500{% endif %}" aria-hidden="true"></div>
+        <a href="{% url 'restaurants:restaurant_detail' restaurant.pk %}" class="block">
+          {% with latest=restaurant.latest_audit %}
+          <div class="flex min-h-[120px]">
+            <!-- Left: Gradient score/avatar panel -->
+            <div class="w-28 shrink-0 flex flex-col items-center justify-center gap-1.5
+              {% if latest %}
+                {% if latest.total_percentage >= 90 %}bg-gradient-to-br from-emerald-500 to-emerald-600
+                {% elif latest.total_percentage >= 80 %}bg-gradient-to-br from-amber-500 to-amber-600
+                {% elif latest.total_percentage >= 70 %}bg-gradient-to-br from-orange-500 to-orange-600
+                {% else %}bg-gradient-to-br from-red-500 to-red-600{% endif %}
+              {% else %}bg-gradient-primary{% endif %}">
+              {% if latest %}
+              <span class="text-white text-3xl font-extrabold leading-none">{% if latest.total_percentage >= 90 %}A{% elif latest.total_percentage >= 80 %}B{% elif latest.total_percentage >= 70 %}C{% else %}D{% endif %}</span>
+              <span class="text-white/85 text-sm font-bold tracking-tight">{{ latest.total_percentage|floatformat:1 }}%</span>
+              {% else %}
+              <span class="text-white text-3xl font-extrabold">{{ restaurant.name|first|upper }}</span>
+              {% endif %}
+            </div>
+            <!-- Right: Details panel -->
+            <div class="flex-1 p-4 flex flex-col justify-center gap-1.5 min-w-0">
+              <div class="flex items-start justify-between gap-2">
                 <h3 class="font-bold text-gray-900 dark:text-white truncate group-hover:text-primary transition-colors text-base">{{ restaurant.name }}</h3>
-                <p class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-0.5">
-                  <span class="font-mono font-semibold">{{ restaurant.code }}</span>
-                  <span class="text-gray-300 dark:text-gray-600" aria-hidden="true">&middot;</span>
-                  <i data-lucide="map-pin" class="w-3 h-3 inline" aria-hidden="true"></i>
-                  {{ restaurant.city }}
-                </p>
+                <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold {% if restaurant.status == 'active' %}bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400{% elif restaurant.status == 'inactive' %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400{% elif restaurant.status == 'renovation' %}bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400{% else %}bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400{% endif %}">
+                  {{ restaurant.get_status_display }}
+                </span>
               </div>
+              <p class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                <span class="font-mono font-semibold">{{ restaurant.code }}</span>
+                <span class="text-gray-300 dark:text-gray-600" aria-hidden="true">|</span>
+                <i data-lucide="map-pin" class="w-3 h-3 shrink-0" aria-hidden="true"></i>
+                <span class="truncate">{{ restaurant.city }}</span>
+              </p>
+              {% if latest %}
+              <div class="flex items-center gap-2 mt-0.5">
+                <div class="flex-1 h-2 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden shadow-inner">
+                  <div class="h-full rounded-full transition-all duration-700 {% if latest.total_percentage >= 90 %}bg-gradient-to-r from-emerald-500 to-emerald-400{% elif latest.total_percentage >= 80 %}bg-gradient-to-r from-amber-500 to-amber-400{% elif latest.total_percentage >= 70 %}bg-gradient-to-r from-orange-500 to-orange-400{% else %}bg-gradient-to-r from-red-500 to-red-400{% endif %}" style="width: {{ latest.total_percentage|floatformat:0 }}%"></div>
+                </div>
+                <span class="text-[10px] text-gray-400 dark:text-gray-500 font-medium shrink-0">{{ latest.audit_date|date:"M d, y" }}</span>
+              </div>
+              {% else %}
+              <span class="text-[11px] text-gray-400 dark:text-gray-500 italic">No audits completed yet</span>
+              {% endif %}
             </div>
-            <span class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold {% if restaurant.status == 'active' %}bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400{% elif restaurant.status == 'inactive' %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400{% elif restaurant.status == 'renovation' %}bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400{% else %}bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400{% endif %}">
-              <span class="w-1.5 h-1.5 rounded-full {% if restaurant.status == 'active' %}bg-emerald-500{% elif restaurant.status == 'inactive' %}bg-gray-400{% elif restaurant.status == 'renovation' %}bg-amber-500{% else %}bg-red-500{% endif %}" aria-hidden="true"></span>
-              {{ restaurant.get_status_display }}
-            </span>
           </div>
+          {% endwith %}
 
-          <div class="flex items-center gap-4 text-xs">
-            {% with latest=restaurant.latest_audit %}
-            {% if latest %}
-            <div class="flex items-center gap-1.5 font-semibold">
-              <span class="w-6 h-6 rounded-md flex items-center justify-center text-white text-[10px] font-extrabold {% if latest.total_percentage >= 90 %}bg-emerald-500{% elif latest.total_percentage >= 80 %}bg-amber-500{% elif latest.total_percentage >= 70 %}bg-orange-500{% else %}bg-red-500{% endif %}">
-                {% if latest.total_percentage >= 90 %}A{% elif latest.total_percentage >= 80 %}B{% elif latest.total_percentage >= 70 %}C{% else %}D{% endif %}
-              </span>
-              <span class="text-gray-700 dark:text-gray-300">{{ latest.total_percentage|floatformat:1 }}%</span>
-            </div>
-            <span class="text-gray-300 dark:text-gray-600" aria-hidden="true">|</span>
-            <span class="text-gray-500 dark:text-gray-400 flex items-center gap-1">
-              <i data-lucide="calendar" class="w-3 h-3" aria-hidden="true"></i>
-              {{ latest.audit_date|date:"M d, Y" }}
-            </span>
+          <div class="px-4 py-3 border-t border-gray-100 dark:border-gray-700/50 flex items-center justify-center">
+            {% if restaurant.region %}
+            <a href="{% url 'restaurants:region_detail' restaurant.region.pk %}" class="inline-flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 hover:text-primary transition-colors font-medium">
+              <i data-lucide="layers" class="w-3.5 h-3.5 shrink-0" aria-hidden="true"></i>
+              <span>{{ restaurant.region.name }}</span>
+            </a>
             {% else %}
-            <span class="text-gray-400 dark:text-gray-500 italic flex items-center gap-1.5">
-              <i data-lucide="clipboard-x" class="w-3.5 h-3.5" aria-hidden="true"></i>
-              No audits yet
-            </span>
+            <span class="text-xs text-gray-300 dark:text-gray-600">No region assigned</span>
             {% endif %}
-            {% endwith %}
-          </div>
-
-          <div class="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700/50 flex items-center justify-between">
-            <div class="flex items-center gap-3 text-xs text-gray-400 dark:text-gray-500">
-              {% if restaurant.region %}
-              <a href="{% url 'restaurants:region_detail' restaurant.region.pk %}" class="inline-flex items-center gap-1 hover:text-primary transition-colors font-semibold">
-                <i data-lucide="layers" class="w-3 h-3" aria-hidden="true"></i>
-                {{ restaurant.region.name }}
-              </a>
-              {% endif %}
-              {% if restaurant.phone %}
-              <span class="flex items-center gap-1">
-                <i data-lucide="phone" class="w-3 h-3" aria-hidden="true"></i>
-                {{ restaurant.phone }}
-              </span>
-              {% endif %}
-            </div>
-            <span class="text-xs text-gray-400 dark:text-gray-500 font-medium flex items-center gap-1">
-              <i data-lucide="clipboard-list" class="w-3 h-3" aria-hidden="true"></i>
-              {{ restaurant.submitted_audit_count }}
-            </span>
           </div>
         </a>
       </article>
