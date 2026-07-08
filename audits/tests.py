@@ -1,5 +1,6 @@
 from decimal import Decimal
 from datetime import date, timedelta
+from unittest.mock import patch
 
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
@@ -737,4 +738,314 @@ class AuditSoftDeleteTest(TestCase):
         # The archived audit's pk should not appear in the queryset context
         audit_pks = [a.pk for a in resp.context.get('audits', [])]
         self.assertNotIn(self.audit.pk, audit_pks)
+
+
+# -----------------------------------------------------------
+# AJAX View Tests (SaveResponseView, FillRemainingView, AuditSubmitJSONView)
+# -----------------------------------------------------------
+
+class AJAXSaveResponseViewTest(TestCase):
+    """Tests for SaveResponseView — the most frequently called AJAX endpoint."""
+
+    def setUp(self):
+        self.user = User.objects.create_user('ajax_user', 'a@t.com', 'pass')
+        # Assign change_audit permission (needed by SaveResponseView)
+        ct = ContentType.objects.get_for_model(Audit)
+        for codename in ('change_audit', 'view_audit'):
+            self.user.user_permissions.add(
+                Permission.objects.get(content_type=ct, codename=codename)
+            )
+        ct_aqr = ContentType.objects.get_for_model(AuditQuestionResponse)
+        self.user.user_permissions.add(
+            *Permission.objects.filter(content_type=ct_aqr)
+        )
+
+        self.restaurant = Restaurant.objects.create(
+            code='1270100', name='AJAX R', city='C', address='A')
+        self.user.restaurants.add(self.restaurant)
+        self.template = AuditTemplate.objects.create(name='AJAX T')
+        self.section = Section.objects.create(
+            template=self.template, name='S', order=1)
+        self.question = Question.objects.create(
+            section=self.section, question_text='Q', possible_points=10, order=1)
+        self.audit = Audit.objects.create(
+            template=self.template, restaurant=self.restaurant,
+            audit_date='2026-06-15', manager_on_duty='M', auditor=self.user,
+        )
+        self.audit_section = AuditSection.objects.create(
+            audit=self.audit, section=self.section, possible_points=10)
+        self.response = AuditQuestionResponse.objects.create(
+            audit_section=self.audit_section, question=self.question,
+            is_answered=False)
+        self.client.force_login(self.user)
+
+    def test_save_response_valid(self):
+        resp = self.client.post('/audits/save-response/', {
+            'response_id': self.response.pk,
+            'scored_points': '8',
+            'comments': 'Good',
+            'is_na': 'false',
+            'needs_ca': 'false',
+        })
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertTrue(data['success'])
+        self.response.refresh_from_db()
+        self.assertEqual(self.response.scored_points, Decimal('8'))
+        self.assertEqual(self.response.comments, 'Good')
+        self.assertTrue(self.response.is_answered)
+
+    def test_save_response_missing_response_id(self):
+        resp = self.client.post('/audits/save-response/', {})
+        self.assertEqual(resp.status_code, 400)
+        self.assertFalse(resp.json()['success'])
+
+    def test_save_response_invalid_response_id(self):
+        resp = self.client.post('/audits/save-response/', {'response_id': 99999})
+        self.assertEqual(resp.status_code, 404)
+
+    def test_save_response_is_na_clears_fields(self):
+        resp = self.client.post('/audits/save-response/', {
+            'response_id': self.response.pk,
+            'scored_points': '5',
+            'comments': 'Should be cleared',
+            'is_na': 'true',
+            'needs_ca': 'true',
+        })
+        self.assertEqual(resp.status_code, 200)
+        self.response.refresh_from_db()
+        self.assertTrue(self.response.is_na)
+        self.assertEqual(self.response.scored_points, Decimal('0.00'))
+        self.assertEqual(self.response.comments, '')
+        self.assertFalse(self.response.needs_corrective_action)
+
+    def test_save_response_score_exceeds_max(self):
+        resp = self.client.post('/audits/save-response/', {
+            'response_id': self.response.pk,
+            'scored_points': '20',
+        })
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn('cannot exceed', resp.json()['message'])
+
+    def test_save_response_invalid_score_value(self):
+        resp = self.client.post('/audits/save-response/', {
+            'response_id': self.response.pk,
+            'scored_points': 'not-a-number',
+        })
+        self.assertEqual(resp.status_code, 400)
+
+    def test_save_response_submitted_audit_rejected(self):
+        self.audit.is_submitted = True
+        self.audit.save()
+        resp = self.client.post('/audits/save-response/', {
+            'response_id': self.response.pk,
+            'scored_points': '5',
+        })
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn('already submitted', resp.json()['message'])
+
+    def test_save_response_requires_change_audit_permission(self):
+        other = User.objects.create_user('no_change', 'nc@t.com', 'pass')
+        other.restaurants.add(self.restaurant)
+        # Give view_audit but NOT change_audit
+        ct = ContentType.objects.get_for_model(Audit)
+        other.user_permissions.add(
+            Permission.objects.get(content_type=ct, codename='view_audit')
+        )
+        self.client.force_login(other)
+        resp = self.client.post('/audits/save-response/', {
+            'response_id': self.response.pk,
+            'scored_points': '5',
+        })
+        self.assertEqual(resp.status_code, 403)
+
+    def test_save_response_scoped_to_user_restaurants(self):
+        other_restaurant = Restaurant.objects.create(
+            code='9999998', name='Other R', city='C', address='A')
+        other_user = User.objects.create_user('other_user', 'ou@t.com', 'pass')
+        ct = ContentType.objects.get_for_model(Audit)
+        for codename in ('change_audit', 'view_audit'):
+            other_user.user_permissions.add(
+                Permission.objects.get(content_type=ct, codename=codename)
+            )
+        ct_aqr = ContentType.objects.get_for_model(AuditQuestionResponse)
+        other_user.user_permissions.add(
+            *Permission.objects.filter(content_type=ct_aqr)
+        )
+        other_user.restaurants.add(other_restaurant)
+        self.client.force_login(other_user)
+        # This user has change_audit perms but not for THIS restaurant
+        resp = self.client.post('/audits/save-response/', {
+            'response_id': self.response.pk,
+            'scored_points': '5',
+        })
+        self.assertEqual(resp.status_code, 404)
+
+
+class AJAXFillRemainingViewTest(TestCase):
+    """Tests for FillRemainingView — auto-fill unanswered questions to max."""
+
+    def setUp(self):
+        self.user = User.objects.create_user('fill_user', 'f@t.com', 'pass')
+        ct = ContentType.objects.get_for_model(Audit)
+        for codename in ('change_audit', 'view_audit'):
+            self.user.user_permissions.add(
+                Permission.objects.get(content_type=ct, codename=codename)
+            )
+        self.restaurant = Restaurant.objects.create(
+            code='1270101', name='Fill R', city='C', address='A')
+        self.user.restaurants.add(self.restaurant)
+        self.template = AuditTemplate.objects.create(name='Fill T')
+        self.section = Section.objects.create(
+            template=self.template, name='S1', order=1)
+        self.q1 = Question.objects.create(
+            section=self.section, question_text='Q1', possible_points=5, order=1)
+        self.q2 = Question.objects.create(
+            section=self.section, question_text='Q2', possible_points=10, order=2)
+        self.audit = Audit.objects.create(
+            template=self.template, restaurant=self.restaurant,
+            audit_date='2026-06-15', manager_on_duty='M', auditor=self.user,
+        )
+        self.audit_section = AuditSection.objects.create(
+            audit=self.audit, section=self.section, possible_points=15)
+        self.resp1 = AuditQuestionResponse.objects.create(
+            audit_section=self.audit_section, question=self.q1,
+            is_answered=False, scored_points=Decimal('0.00'))
+        self.resp2 = AuditQuestionResponse.objects.create(
+            audit_section=self.audit_section, question=self.q2,
+            is_answered=False, scored_points=Decimal('0.00'))
+        self.client.force_login(self.user)
+
+    def test_fill_remaining_all(self):
+        resp = self.client.post('/audits/fill-remaining/', {
+            'audit_id': self.audit.pk,
+        })
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['filled_count'], 2)
+        self.resp1.refresh_from_db()
+        self.resp2.refresh_from_db()
+        self.assertEqual(self.resp1.scored_points, Decimal('5'))
+        self.assertEqual(self.resp2.scored_points, Decimal('10'))
+        self.assertTrue(self.resp1.is_answered)
+        self.assertTrue(self.resp2.is_answered)
+
+    def test_fill_remaining_single_section(self):
+        resp = self.client.post('/audits/fill-remaining/', {
+            'audit_id': self.audit.pk,
+            'section_id': str(self.audit_section.pk),
+        })
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json()['filled_count'], 2)
+
+    def test_fill_remaining_skips_answered_and_na(self):
+        self.resp1.is_answered = True
+        self.resp1.scored_points = Decimal('3')
+        self.resp1.save()
+        resp = self.client.post('/audits/fill-remaining/', {
+            'audit_id': self.audit.pk,
+        })
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json()['filled_count'], 1)
+
+    def test_fill_remaining_missing_audit_id(self):
+        resp = self.client.post('/audits/fill-remaining/', {})
+        self.assertEqual(resp.status_code, 400)
+
+    def test_fill_remaining_submitted_audit_rejected(self):
+        self.audit.is_submitted = True
+        self.audit.save()
+        resp = self.client.post('/audits/fill-remaining/', {
+            'audit_id': self.audit.pk,
+        })
+        self.assertEqual(resp.status_code, 400)
+
+    def test_fill_remaining_scoped(self):
+        other = User.objects.create_user('other_fill', 'of@t.com', 'pass')
+        ct = ContentType.objects.get_for_model(Audit)
+        for codename in ('change_audit', 'view_audit'):
+            other.user_permissions.add(
+                Permission.objects.get(content_type=ct, codename=codename)
+            )
+        self.client.force_login(other)
+        resp = self.client.post('/audits/fill-remaining/', {
+            'audit_id': self.audit.pk,
+        })
+        self.assertEqual(resp.status_code, 404)
+
+
+class AJAXAuditSubmitJSONViewTest(TestCase):
+    """Tests for AuditSubmitJSONView — JSON-based audit submission."""
+
+    def setUp(self):
+        self.user = User.objects.create_user('submit_user', 's@t.com', 'pass')
+        ct = ContentType.objects.get_for_model(Audit)
+        for codename in ('change_audit', 'view_audit'):
+            self.user.user_permissions.add(
+                Permission.objects.get(content_type=ct, codename=codename)
+            )
+        self.restaurant = Restaurant.objects.create(
+            code='1270102', name='Submit R', city='C', address='A')
+        self.user.restaurants.add(self.restaurant)
+        self.template = AuditTemplate.objects.create(name='Submit T')
+        self.section = Section.objects.create(
+            template=self.template, name='S', order=1)
+        Question.objects.create(
+            section=self.section, question_text='Q', possible_points=10, order=1)
+        self.audit = Audit.objects.create(
+            template=self.template, restaurant=self.restaurant,
+            audit_date='2026-06-15', manager_on_duty='M', auditor=self.user,
+        )
+        audit_section = AuditSection.objects.create(
+            audit=self.audit, section=self.section, possible_points=10)
+        AuditQuestionResponse.objects.create(
+            audit_section=audit_section,
+            question=self.section.questions.first(),
+            is_answered=True, scored_points=Decimal('10'))
+        self.client.force_login(self.user)
+
+    @patch('audits.views.notify_restaurant_users')
+    @patch('audits.views.auto_generate_corrective_actions')
+    def test_submit_json_success(self, mock_auto_ca, mock_notify):
+        resp = self.client.post(f'/audits/{self.audit.pk}/submit-json/')
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertTrue(data['success'])
+        self.assertIn('redirect_url', data)
+        self.audit.refresh_from_db()
+        self.assertTrue(self.audit.is_submitted)
+        self.assertIsNotNone(self.audit.submitted_at)
+
+    def test_submit_json_already_submitted(self):
+        self.audit.is_submitted = True
+        self.audit.save()
+        resp = self.client.post(f'/audits/{self.audit.pk}/submit-json/')
+        self.assertEqual(resp.status_code, 400)
+
+    def test_submit_json_404(self):
+        resp = self.client.post('/audits/99999/submit-json/')
+        self.assertEqual(resp.status_code, 404)
+
+    def test_submit_json_scoped(self):
+        other = User.objects.create_user('other_sub', 'os@t.com', 'pass')
+        ct = ContentType.objects.get_for_model(Audit)
+        for codename in ('change_audit', 'view_audit'):
+            other.user_permissions.add(
+                Permission.objects.get(content_type=ct, codename=codename)
+            )
+        self.client.force_login(other)
+        resp = self.client.post(f'/audits/{self.audit.pk}/submit-json/')
+        self.assertEqual(resp.status_code, 404)
+
+    def test_submit_json_requires_change_audit(self):
+        other = User.objects.create_user('no_change_sub', 'ncs@t.com', 'pass')
+        other.restaurants.add(self.restaurant)
+        ct = ContentType.objects.get_for_model(Audit)
+        other.user_permissions.add(
+            Permission.objects.get(content_type=ct, codename='view_audit')
+        )
+        self.client.force_login(other)
+        resp = self.client.post(f'/audits/{self.audit.pk}/submit-json/')
+        self.assertEqual(resp.status_code, 403)
 
