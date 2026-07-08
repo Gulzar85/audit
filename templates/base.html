@@ -1,129 +1,163 @@
 <!DOCTYPE html>
-<html lang="en" x-init="if (localStorage.getItem('dark') === null && window.matchMedia('(prefers-color-scheme: dark)').matches) { localStorage.setItem('dark', 'true'); document.documentElement.classList.add('dark'); } else if (localStorage.getItem('dark') === 'true') { document.documentElement.classList.add('dark'); }">
+<html lang="en"
+      x-init="if (localStorage.getItem('dark') === null && window.matchMedia('(prefers-color-scheme: dark)').matches) { localStorage.setItem('dark', 'true'); document.documentElement.classList.add('dark'); } else if (localStorage.getItem('dark') === 'true') { document.documentElement.classList.add('dark'); }">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>{% block title %}{{ business_info.company_name }}{% endblock %}</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com/3.4.17" nonce="{{ request.csp_nonce }}"></script>
+  <script src="https://unpkg.com/lucide@0.468.0" nonce="{{ request.csp_nonce }}"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js" nonce="{{ request.csp_nonce }}"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     :root {
       --primary: {{ business_info.primary_color|default:'#DA291C' }};
+      --primary-dark: #B71C1C;
       --secondary: {{ business_info.secondary_color|default:'#FFC72C' }};
+      --secondary-light: #FFD700;
       --accent: {{ business_info.accent_color|default:'#27251F' }};
+      --success: #10B981;
+      --warning: #F59E0B;
+      --danger: #EF4444;
+      --info: #3B82F6;
       --gold: #FFC72C;
       --gold-light: #FFD700;
-      --red-dark: #8B0000;
     }
-    .bg-primary { background-color: var(--primary) !important; }
-    .text-primary { color: var(--primary) !important; }
-    .border-primary { border-color: var(--primary) !important; }
-    .hover\:bg-primary:hover { background-color: var(--primary) !important; }
-    .hover\:text-primary:hover { color: var(--primary) !important; }
-    .bg-secondary { background-color: var(--secondary) !important; }
-    .text-secondary { color: var(--secondary) !important; }
-    .border-secondary { border-color: var(--secondary) !important; }
-    .bg-accent { background-color: var(--accent) !important; }
-    .text-accent { color: var(--accent) !important; }
-    .border-accent { border-color: var(--accent) !important; }
-    .ring-primary { --tw-ring-color: var(--primary); }
-    .focus\:ring-primary:focus { --tw-ring-color: var(--primary); }
-    .focus\:border-primary:focus { border-color: var(--primary) !important; }
-    .hover\:shadow-primary:hover { --tw-shadow-color: var(--primary); box-shadow: 0 4px 14px 0 color-mix(in srgb, var(--primary) 30%, transparent); }
-    .hover\:shadow-gold:hover { --tw-shadow-color: var(--secondary); box-shadow: 0 4px 14px 0 color-mix(in srgb, var(--secondary) 30%, transparent); }
-    .hover\:shadow-accent:hover { --tw-shadow-color: var(--accent); box-shadow: 0 4px 14px 0 color-mix(in srgb, var(--accent) 30%, transparent); }
-    .group:hover .group-hover\:text-primary { color: var(--primary) !important; }
-    .group:hover .group-hover\:border-secondary { border-color: var(--secondary) !important; }
-    .bg-gradient-primary { background: linear-gradient(135deg, var(--primary) 0%, #8B0000 100%); }
-    .bg-gradient-primary-h { background: linear-gradient(to right, var(--primary) 0%, #8B0000 100%); }
-    .bg-gradient-gold { background: linear-gradient(135deg, var(--secondary) 0%, #FFD700 100%); }
-    .bg-gradient-gold-h { background: linear-gradient(to right, var(--secondary) 0%, #FFD700 100%); }
-    .bg-gradient-dark { background: linear-gradient(135deg, var(--accent) 0%, #1a1a1a 100%); }
-    .text-gradient-primary { background: linear-gradient(135deg, var(--primary), #8B0000); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-    .text-gradient-gold { background: linear-gradient(135deg, var(--secondary), #FFD700); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
     .glass {
-      background: rgba(255, 255, 255, 0.85);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.4);
+      background: rgba(255, 255, 255, 0.72);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+    }
+    .glass-strong {
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(24px) saturate(200%);
+      -webkit-backdrop-filter: blur(24px) saturate(200%);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
     }
     .glass-dark {
-      background: rgba(39, 37, 31, 0.85);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(17, 24, 39, 0.78);
+      backdrop-filter: blur(20px) saturate(160%);
+      -webkit-backdrop-filter: blur(20px) saturate(160%);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.65);
+      backdrop-filter: blur(16px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
     }
     .gold-card {
-      border: 1px solid rgba(255, 199, 44, 0.3);
-      box-shadow: 0 4px 20px rgba(255, 199, 44, 0.08);
+      border: 1px solid rgba(255, 199, 44, 0.25);
+      box-shadow: 0 4px 20px rgba(255, 199, 44, 0.06);
     }
     .gold-card:hover {
-      border-color: rgba(255, 199, 44, 0.6);
-      box-shadow: 0 8px 30px rgba(255, 199, 44, 0.15);
+      border-color: rgba(255, 199, 44, 0.5);
+      box-shadow: 0 8px 30px rgba(255, 199, 44, 0.12);
     }
-    .golden-arch {
-      position: relative;
-      overflow: hidden;
-    }
-    .golden-arch::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 60px;
-      height: 3px;
-      background: linear-gradient(to right, transparent, #FFC72C, transparent);
-      border-radius: 2px;
-    }
-    .sidebar-transition { transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
-    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
-    .font-display { font-family: 'Playfair Display', serif; }
-    .toast-enter { animation: slideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
-    @keyframes slideIn { from { transform: translateX(100%) scale(0.95); opacity: 0; } to { transform: translateX(0) scale(1); opacity: 1; } }
-    .skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+    .bg-gradient-primary { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); }
+    .bg-gradient-primary-h { background: linear-gradient(to right, var(--primary) 0%, var(--primary-dark) 100%); }
+    .bg-gradient-gold { background: linear-gradient(135deg, var(--secondary) 0%, var(--gold-light) 100%); }
+    .bg-gradient-gold-h { background: linear-gradient(to right, var(--secondary) 0%, var(--gold-light) 100%); }
+    .bg-gradient-dark { background: linear-gradient(135deg, var(--accent) 0%, #1a1a1a 100%); }
+    .text-gradient-primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .text-gradient-gold { background: linear-gradient(135deg, var(--secondary), var(--gold-light)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    @keyframes slideInRight { from { transform: translateX(100%) scale(0.95); opacity: 0; } to { transform: translateX(0) scale(1); opacity: 1; } }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes scaleIn { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
     @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-    .pattern-grid { background-image: radial-gradient(color-mix(in srgb, var(--primary) 4%, transparent) 1px, transparent 1px); background-size: 20px 20px; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-    .animate-fade-in { animation: fadeIn 0.4s ease-out; }
-    @media (prefers-color-scheme: dark) { .dark\:bg-gray-900 { background-color: #111827; } .dark\:text-white { color: #fff; } }
-    [x-cloak] { display: none !important; }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+    .toast-enter { animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+    .animate-fade-in-up { animation: fadeInUp 0.4s ease-out; }
+    .animate-scale-in { animation: scaleIn 0.3s ease-out; }
+    .animate-slide-down { animation: slideDown 0.25s ease-out; }
+    .skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
     html { scroll-behavior: smooth; }
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
-    }
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+    .sidebar-transition { transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
+    .sidebar-margin-transition { transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
     .scrollbar-thin::-webkit-scrollbar { width: 4px; }
     .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
     .scrollbar-thin::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 2px; }
     .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+    .dark .scrollbar-thin::-webkit-scrollbar-thumb { background: #4b5563; }
+    .dark .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+    [x-cloak] { display: none !important; }
+    .pattern-grid { background-image: radial-gradient(color-mix(in srgb, var(--primary) 3%, transparent) 1px, transparent 1px); background-size: 24px 24px; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+      html { scroll-behavior: auto; }
+    }
   </style>
   {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 min-h-screen pattern-grid">
-  <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-3 focus:bg-white focus:text-primary focus:font-bold focus:rounded-xl focus:shadow-xl focus:ring-2 focus:ring-primary">Skip to main content</a>
-  <div class="flex h-screen overflow-hidden">
-    {% include 'includes/sidebar.html' %}
-    <div class="flex-1 flex flex-col overflow-hidden" :class="$store.app.sidebarOpen ? 'ml-64' : 'ml-16'" style="transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1);">
-      {% include 'includes/navbar.html' %}
-      <main id="main-content" role="main" class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 dark:text-gray-200 scrollbar-thin">
-        {% if messages %}
-          {% include 'includes/toasts.html' %}
-        {% endif %}
-        {% block content %}{% endblock %}
-      </main>
-      {% include 'includes/footer.html' %}
-    </div>
+<body class="bg-gray-50 dark:bg-gray-900 pattern-grid overflow-hidden">
+
+  <a href="#main-content"
+     class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:px-5 focus:py-3 focus:bg-white focus:text-primary focus:font-bold focus:rounded-xl focus:shadow-2xl focus:ring-2 focus:ring-primary">
+    Skip to main content
+  </a>
+
+  <!-- Mobile sidebar overlay backdrop -->
+  <div x-show="$store.app.mobileSidebarOpen" x-cloak
+       x-transition:enter="transition ease-out duration-250"
+       x-transition:enter-start="opacity-0"
+       x-transition:enter-end="opacity-100"
+       x-transition:leave="transition ease-in duration-200"
+       x-transition:leave-start="opacity-100"
+       x-transition:leave-end="opacity-0"
+       @click="$store.app.mobileSidebarOpen = false"
+       class="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
+       aria-hidden="true"></div>
+
+  <!-- Sidebar -->
+  {% include 'includes/sidebar.html' %}
+
+  <!-- Main content area — margin-left on desktop only -->
+  <div class="flex flex-col h-screen sidebar-margin-transition"
+       x-data
+       :class="{
+         'lg:ml-64': $store.app.sidebarOpen,
+         'lg:ml-16': !$store.app.sidebarOpen
+       }">
+
+    <!-- Navbar -->
+    {% include 'includes/navbar.html' %}
+
+    <!-- Main content -->
+    <main id="main-content" role="main"
+          class="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-7 dark:text-gray-200 scrollbar-thin bg-gray-50/50 dark:bg-gray-900/50">
+
+      {% if messages %}
+        {% include 'includes/toasts.html' %}
+      {% endif %}
+
+      {% block content %}{% endblock %}
+
+    </main>
+
+    {% include 'includes/footer.html' %}
   </div>
-  <script>
+
+  <script nonce="{{ request.csp_nonce }}">
     document.addEventListener('alpine:init', () => {
-      Alpine.store('app', { sidebarOpen: true });
-      lucide.createIcons();
+      Alpine.store('app', {
+        sidebarOpen: true,
+        mobileSidebarOpen: false
+      });
+      if (typeof lucide !== 'undefined') lucide.createIcons();
       Alpine.data('toast', () => ({
         show: true,
         dismiss() { this.show = false; }
       }));
+    });
+    document.addEventListener('alpine:after-render', () => {
+      if (typeof lucide !== 'undefined') lucide.createIcons();
     });
   </script>
   {% block extra_scripts %}{% endblock %}

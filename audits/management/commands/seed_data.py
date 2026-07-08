@@ -1,4 +1,5 @@
-from django.core.management.base import BaseCommand
+from django.conf import settings
+from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
 from decimal import Decimal
@@ -20,6 +21,11 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        if not settings.DEBUG:
+            raise CommandError(
+                'Refusing to run: DEBUG=False. seed_data is for development only. '
+                'Set DEBUG=True or DJANGO_SETTINGS_MODULE=config.settings.development'
+            )
         if options['force']:
             self.stdout.write('Clearing existing data...')
             Question.objects.all().delete()

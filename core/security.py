@@ -2,6 +2,7 @@
 Security utilities for rate limiting, logging, and access control.
 """
 import logging
+import secrets
 from functools import wraps
 from django.core.cache import cache
 from django.http import JsonResponse
@@ -165,36 +166,41 @@ def secure_redirect(request, next_url, allowed_hosts=None):
 
 
 class SecurityHeadersMiddleware:
-    """Middleware to add additional security headers."""
-    
+    """Middleware to add additional security headers and CSP nonce."""
+
     def __init__(self, get_response):
         self.get_response = get_response
-    
+
     def __call__(self, request):
+        request.csp_nonce = secrets.token_urlsafe(16)
+
         response = self.get_response(request)
-        
+
         # Remove server identification
         response['Server'] = 'SecurityServer'
-        
+
         # Prevent MIME type sniffing
         response['X-Content-Type-Options'] = 'nosniff'
-        
+
         # Prevent clickjacking
         response['X-Frame-Options'] = 'DENY'
-        
+
         # Enable XSS protection
         response['X-XSS-Protection'] = '1; mode=block'
-        
+
         # Referrer policy
         response['Referrer-Policy'] = 'same-origin'
-        
-        # Content Security Policy
+
+        # Content Security Policy with nonce
         from django.conf import settings
         csp = getattr(settings, 'SECURE_CONTENT_SECURITY_POLICY', None)
         if csp:
             policies = []
             for directive, sources in csp.items():
-                policies.append(f"{directive} {' '.join(sources)}")
+                sources_list = list(sources)
+                if directive == 'script-src':
+                    sources_list.append(f"'nonce-{request.csp_nonce}'")
+                policies.append(f"{directive} {' '.join(sources_list)}")
             response['Content-Security-Policy'] = '; '.join(policies)
-        
+
         return response

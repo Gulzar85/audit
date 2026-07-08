@@ -5,9 +5,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login — {{ business_info.company_name }}</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script src="https://cdn.tailwindcss.com/3.4.17" nonce="{{ request.csp_nonce }}"></script>
+  <script src="https://unpkg.com/lucide@0.468.0" nonce="{{ request.csp_nonce }}"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js" nonce="{{ request.csp_nonce }}"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -99,6 +99,6 @@
       &copy; {% now "Y" %} {{ business_info.company_name|default:"McDonald's Pakistan" }}. All rights reserved.
     </p>
   </main>
-  <script>lucide.createIcons();</script>
+  <script nonce="{{ request.csp_nonce }}">lucide.createIcons();</script>
 </body>
 </html>
