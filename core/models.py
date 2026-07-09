@@ -87,6 +87,8 @@ class Notification(BaseModel):
         AUDIT_SUBMITTED = 'audit_submitted', 'Audit Submitted'
         CA_CREATED = 'ca_created', 'Corrective Action Created'
         CA_COMPLETED = 'ca_completed', 'Corrective Action Completed'
+        CA_VERIFIED = 'ca_verified', 'Corrective Action Verified'
+        CA_CLOSED = 'ca_closed', 'Corrective Action Closed'
 
     recipient = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='notifications')

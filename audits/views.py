@@ -197,7 +197,7 @@ class AuditScoreView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     @transaction.atomic
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
-        audit = self.object
+        audit = type(self.object).objects.select_for_update().get(pk=self.object.pk)
 
         if audit.is_submitted:
             messages.warning(request, 'This audit has already been submitted.')
@@ -225,12 +225,27 @@ class AuditScoreView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
                 all_valid = False
 
         if all_valid:
-            for f in formsets:
-                saved = f['formset'].save()
-                for instance in saved:
-                    if not instance.is_answered:
-                        instance.is_answered = True
-                        instance.save(update_fields=['is_answered'])
+            # Disconnect signals to prevent per-response signal cascade
+            from django.db.models.signals import post_save
+            from .signals import recalculate_section_on_response_change, recalculate_audit_on_section_change
+            post_save.disconnect(recalculate_section_on_response_change, sender=AuditQuestionResponse)
+            post_save.disconnect(recalculate_audit_on_section_change, sender=AuditSection)
+            try:
+                for f in formsets:
+                    saved = f['formset'].save()
+                    update_fields_list = []
+                    for instance in saved:
+                        if not instance.is_answered:
+                            instance.is_answered = True
+                            update_fields_list.append(instance)
+                    if update_fields_list:
+                        AuditQuestionResponse.objects.bulk_update(
+                            update_fields_list, ['is_answered']
+                        )
+            finally:
+                # Reconnect signals
+                post_save.connect(recalculate_section_on_response_change, sender=AuditQuestionResponse)
+                post_save.connect(recalculate_audit_on_section_change, sender=AuditSection)
             audit.calculate_totals()
             audit.is_submitted = True
             audit.save()
@@ -434,6 +449,53 @@ class DashboardView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
         ctx['open_ca'] = ca_qs.exclude(status__in=['COMPLETED', 'VERIFIED', 'CLOSED']).count()
         ctx['overdue_ca'] = ca_qs.filter(deadline__lt=timezone.now().date()).exclude(status__in=['COMPLETED', 'VERIFIED', 'CLOSED']).count()
 
+        # CA aging buckets
+        now = timezone.now()
+        thirty_days_ago = now - timezone.timedelta(days=30)
+        fourteen_days_ago = now - timezone.timedelta(days=14)
+        seven_days_ago = now - timezone.timedelta(days=7)
+        open_cas = ca_qs.exclude(status__in=['COMPLETED', 'VERIFIED', 'CLOSED'])
+        ctx['ca_aging'] = {
+            'critical': open_cas.filter(
+                deadline__lt=now.date() - timezone.timedelta(days=3),
+            ).count(),
+            'over_14': open_cas.filter(
+                created_at__lte=fourteen_days_ago,
+                deadline__gte=now.date() - timezone.timedelta(days=3),
+            ).count(),
+            '7_14': open_cas.filter(
+                created_at__range=[fourteen_days_ago, seven_days_ago],
+            ).count(),
+            '0_7': open_cas.filter(
+                created_at__gte=seven_days_ago,
+            ).count(),
+        }
+        ctx['ca_aging_labels'] = json.dumps(['Critical', '14-30d', '7-14d', '0-7d'])
+        ctx['ca_aging_data'] = json.dumps([
+            ctx['ca_aging']['critical'],
+            ctx['ca_aging']['over_14'],
+            ctx['ca_aging']['7_14'],
+            ctx['ca_aging']['0_7'],
+        ])
+
+        # Monthly close rate (last 6 months)
+        six_months_ago = now - timezone.timedelta(days=180)
+        monthly_closed = (
+            CorrectiveAction.objects.filter(
+                restaurant__in=ca_qs.values('restaurant'),
+                status__in=['COMPLETED', 'VERIFIED', 'CLOSED'],
+                updated_at__gte=six_months_ago,
+            )
+            .annotate(month=TruncMonth('updated_at'))
+            .values('month')
+            .annotate(count=Count('id'))
+            .order_by('month')
+        )
+        ctx['ca_monthly_close'] = json.dumps([
+            {'month': m['month'].strftime('%b') if m['month'] else '', 'count': m['count']}
+            for m in monthly_closed
+        ])
+
         grade_counts = submitted.values('grade').annotate(count=Count('grade')).order_by('grade')
         submitted_count = submitted.count()
         ctx['grade_distribution'] = {
@@ -468,8 +530,6 @@ class DashboardView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
         # --- Section-wise Analytics ---
         submitted_audit_ids = submitted.values_list('id', flat=True)
 
-        from django.utils.html import escape
-
         # 1. Section Performance Overview
         section_perf = (
             AuditSection.objects.filter(audit_id__in=submitted_audit_ids)
@@ -482,7 +542,7 @@ class DashboardView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
         )
         ctx['section_performance'] = json.dumps([
             {
-                'name': escape(s['section__name']),
+                'name': s['section__name'],
                 'avg': float(round(s['avg_pct'], 1)) if s['avg_pct'] else 0,
                 'count': s['audit_count'],
             }
@@ -501,7 +561,7 @@ class DashboardView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
         )
         ctx['section_deductions'] = json.dumps([
             {
-                'name': escape(s['section__name']),
+                'name': s['section__name'],
                 'possible': float(s['total_possible']),
                 'scored': float(s['total_scored']),
                 'deducted': float(s['total_possible'] - s['total_scored']),
@@ -523,7 +583,7 @@ class DashboardView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
         trend_by_section = {}
         all_months_set = set()
         for row in sections_for_trend:
-            name = escape(row['section__name'])
+            name = row['section__name']
             label = row['month'].strftime('%b %Y') if row['month'] else ''
             if name not in trend_by_section:
                 trend_by_section[name] = {}
@@ -553,8 +613,8 @@ class DashboardView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
         )
         ctx['frequent_findings'] = json.dumps([
             {
-                'text': escape(f['question__question_text'][:80]),
-                'section': escape(f['question__section__name']),
+                'text': f['question__question_text'][:80],
+                'section': f['question__section__name'],
                 'count': f['deduction_count'],
             }
             for f in freq_findings
@@ -581,6 +641,14 @@ class DashboardExportView(LoginRequiredMixin, PermissionRequiredMixin, View):
         if to_date:
             qs = qs.filter(audit_date__lte=to_date)
 
+        def sanitize_csv_field(value):
+            if not value:
+                return value
+            value = str(value)
+            if value and value[0] in ('=', '+', '-', '@', '\t', '\n', '\r'):
+                return "'" + value
+            return value
+
         resp = HttpResponse(content_type='text/csv')
         resp['Content-Disposition'] = 'attachment; filename="audits_export.csv"'
         writer = csv.writer(resp)
@@ -588,11 +656,11 @@ class DashboardExportView(LoginRequiredMixin, PermissionRequiredMixin, View):
                          'Auditor', 'Score', 'Grade', 'Status', 'Submitted At'])
         for a in qs.iterator():
             writer.writerow([
-                a.restaurant.name,
-                a.template.name,
+                sanitize_csv_field(a.restaurant.name),
+                sanitize_csv_field(a.template.name),
                 a.audit_date,
-                a.manager_on_duty,
-                a.auditor.get_full_name() or a.auditor.username if a.auditor else '',
+                sanitize_csv_field(a.manager_on_duty),
+                sanitize_csv_field(a.auditor.get_full_name() or a.auditor.username) if a.auditor else '',
                 f'{a.total_percentage:.1f}' if a.total_percentage else '',
                 a.grade,
                 'Submitted' if a.is_submitted else 'Draft',
@@ -657,27 +725,207 @@ class CorrectiveActionCompleteView(LoginRequiredMixin, PermissionRequiredMixin, 
 
     def post(self, request, pk):
         action = self._get_action_or_404(request, pk)
-        if request.user.role == 'restaurant_user' and action.status in (action.Status.VERIFIED, action.Status.CLOSED):
+        user = request.user
+        previous_status = action.status
+
+        # Restaurant users cannot reopen verified or closed
+        if user.role == 'restaurant_user' and action.status in (action.Status.VERIFIED, action.Status.CLOSED):
             messages.error(request, 'You cannot reopen a verified or closed corrective action.')
             return redirect('audits:corrective_actions')
-        if action.status in (action.Status.COMPLETED, action.Status.VERIFIED, action.Status.CLOSED):
-            action.status = action.Status.OPEN
-            msg = 'reopened'
-        else:
+
+        # Determine allowed transitions based on role
+        if action.status in (action.Status.OPEN, action.Status.IN_PROGRESS):
             action.status = action.Status.COMPLETED
             msg = 'completed'
+        elif action.status in (action.Status.COMPLETED, action.Status.VERIFIED, action.Status.CLOSED):
+            action.status = action.Status.OPEN
+            msg = 'reopened'
+
+        action.save()
+
+        if msg == 'completed':
             link = reverse('audits:corrective_action_edit', args=[action.pk])
-            if action.audit.auditor:
+            email_context = {
+                'subject': f'CA Completed: {action.restaurant.name}',
+                'restaurant_name': action.restaurant.name,
+                'risk_level': action.get_risk_level_display(),
+                'description': action.description,
+                'completed_by': user.get_full_name() or user.username,
+                'deadline': action.deadline,
+                'ca_url': request.build_absolute_uri(link),
+            }
+            if action.audit and action.audit.auditor:
                 notify_auditor_and_manager(
                     Notification.Type.CA_COMPLETED,
                     f'Corrective Action Completed: {action.restaurant.name}',
                     f'A {action.get_risk_level_display()} corrective action has been completed for {action.restaurant.name}.',
                     link,
                     action.audit.auditor,
+                    email_context=email_context,
                 )
-        action.save()
+
         messages.success(request, f'Corrective action {msg}.')
         return redirect('audits:corrective_actions')
+
+
+class CorrectiveActionVerifyView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    permission_required = 'audits.change_correctiveaction'
+
+    def _get_action_or_404(self, request, pk):
+        qs = CorrectiveAction.objects.all()
+        user = request.user
+        if not user.is_superuser:
+            qs = qs.filter(restaurant__in=user.restaurants.all())
+        return get_object_or_404(qs, pk=pk)
+
+    def post(self, request, pk):
+        action = self._get_action_or_404(request, pk)
+        user = request.user
+
+        # Only auditors, managers, or admins can verify
+        if user.role not in ('auditor', 'manager') and not user.is_superuser:
+            messages.error(request, 'Only auditors and managers can verify corrective actions.')
+            return redirect('audits:corrective_actions')
+
+        if action.status != action.Status.COMPLETED:
+            messages.error(request, 'Only completed corrective actions can be verified.')
+            return redirect('audits:corrective_actions')
+
+        action.status = action.Status.VERIFIED
+        action.save()
+
+        link = reverse('audits:corrective_action_edit', args=[action.pk])
+        email_context = {
+            'subject': f'CA Verified: {action.restaurant.name}',
+            'restaurant_name': action.restaurant.name,
+            'risk_level': action.get_risk_level_display(),
+            'description': action.description,
+            'verified_by': user.get_full_name() or user.username,
+            'deadline': action.deadline,
+            'ca_url': request.build_absolute_uri(link),
+        }
+        # Notify restaurant users that the fix is verified
+        notify_restaurant_users(
+            Notification.Type.CA_VERIFIED,
+            f'Corrective Action Verified: {action.restaurant.name}',
+            f'A {action.get_risk_level_display()} corrective action has been verified for {action.restaurant.name}.',
+            link,
+            action.restaurant,
+            email_context=email_context,
+            extra_recipients=[action.assigned_to] if action.assigned_to else None,
+        )
+
+        messages.success(request, 'Corrective action verified successfully.')
+        return redirect('audits:corrective_actions')
+
+
+class CorrectiveActionCloseView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    permission_required = 'audits.change_correctiveaction'
+
+    def _get_action_or_404(self, request, pk):
+        qs = CorrectiveAction.objects.all()
+        user = request.user
+        if not user.is_superuser:
+            qs = qs.filter(restaurant__in=user.restaurants.all())
+        return get_object_or_404(qs, pk=pk)
+
+    def post(self, request, pk):
+        action = self._get_action_or_404(request, pk)
+        user = request.user
+
+        # Only auditors, managers, or admins can close
+        if user.role not in ('auditor', 'manager') and not user.is_superuser:
+            messages.error(request, 'Only auditors and managers can close corrective actions.')
+            return redirect('audits:corrective_actions')
+
+        if action.status != action.Status.VERIFIED:
+            messages.error(request, 'Only verified corrective actions can be closed.')
+            return redirect('audits:corrective_actions')
+
+        action.status = action.Status.CLOSED
+        action.save()
+
+        link = reverse('audits:corrective_action_edit', args=[action.pk])
+        email_context = {
+            'subject': f'CA Closed: {action.restaurant.name}',
+            'restaurant_name': action.restaurant.name,
+            'risk_level': action.get_risk_level_display(),
+            'description': action.description,
+            'closed_by': user.get_full_name() or user.username,
+            'deadline': action.deadline,
+            'ca_url': request.build_absolute_uri(link),
+        }
+        # Notify all stakeholders
+        notify_restaurant_users(
+            Notification.Type.CA_CLOSED,
+            f'Corrective Action Closed: {action.restaurant.name}',
+            f'A {action.get_risk_level_display()} corrective action has been closed for {action.restaurant.name}.',
+            link,
+            action.restaurant,
+            email_context=email_context,
+            extra_recipients=[action.assigned_to] if action.assigned_to else None,
+        )
+        if action.audit and action.audit.auditor:
+            notify_auditor_and_manager(
+                Notification.Type.CA_CLOSED,
+                f'Corrective Action Closed: {action.restaurant.name}',
+                f'A {action.get_risk_level_display()} corrective action has been closed for {action.restaurant.name}.',
+                link,
+                action.audit.auditor,
+                email_context=email_context,
+            )
+
+        messages.success(request, 'Corrective action closed successfully.')
+        return redirect('audits:corrective_actions')
+
+
+class CorrectiveActionDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
+    model = CorrectiveAction
+    template_name = 'audits/correctiveaction_detail.html'
+    context_object_name = 'action'
+    permission_required = 'audits.view_correctiveaction'
+
+    def get_queryset(self):
+        qs = CorrectiveAction.objects.select_related(
+            'audit__template', 'audit__auditor',
+            'restaurant', 'assigned_to',
+            'question_response__question__section',
+        )
+        user = self.request.user
+        if not user.is_superuser:
+            qs = qs.filter(restaurant__in=user.restaurants.all())
+        return qs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        action = self.object
+        ctx['title'] = f'CA: {action.restaurant.name} — {action.description[:60]}'
+
+        # Build timeline from django-simple-history records
+        history = action.history.all().order_by('history_date')
+        timeline = []
+        previous_status = None
+        for h in history:
+            entry = {
+                'date': h.history_date,
+                'user': h.history_user,
+                'type': h.history_type,
+                'status': h.status,
+                'changed_fields': h.get_changed_fields() if hasattr(h, 'get_changed_fields') else [],
+            }
+            # Detect status transitions
+            if h.status != previous_status and previous_status is not None:
+                entry['from_status'] = previous_status
+                entry['to_status'] = h.status
+                entry['is_status_change'] = True
+            else:
+                entry['is_status_change'] = False
+            previous_status = h.status
+            timeline.append(entry)
+
+        ctx['timeline'] = reversed(timeline)  # newest first
+        ctx['audit'] = action.audit
+        return ctx
 
 
 class CorrectiveActionCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
@@ -783,6 +1031,9 @@ class CorrectiveActionDeleteView(LoginRequiredMixin, PermissionRequiredMixin, Vi
     def post(self, request, pk):
         qs = self.get_queryset()
         action = get_object_or_404(qs, pk=pk)
+        if action.status == 'CLOSED' and not request.user.is_superuser:
+            messages.error(request, 'Closed corrective actions cannot be deleted.')
+            return redirect('audits:corrective_actions')
         logger.info('CorrectiveAction %s deleted by %s', pk, request.user)
         action.delete()
         messages.success(request, 'Corrective action deleted.')
@@ -839,6 +1090,7 @@ class AuditDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View):
         if audit.is_submitted:
             messages.warning(request, 'Submitted audits cannot be deleted. Archive them instead.')
             return redirect('audits:detail', pk=pk)
+        audit = type(audit).objects.select_for_update().get(pk=audit.pk)
         audit.is_archived = True
         audit.save(update_fields=['is_archived', 'updated_at'])
         logger.info('Audit %s archived (soft-deleted) by %s', pk, request.user)
@@ -904,11 +1156,19 @@ class SaveResponseView(LoginRequiredMixin, PermissionRequiredMixin, View):
             resp.comments = ''
             resp.needs_corrective_action = False
 
-        resp.save()
-
-        sec = resp.audit_section
-        sec.calculate_section_score()
-        sec.audit.calculate_totals()
+        # Disconnect signals to prevent per-response cascade
+        from django.db.models.signals import post_save
+        from .signals import recalculate_section_on_response_change, recalculate_audit_on_section_change
+        post_save.disconnect(recalculate_section_on_response_change, sender=AuditQuestionResponse)
+        post_save.disconnect(recalculate_audit_on_section_change, sender=AuditSection)
+        try:
+            resp.save()
+            sec = resp.audit_section
+            sec.calculate_section_score()
+            sec.audit.calculate_totals()
+        finally:
+            post_save.connect(recalculate_section_on_response_change, sender=AuditQuestionResponse)
+            post_save.connect(recalculate_audit_on_section_change, sender=AuditSection)
 
         responses = sec.responses.all()
         total = responses.filter(is_na=False).count()
@@ -927,6 +1187,8 @@ class FillRemainingView(LoginRequiredMixin, PermissionRequiredMixin, View):
     def post(self, request):
         # Rate limiting: prevent abuse
         from core.security import check_suspicious_activity
+        from django.db.models.signals import post_save
+        from .signals import recalculate_section_on_response_change, recalculate_audit_on_section_change
         if check_suspicious_activity(request, 'fill_remaining', threshold=50):
             return JsonResponse(
                 {'success': False, 'message': 'Too many requests. Please try again later.'},
@@ -947,6 +1209,8 @@ class FillRemainingView(LoginRequiredMixin, PermissionRequiredMixin, View):
                 Q(restaurant__in=user.restaurants.all())
             )
         audit = get_object_or_404(qs, pk=audit_id)
+        # Lock row
+        audit = type(audit).objects.select_for_update().get(pk=audit.pk)
 
         if audit.is_submitted:
             return JsonResponse({'success': False, 'message': 'Audit already submitted'}, status=400)
@@ -959,20 +1223,29 @@ class FillRemainingView(LoginRequiredMixin, PermissionRequiredMixin, View):
         filled_responses = {}
         section_progress = {}
 
-        for sec in sections:
-            responses = sec.responses.filter(scored_points=0, is_na=False)
-            for r in responses:
-                r.scored_points = r.question.possible_points or Decimal('0.00')
-                r.is_answered = True
-                r.save()
-                filled_count += 1
-                filled_responses[str(r.pk)] = float(r.scored_points)
+        # Disconnect signals during batch fill
+        post_save.disconnect(recalculate_section_on_response_change, sender=AuditQuestionResponse)
+        post_save.disconnect(recalculate_audit_on_section_change, sender=AuditSection)
+        try:
+            for sec in sections:
+                responses = list(sec.responses.filter(is_answered=False, is_na=False))
+                for r in responses:
+                    r.scored_points = r.question.possible_points or Decimal('0.00')
+                    r.is_answered = True
+                    filled_count += 1
+                    filled_responses[str(r.pk)] = float(r.scored_points)
 
-            sec.calculate_section_score()
+                if responses:
+                    AuditQuestionResponse.objects.bulk_update(responses, ['scored_points', 'is_answered'])
 
-            total = sec.responses.filter(is_na=False).count()
-            answered = sec.responses.filter(is_na=False, is_answered=True).count()
-            section_progress[str(sec.pk)] = {'answered': answered, 'total': total}
+                sec.calculate_section_score()
+
+                total = sec.responses.filter(is_na=False).count()
+                answered = sec.responses.filter(is_na=False, is_answered=True).count()
+                section_progress[str(sec.pk)] = {'answered': answered, 'total': total}
+        finally:
+            post_save.connect(recalculate_section_on_response_change, sender=AuditQuestionResponse)
+            post_save.connect(recalculate_audit_on_section_change, sender=AuditSection)
 
         audit.calculate_totals()
 

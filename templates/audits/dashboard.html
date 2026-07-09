@@ -4,7 +4,7 @@
 {% block page_title %}Dashboard{% endblock %}
 
 {% block extra_head %}
-<script src="https://cdn.jsdelivr.net/npm/apexcharts@4.4.0" nonce="{{ request.csp_nonce }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@4.4.0"></script>
 {% endblock %}
 
 {% block content %}
@@ -335,6 +335,34 @@
     </div>
   </div>
 
+  <!-- ===== CA AGING WIDGET ===== -->
+  {% if ca_aging %}
+  <div>
+    <div class="flex items-center gap-2 mb-3">
+      <div class="w-1 h-5 rounded-full bg-gradient-to-b from-red-500 to-amber-500"></div>
+      <h2 class="text-sm font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider">Corrective Action Aging</h2>
+    </div>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div class="bg-white/90 dark:bg-gray-800/90 rounded-xl border border-gray-200/60 dark:border-gray-700/60 p-4 gold-card text-center">
+        <span class="text-2xl font-black {% if ca_aging.critical > 0 %}text-red-600{% else %}text-gray-400{% endif %}">{{ ca_aging.critical }}</span>
+        <p class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-1">Critical<br><span class="text-[9px] font-normal normal-case tracking-normal text-gray-400">Overdue &gt;3d</span></p>
+      </div>
+      <div class="bg-white/90 dark:bg-gray-800/90 rounded-xl border border-gray-200/60 dark:border-gray-700/60 p-4 gold-card text-center">
+        <span class="text-2xl font-black {% if ca_aging.over_14 > 0 %}text-orange-500{% else %}text-gray-400{% endif %}">{{ ca_aging.over_14 }}</span>
+        <p class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-1">Aging<br><span class="text-[9px] font-normal normal-case tracking-normal text-gray-400">14–30 days</span></p>
+      </div>
+      <div class="bg-white/90 dark:bg-gray-800/90 rounded-xl border border-gray-200/60 dark:border-gray-700/60 p-4 gold-card text-center">
+        <span class="text-2xl font-black {% if ca_aging.7_14 > 0 %}text-amber-500{% else %}text-gray-400{% endif %}">{{ ca_aging.7_14 }}</span>
+        <p class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-1">Moderate<br><span class="text-[9px] font-normal normal-case tracking-normal text-gray-400">7–14 days</span></p>
+      </div>
+      <div class="bg-white/90 dark:bg-gray-800/90 rounded-xl border border-gray-200/60 dark:border-gray-700/60 p-4 gold-card text-center">
+        <span class="text-2xl font-black text-emerald-600">{{ ca_aging.0_7 }}</span>
+        <p class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-1">Recent<br><span class="text-[9px] font-normal normal-case tracking-normal text-gray-400">&lt; 7 days</span></p>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
   <!-- ===== SECTION ANALYTICS ===== -->
   <div>
     <div class="flex items-center justify-between gap-2 mb-3 flex-wrap">
@@ -435,7 +463,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script nonce="{{ request.csp_nonce }}">
+<script>
 document.addEventListener('DOMContentLoaded', function() {
   var primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#DA291C';
   var secondaryColor = getComputedStyle(document.documentElement).getPropertyValue('--secondary').trim() || '#FFC72C';

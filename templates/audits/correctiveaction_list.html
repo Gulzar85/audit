@@ -78,9 +78,20 @@
               {% with status=action.status %}
               {% if status == 'COMPLETED' or status == 'VERIFIED' or status == 'CLOSED' %}<span class="px-2.5 py-1 rounded-full text-xs font-extrabold bg-green-100 text-green-700">{{ action.get_status_display }}</span>{% elif status == 'IN_PROGRESS' %}<span class="px-2.5 py-1 rounded-full text-xs font-extrabold bg-blue-100 text-blue-700">{{ action.get_status_display }}</span>{% else %}<span class="px-2.5 py-1 rounded-full text-xs font-extrabold bg-amber-100 text-amber-700">{{ action.get_status_display }}</span>{% endif %}
               {% endwith %}
+              {% if perms.audits.view_correctiveaction %}
+                <a href="{% url 'audits:corrective_action_detail' action.pk %}" class="p-1.5 rounded-lg hover:bg-gray-100 transition-colors" title="View Details"><i data-lucide="eye" class="h-4 w-4 text-gray-400"></i></a>
+              {% endif %}
               {% if perms.audits.change_correctiveaction %}
                 <a href="{% url 'audits:corrective_action_edit' action.pk %}" class="p-1.5 rounded-lg hover:bg-gray-100 transition-colors" title="Edit"><i data-lucide="edit" class="h-4 w-4 text-gray-400"></i></a>
-                <form method="post" action="{% url 'audits:corrective_action_complete' action.pk %}" class="inline" onsubmit="return confirm('{% if action.completed %}Reopen this corrective action?{% else %}Mark this corrective action as complete?{% endif %}')">{% csrf_token %}<button type="submit" class="p-1.5 rounded-lg hover:bg-gray-100 transition-colors" title="{% if action.completed %}Reopen as Open{% else %}Mark Complete{% endif %}">{% if action.completed %}<i data-lucide="rotate-ccw" class="h-4 w-4 text-gray-400"></i>{% else %}<i data-lucide="check-circle" class="h-4 w-4 text-green-500"></i>{% endif %}</button></form>
+                {% if action.status == 'OPEN' or action.status == 'IN_PROGRESS' %}
+                <form method="post" action="{% url 'audits:corrective_action_complete' action.pk %}" class="inline" onsubmit="return confirm('Mark this corrective action as complete?')">{% csrf_token %}<button type="submit" class="p-1.5 rounded-lg hover:bg-gray-100 transition-colors" title="Mark Complete"><i data-lucide="check-circle" class="h-4 w-4 text-green-500"></i></button></form>
+                {% elif action.status == 'COMPLETED' and user.role != 'restaurant_user' %}
+                <form method="post" action="{% url 'audits:corrective_action_verify' action.pk %}" class="inline" onsubmit="return confirm('Verify this corrective action as resolved?')">{% csrf_token %}<button type="submit" class="p-1.5 rounded-lg hover:bg-blue-50 transition-colors" title="Verify"><i data-lucide="shield-check" class="h-4 w-4 text-blue-500"></i></button></form>
+                {% elif action.status == 'VERIFIED' and user.role != 'restaurant_user' %}
+                <form method="post" action="{% url 'audits:corrective_action_close' action.pk %}" class="inline" onsubmit="return confirm('Close this corrective action?')">{% csrf_token %}<button type="submit" class="p-1.5 rounded-lg hover:bg-gray-100 transition-colors" title="Close"><i data-lucide="check-circle-2" class="h-4 w-4 text-gray-500"></i></button></form>
+                {% elif action.completed and user.role != 'restaurant_user' %}
+                <form method="post" action="{% url 'audits:corrective_action_complete' action.pk %}" class="inline" onsubmit="return confirm('Reopen this corrective action?')">{% csrf_token %}<button type="submit" class="p-1.5 rounded-lg hover:bg-gray-100 transition-colors" title="Reopen"><i data-lucide="rotate-ccw" class="h-4 w-4 text-gray-400"></i></button></form>
+                {% endif %}
               {% endif %}
               {% if perms.audits.delete_correctiveaction %}
               <form method="post" action="{% url 'audits:corrective_action_delete' action.pk %}" class="inline" onsubmit="return confirm('Delete this corrective action?')">{% csrf_token %}<button type="submit" class="p-1.5 rounded-lg hover:bg-red-50 transition-colors" title="Delete"><i data-lucide="trash-2" class="h-4 w-4 text-red-400"></i></button></form>

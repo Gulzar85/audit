@@ -14,6 +14,8 @@ EMAIL_TEMPLATES = {
     Notification.Type.AUDIT_SUBMITTED: 'emails/audit_submitted.html',
     Notification.Type.CA_CREATED: 'emails/ca_created.html',
     Notification.Type.CA_COMPLETED: 'emails/ca_completed.html',
+    Notification.Type.CA_VERIFIED: 'emails/ca_verified.html',
+    Notification.Type.CA_CLOSED: 'emails/ca_closed.html',
 }
 
 
@@ -35,6 +37,13 @@ def _send_email_notifications(recipients, notification_type, email_context):
 def auto_generate_corrective_actions(audit):
     from .models import AuditQuestionResponse, CorrectiveAction
 
+    SLA_DAYS = {
+        CorrectiveAction.RiskLevel.CRITICAL: 3,
+        CorrectiveAction.RiskLevel.HIGH: 7,
+        CorrectiveAction.RiskLevel.MEDIUM: 14,
+        CorrectiveAction.RiskLevel.LOW: 30,
+    }
+
     responses_needing_ca = AuditQuestionResponse.objects.filter(
         audit_section__audit=audit,
         needs_corrective_action=True,
@@ -49,15 +58,16 @@ def auto_generate_corrective_actions(audit):
     created = 0
     for resp in responses_needing_ca:
         is_critical = getattr(resp.question, 'is_critical', False)
+        risk_level = CorrectiveAction.RiskLevel.CRITICAL if is_critical else CorrectiveAction.RiskLevel.HIGH
         description = f'{resp.audit_section.section.name}: {resp.question.question_text}'
         CorrectiveAction.objects.create(
             audit=audit,
             restaurant=audit.restaurant,
             question_response=resp,
             description=description,
-            risk_level=CorrectiveAction.RiskLevel.CRITICAL if is_critical else CorrectiveAction.RiskLevel.HIGH,
+            risk_level=risk_level,
             assigned_to=assignee,
-            deadline=timezone.now().date() + timedelta(days=7),
+            deadline=timezone.now().date() + timedelta(days=SLA_DAYS.get(risk_level, 7)),
             status=CorrectiveAction.Status.OPEN,
         )
         created += 1
@@ -95,10 +105,6 @@ def notify_auditor_and_manager(notification_type, title, message, link, auditor,
     recipients = [auditor]
     if auditor.manager and auditor.manager.is_active:
         recipients.append(auditor.manager)
-    managers = User.objects.filter(
-        role=User.Roles.MANAGER, is_active=True
-    ).exclude(pk__in=[u.pk for u in recipients])
-    recipients.extend(managers)
     notifications = [
         Notification(
             recipient=user,

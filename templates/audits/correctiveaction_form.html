@@ -42,7 +42,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script nonce="{{ request.csp_nonce }}">
+<script>
 document.addEventListener('DOMContentLoaded', function () {
     var auditField = document.getElementById('id_audit');
     var responseField = document.getElementById('id_question_response');

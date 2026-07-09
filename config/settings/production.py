@@ -50,7 +50,29 @@ CSRF_COOKIE_SAMESITE = 'Strict'
 # Frame Security
 X_FRAME_OPTIONS = 'DENY'
 
-# Content Security
+# Content Security — CSP whitelist for CDN resources (Tailwind, Alpine, Lucide, ApexCharts, Google Fonts)
+SECURE_CONTENT_SECURITY_POLICY = {
+    'default-src': ["'self'"],
+    'script-src': [
+        "'self'",
+        'https://cdn.jsdelivr.net',
+        'https://unpkg.com',
+        'https://cdn.tailwindcss.com',
+        "'unsafe-inline'",     # Alpine inline handlers (@click, x-on, x-data)
+        "'unsafe-eval'",       # Alpine new Function() for x-data expressions
+    ],
+    'style-src': [
+        "'self'",
+        'https://cdn.jsdelivr.net',
+        'https://fonts.googleapis.com',
+        "'unsafe-inline'",
+    ],
+    'font-src': ["'self'", 'https://fonts.gstatic.com'],
+    'img-src': ["'self'", 'data:', 'blob:'],
+    'connect-src': ["'self'"],
+    'frame-ancestors': ["'none'"],
+}
+
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 
@@ -67,31 +89,6 @@ PERMISSIONS_POLICY = {
     'microphone': [],
     'payment': [],
     'usb': [],
-}
-
-# Content Security Policy
-SECURE_CONTENT_SECURITY_POLICY = {
-    'default-src': ("'self'",),
-    'script-src': (
-        "'self'",
-        "https://cdn.tailwindcss.com",
-        "https://cdn.jsdelivr.net",
-        "https://fonts.googleapis.com",
-    ),
-    'style-src': (
-        "'self'",
-        "'unsafe-inline'",  # Tailwind requires this - minimize in future
-        "https://fonts.googleapis.com",
-    ),
-    'font-src': (
-        "'self'",
-        "https://fonts.gstatic.com",
-    ),
-    'img-src': ("'self'", "data:", "https:"),
-    'connect-src': ("'self'",),
-    'frame-ancestors': ("'none'",),
-    'base-uri': ("'self'",),
-    'form-action': ("'self'",),
 }
 
 # Admin URL Protection - change from default /admin/

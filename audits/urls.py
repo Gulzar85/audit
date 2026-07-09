@@ -22,8 +22,11 @@ urlpatterns = [
     path('fill-remaining/', views.FillRemainingView.as_view(), name='fill_remaining'),
     path('corrective-actions/', views.CorrectiveActionListView.as_view(), name='corrective_actions'),
     path('corrective-actions/create/', views.CorrectiveActionCreateView.as_view(), name='corrective_action_create'),
+    path('corrective-actions/<int:pk>/detail/', views.CorrectiveActionDetailView.as_view(), name='corrective_action_detail'),
     path('corrective-actions/<int:pk>/', views.CorrectiveActionUpdateView.as_view(), name='corrective_action_edit'),
     path('corrective-actions/<int:pk>/complete/', views.CorrectiveActionCompleteView.as_view(), name='corrective_action_complete'),
+    path('corrective-actions/<int:pk>/verify/', views.CorrectiveActionVerifyView.as_view(), name='corrective_action_verify'),
+    path('corrective-actions/<int:pk>/close/', views.CorrectiveActionCloseView.as_view(), name='corrective_action_close'),
     path('corrective-actions/<int:pk>/delete/', views.CorrectiveActionDeleteView.as_view(), name='corrective_action_delete'),
     path('ajax/audit-responses/<int:audit_pk>/', views.AuditQuestionResponsesJSONView.as_view(), name='audit_responses_json'),
 ]

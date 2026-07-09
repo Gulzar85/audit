@@ -5,19 +5,7 @@ from django.contrib.auth import get_user_model
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit, Row, Column, HTML, Field, Div
 
-from .models import Audit, AuditQuestionResponse, CorrectiveAction
-
-
-ALLOWED_IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'}
-MAX_UPLOAD_SIZE = 5 * 1024 * 1024  # 5 MB
-
-
-def validate_uploaded_image(file):
-    if file.size > MAX_UPLOAD_SIZE:
-        raise ValidationError(f'File size must be under 5 MB. Current size: {file.size / 1024 / 1024:.1f} MB')
-    ext = str(file.name).rsplit('.', 1)[-1].lower() if '.' in file.name else ''
-    if f'.{ext}' not in ALLOWED_IMAGE_EXTENSIONS:
-        raise ValidationError(f'Unsupported file extension ".{ext}". Allowed: {", ".join(sorted(ALLOWED_IMAGE_EXTENSIONS))}')
+from .models import Audit, AuditQuestionResponse, CorrectiveAction, validate_uploaded_image
 
 
 class AuditForm(forms.ModelForm):
@@ -196,15 +184,24 @@ class CorrectiveActionForm(forms.ModelForm):
         self.fields['assigned_to'].empty_label = 'Select a user'
         self.fields['assigned_to'].required = False
         if user:
-            from .models import Audit
+            from .models import Audit, AuditQuestionResponse
             qs = get_user_model().objects.filter(is_active=True)
             if not user.is_superuser:
                 qs = qs.filter(restaurants__in=user.restaurants.all()).distinct()
                 self.fields['audit'].queryset = Audit.objects.filter(
                     restaurant__in=user.restaurants.all(), is_archived=False
                 )
+                self.fields['question_response'].queryset = AuditQuestionResponse.objects.filter(
+                    audit_section__audit__restaurant__in=user.restaurants.all()
+                ).select_related('question', 'audit_section__section')
             self.fields['assigned_to'].queryset = qs
             self.fields['assigned_to'].initial = user
+
+            # Restaurant users: lock sensitive fields on existing CAs
+            if user.role == 'restaurant_user' and self.instance.pk:
+                for field in ('audit', 'question_response', 'risk_level', 'assigned_to', 'status'):
+                    self.fields[field].disabled = True
+                self.fields['description'].disabled = True
         css = 'w-full rounded-xl border-slate-300 focus:border-red-400 focus:ring-2 focus:ring-red-200 outline-none'
         file_css = 'w-full rounded-xl border-slate-300 focus:border-red-400 focus:ring-2 focus:ring-red-200 outline-none file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100'
         self.helper = FormHelper()
@@ -228,13 +225,45 @@ class CorrectiveActionForm(forms.ModelForm):
             validate_uploaded_image(file)
         return file
 
+    def clean_status(self):
+        status = self.cleaned_data.get('status')
+        if not self.instance.pk:
+            return status
+
+        previous = CorrectiveAction.objects.get(pk=self.instance.pk).status
+        user = getattr(self, 'user', None)
+
+        VALID_TRANSITIONS = {
+            CorrectiveAction.Status.OPEN: {'IN_PROGRESS', 'COMPLETED'},
+            CorrectiveAction.Status.IN_PROGRESS: {'COMPLETED'},
+            CorrectiveAction.Status.COMPLETED: {'VERIFIED'},
+            CorrectiveAction.Status.VERIFIED: {'CLOSED'},
+            CorrectiveAction.Status.CLOSED: set(),
+        }
+
+        if status != previous:
+            allowed = VALID_TRANSITIONS.get(previous, set()) | {'OPEN'}
+            if status not in allowed:
+                raise ValidationError(
+                    f'Cannot change from {previous} to {status}. '
+                    f'Allowed: {", ".join(sorted(allowed))}'
+                )
+
+            # Restaurant users cannot set VERIFIED or CLOSED
+            if user and user.role == 'restaurant_user' and status in ('VERIFIED', 'CLOSED'):
+                raise ValidationError(
+                    'Restaurant users cannot verify or close corrective actions.'
+                )
+
+        return status
+
     def clean(self):
         cleaned_data = super().clean()
         from django.utils import timezone
-        
+
         deadline = cleaned_data.get('deadline')
         if self.instance.pk is None:  # Only enforce on creation
             if deadline and deadline < timezone.now().date():
                 self.add_error('deadline', 'Deadline cannot be in the past.')
-        
+
         return cleaned_data

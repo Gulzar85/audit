@@ -166,14 +166,12 @@ def secure_redirect(request, next_url, allowed_hosts=None):
 
 
 class SecurityHeadersMiddleware:
-    """Middleware to add additional security headers and CSP nonce."""
+    """Middleware to add additional security headers."""
 
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
-        request.csp_nonce = secrets.token_urlsafe(16)
-
         response = self.get_response(request)
 
         # Remove server identification
@@ -191,16 +189,13 @@ class SecurityHeadersMiddleware:
         # Referrer policy
         response['Referrer-Policy'] = 'same-origin'
 
-        # Content Security Policy with nonce
+        # Content Security Policy (from settings)
         from django.conf import settings
         csp = getattr(settings, 'SECURE_CONTENT_SECURITY_POLICY', None)
-        if csp:
-            policies = []
+        if csp and isinstance(csp, dict):
+            parts = []
             for directive, sources in csp.items():
-                sources_list = list(sources)
-                if directive == 'script-src':
-                    sources_list.append(f"'nonce-{request.csp_nonce}'")
-                policies.append(f"{directive} {' '.join(sources_list)}")
-            response['Content-Security-Policy'] = '; '.join(policies)
+                parts.append(f"{directive} {' '.join(sources)}")
+            response['Content-Security-Policy'] = '; '.join(parts)
 
         return response

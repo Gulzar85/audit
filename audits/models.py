@@ -1,7 +1,8 @@
 import logging
+import os
 from decimal import Decimal
 
-from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.validators import MinValueValidator, MaxValueValidator, FileExtensionValidator
 from django.db import models
 from django.db.models import Q, UniqueConstraint, CheckConstraint
 from django.db.models.functions import NullIf
@@ -16,6 +17,42 @@ from restaurants.models import Restaurant
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
+
+ALLOWED_IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'}
+ALLOWED_IMAGE_MIMETYPES = {'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp'}
+MAX_UPLOAD_SIZE = 5 * 1024 * 1024  # 5 MB
+
+
+def validate_uploaded_image(file):
+    import struct
+    from PIL import Image
+    from io import BytesIO
+    from django.core.exceptions import ValidationError
+
+    if file.size > MAX_UPLOAD_SIZE:
+        raise ValidationError(
+            f'File size must be under 5 MB. Current size: {file.size / 1024 / 1024:.1f} MB'
+        )
+
+    ext = os.path.splitext(str(file.name))[1].lower()
+    if ext not in ALLOWED_IMAGE_EXTENSIONS:
+        raise ValidationError(
+            f'Unsupported file extension "{ext}". Allowed: {", ".join(sorted(ALLOWED_IMAGE_EXTENSIONS))}'
+        )
+
+    # Validate actual image content using PIL
+    try:
+        file.seek(0)
+        img = Image.open(BytesIO(file.read()))
+        img.verify()
+        file.seek(0)
+    except Exception:
+        raise ValidationError('The file is not a valid image.')
+
+    # Validate MIME type
+    if hasattr(file, 'content_type') and file.content_type:
+        if file.content_type not in ALLOWED_IMAGE_MIMETYPES:
+            raise ValidationError(f'Invalid image type: {file.content_type}')
 
 # -----------------------------
 # Audit Template Engine
@@ -290,7 +327,8 @@ class AuditQuestionResponse(BaseModel):
         upload_to='audit_evidence/%Y/%m/',
         blank=True, null=True,
         verbose_name=_("Evidence Photo"),
-        help_text=_("Upload a photo as evidence for this response")
+        help_text=_("Upload a photo as evidence for this response"),
+        validators=[validate_uploaded_image]
     )
 
     class Meta:
@@ -337,7 +375,8 @@ class CorrectiveAction(BaseModel):
         upload_to='corrective_action_evidence/%Y/%m/',
         blank=True, null=True,
         verbose_name=_("Evidence Photo"),
-        help_text=_("Upload proof of completion")
+        help_text=_("Upload proof of completion"),
+        validators=[validate_uploaded_image]
     )
 
     class Meta:
