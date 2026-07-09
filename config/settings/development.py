@@ -19,3 +19,13 @@ DATABASES = {
 
 # Email — print to console for dev
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# Override .env production security settings for local HTTP dev
+SECURE_SSL_REDIRECT = False
+SECURE_HSTS_SECONDS = 0
+SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+SECURE_HSTS_PRELOAD = False
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_HTTPONLY = False
+CSRF_COOKIE_HTTPONLY = False
