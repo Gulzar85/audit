@@ -1,171 +1,228 @@
 <!DOCTYPE html>
-<html lang="en"
-      x-init="if (localStorage.getItem('dark') === null && window.matchMedia('(prefers-color-scheme: dark)').matches) { localStorage.setItem('dark', 'true'); document.documentElement.classList.add('dark'); } else if (localStorage.getItem('dark') === 'true') { document.documentElement.classList.add('dark'); }">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>{% block title %}{{ business_info.company_name }}{% endblock %}</title>
-  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
-  <script src="https://unpkg.com/lucide@0.468.0"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+ <title>{% block title %}{{ business_info.company_name }}{% endblock %}</title>
+ <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+ <script src="https://unpkg.com/lucide@0.468.0"></script>
+ <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+ <link rel="preconnect" href="https://fonts.googleapis.com">
+ <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-  {% if business_info.favicon %}
-  <link rel="icon" type="image/png" href="{{ business_info.favicon.url }}">
-  <link rel="apple-touch-icon" href="{{ business_info.favicon.url }}">
-  {% else %}
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📋</text></svg>">
-  {% endif %}
-  <style>
-    :root {
-      --primary: {{ business_info.primary_color|default:'#DA291C' }};
-      --primary-dark: #B71C1C;
-      --secondary: {{ business_info.secondary_color|default:'#FFC72C' }};
-      --secondary-light: #FFD700;
-      --accent: {{ business_info.accent_color|default:'#27251F' }};
-      --success: #10B981;
-      --warning: #F59E0B;
-      --danger: #EF4444;
-      --info: #3B82F6;
-      --gold: #FFC72C;
-      --gold-light: #FFD700;
-    }
-    .glass {
-      background: rgba(255, 255, 255, 0.72);
-      backdrop-filter: blur(20px) saturate(180%);
-      -webkit-backdrop-filter: blur(20px) saturate(180%);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
-    }
-    .glass-strong {
-      background: rgba(255, 255, 255, 0.92);
-      backdrop-filter: blur(24px) saturate(200%);
-      -webkit-backdrop-filter: blur(24px) saturate(200%);
-      border: 1px solid rgba(255, 255, 255, 0.5);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
-    }
-    .glass-dark {
-      background: rgba(17, 24, 39, 0.78);
-      backdrop-filter: blur(20px) saturate(160%);
-      -webkit-backdrop-filter: blur(20px) saturate(160%);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
-    }
-    .glass-card {
-      background: rgba(255, 255, 255, 0.65);
-      backdrop-filter: blur(16px) saturate(180%);
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-    }
-    .gold-card {
-      border: 1px solid rgba(255, 199, 44, 0.25);
-      box-shadow: 0 4px 20px rgba(255, 199, 44, 0.06);
-    }
-    .gold-card:hover {
-      border-color: rgba(255, 199, 44, 0.5);
-      box-shadow: 0 8px 30px rgba(255, 199, 44, 0.12);
-    }
-    .bg-gradient-primary { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); }
-    .bg-gradient-primary-h { background: linear-gradient(to right, var(--primary) 0%, var(--primary-dark) 100%); }
-    .bg-gradient-gold { background: linear-gradient(135deg, var(--secondary) 0%, var(--gold-light) 100%); }
-    .bg-gradient-gold-h { background: linear-gradient(to right, var(--secondary) 0%, var(--gold-light) 100%); }
-    .bg-gradient-dark { background: linear-gradient(135deg, var(--accent) 0%, #1a1a1a 100%); }
-    .text-gradient-primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-    .text-gradient-gold { background: linear-gradient(135deg, var(--secondary), var(--gold-light)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-    @keyframes slideInRight { from { transform: translateX(100%) scale(0.95); opacity: 0; } to { transform: translateX(0) scale(1); opacity: 1; } }
-    @keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes scaleIn { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
-    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-    @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
-    .toast-enter { animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
-    .animate-fade-in-up { animation: fadeInUp 0.4s ease-out; }
-    .animate-scale-in { animation: scaleIn 0.3s ease-out; }
-    .animate-slide-down { animation: slideDown 0.25s ease-out; }
-    .skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
-    html { scroll-behavior: smooth; }
-    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
-    .sidebar-transition { transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
-    .sidebar-margin-transition { transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
-    .scrollbar-thin::-webkit-scrollbar { width: 4px; }
-    .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
-    .scrollbar-thin::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 2px; }
-    .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
-    .dark .scrollbar-thin::-webkit-scrollbar-thumb { background: #4b5563; }
-    .dark .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #6b7280; }
-    [x-cloak] { display: none !important; }
-    .pattern-grid { background-image: radial-gradient(color-mix(in srgb, var(--primary) 3%, transparent) 1px, transparent 1px); background-size: 24px 24px; }
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
-      html { scroll-behavior: auto; }
-    }
-  </style>
-  {% block extra_head %}{% endblock %}
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+ {% if business_info.favicon %}
+ <link rel="icon" type="image/png" href="{{ business_info.favicon.url }}">
+ <link rel="apple-touch-icon" href="{{ business_info.favicon.url }}">
+ {% else %}
+ <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📋</text></svg>">
+ {% endif %}
+ <style>
+ :root {
+ --primary: {{ business_info.primary_color|default:'#DA291C' }};
+ --primary-dark: #B71C1C;
+ --secondary: {{ business_info.secondary_color|default:'#FFC72C' }};
+ --secondary-light: #FFD700;
+ --accent: {{ business_info.accent_color|default:'#27251F' }};
+ --success: #10B981;
+ --warning: #F59E0B;
+ --danger: #EF4444;
+ --info: #3B82F6;
+ --gold: #FFC72C;
+ --gold-light: #FFD700;
+ }
+ .glass {
+ background: rgba(255, 255, 255, 0.72);
+ backdrop-filter: blur(20px) saturate(180%);
+ -webkit-backdrop-filter: blur(20px) saturate(180%);
+ border: 1px solid rgba(255, 255, 255, 0.3);
+ box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+ }
+ .glass-strong {
+ background: rgba(255, 255, 255, 0.92);
+ backdrop-filter: blur(24px) saturate(200%);
+ -webkit-backdrop-filter: blur(24px) saturate(200%);
+ border: 1px solid rgba(255, 255, 255, 0.5);
+ box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+ }
+ .glass-dark {
+ background: rgba(17, 24, 39, 0.78);
+ backdrop-filter: blur(20px) saturate(160%);
+ -webkit-backdrop-filter: blur(20px) saturate(160%);
+ border: 1px solid rgba(255, 255, 255, 0.06);
+ box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+ }
+ .glass-card {
+ background: rgba(255, 255, 255, 0.65);
+ backdrop-filter: blur(16px) saturate(180%);
+ border: 1px solid rgba(255, 255, 255, 0.25);
+ box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+ }
+ .gold-card {
+ border: 1px solid rgba(255, 199, 44, 0.25);
+ box-shadow: 0 4px 20px rgba(255, 199, 44, 0.06);
+ }
+ .gold-card:hover {
+ border-color: rgba(255, 199, 44, 0.5);
+ box-shadow: 0 8px 30px rgba(255, 199, 44, 0.12);
+ }
+ .bg-gradient-primary { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); }
+ .bg-gradient-primary-h { background: linear-gradient(to right, var(--primary) 0%, var(--primary-dark) 100%); }
+ .bg-gradient-gold { background: linear-gradient(135deg, var(--secondary) 0%, var(--gold-light) 100%); }
+ .bg-gradient-gold-h { background: linear-gradient(to right, var(--secondary) 0%, var(--gold-light) 100%); }
+ .bg-gradient-dark { background: linear-gradient(135deg, var(--accent) 0%, #1a1a1a 100%); }
+ .text-gradient-primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+ .text-gradient-gold { background: linear-gradient(135deg, var(--secondary), var(--gold-light)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+ @keyframes slideInRight { from { transform: translateX(100%) scale(0.95); opacity: 0; } to { transform: translateX(0) scale(1); opacity: 1; } }
+ @keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+ @keyframes scaleIn { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
+ @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+ @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+ .toast-enter { animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+ .animate-fade-in-up { animation: fadeInUp 0.4s ease-out; }
+ .animate-scale-in { animation: scaleIn 0.3s ease-out; }
+ .animate-slide-down { animation: slideDown 0.25s ease-out; }
+ .skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+ html { scroll-behavior: smooth; }
+ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+ .sidebar-transition { transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
+ .sidebar-margin-transition { transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
+ .scrollbar-thin::-webkit-scrollbar { width: 4px; }
+ .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+ .scrollbar-thin::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 2px; }
+ .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+ [x-cloak] { display: none !important; }
+ .pattern-grid { background-image: radial-gradient(color-mix(in srgb, var(--primary) 3%, transparent) 1px, transparent 1px); background-size: 24px 24px; }
+ @media (prefers-reduced-motion: reduce) {
+ *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+ html { scroll-behavior: auto; }
+ }
+ </style>
+ {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 pattern-grid overflow-hidden">
+<body class="bg-gray-50 pattern-grid overflow-hidden">
 
-  <a href="#main-content"
-     class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:px-5 focus:py-3 focus:bg-white focus:text-primary focus:font-bold focus:rounded-xl focus:shadow-2xl focus:ring-2 focus:ring-primary">
-    Skip to main content
-  </a>
+ <a href="#main-content"
+ class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:px-5 focus:py-3 focus:bg-white focus:text-primary focus:font-bold focus:rounded-xl focus:shadow-2xl focus:ring-2 focus:ring-primary">
+ Skip to main content
+ </a>
 
-  <!-- Mobile sidebar overlay backdrop -->
-  <div x-show="$store.app.mobileSidebarOpen" x-cloak
-       x-transition:enter="transition ease-out duration-250"
-       x-transition:enter-start="opacity-0"
-       x-transition:enter-end="opacity-100"
-       x-transition:leave="transition ease-in duration-200"
-       x-transition:leave-start="opacity-100"
-       x-transition:leave-end="opacity-0"
-       @click="$store.app.mobileSidebarOpen = false"
-       class="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
-       aria-hidden="true"></div>
+ <!-- Mobile sidebar overlay backdrop -->
+ <div x-show="$store.app.mobileSidebarOpen" x-cloak
+ x-transition:enter="transition ease-out duration-250"
+ x-transition:enter-start="opacity-0"
+ x-transition:enter-end="opacity-100"
+ x-transition:leave="transition ease-in duration-200"
+ x-transition:leave-start="opacity-100"
+ x-transition:leave-end="opacity-0"
+ @click="$store.app.mobileSidebarOpen = false"
+ class="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
+ aria-hidden="true"></div>
 
-  <!-- Sidebar -->
-  {% include 'includes/sidebar.html' %}
+ <!-- Sidebar -->
+ {% include 'includes/sidebar.html' %}
 
-  <!-- Main content area — margin-left on desktop only -->
-  <div class="flex flex-col h-screen sidebar-margin-transition"
-       x-data
-       :class="{
-         'lg:ml-64': $store.app.sidebarOpen,
-         'lg:ml-16': !$store.app.sidebarOpen
-       }">
+ <!-- Main content area — margin-left on desktop only -->
+ <div class="flex flex-col h-screen sidebar-margin-transition"
+ x-data
+ :class="{
+ 'lg:ml-64': $store.app.sidebarOpen,
+ 'lg:ml-16': !$store.app.sidebarOpen
+ }">
 
-    <!-- Navbar -->
-    {% include 'includes/navbar.html' %}
+ <!-- Navbar -->
+ {% include 'includes/navbar.html' %}
 
-    <!-- Main content -->
-    <main id="main-content" role="main"
-          class="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-7 dark:text-gray-200 scrollbar-thin bg-gray-50/50 dark:bg-gray-900/50">
+ <!-- Main content -->
+ <main id="main-content" role="main"
+ class="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-7 scrollbar-thin bg-gray-50/50">
 
-      {% if messages %}
-        {% include 'includes/toasts.html' %}
-      {% endif %}
+ {% if messages %}
+ {% include 'includes/toasts.html' %}
+ {% endif %}
 
-      {% block content %}{% endblock %}
+ {% block content %}{% endblock %}
 
-    </main>
+ </main>
 
-    {% include 'includes/footer.html' %}
-  </div>
+ {% include 'includes/footer.html' %}
+ </div>
 
-  <script>
-    document.addEventListener('alpine:init', () => {
-      Alpine.store('app', {
-        sidebarOpen: true,
-        mobileSidebarOpen: false
-      });
-      if (typeof lucide !== 'undefined') lucide.createIcons();
-      Alpine.data('toast', () => ({
-        show: true,
-        dismiss() { this.show = false; }
-      }));
-    });
-    document.addEventListener('alpine:after-render', () => {
-      if (typeof lucide !== 'undefined') lucide.createIcons();
-    });
-  </script>
-  {% block extra_scripts %}{% endblock %}
+ <script>
+ document.addEventListener('alpine:init', () => {
+ Alpine.store('app', {
+ sidebarOpen: true,
+ mobileSidebarOpen: false
+ });
+ Alpine.store('confirm', {
+ show: false,
+ title: 'Confirm',
+ message: 'Are you sure?',
+ confirmAction: null,
+ open(title, message, callback) {
+ this.title = title;
+ this.message = message;
+ this.confirmAction = callback;
+ this.show = true;
+ },
+ confirm() {
+ if (this.confirmAction) this.confirmAction();
+ this.show = false;
+ },
+ cancel() {
+ this.show = false;
+ this.confirmAction = null;
+ }
+ });
+ if (typeof lucide !== 'undefined') lucide.createIcons();
+ Alpine.data('toast', () => ({
+ show: true,
+ dismiss() { this.show = false; }
+ }));
+ });
+ document.addEventListener('alpine:after-render', () => {
+ if (typeof lucide !== 'undefined') lucide.createIcons();
+ });
+ </script>
+ {% block extra_scripts %}{% endblock %}
+
+ <template x-teleport="body">
+ <div x-show="$store.confirm.show" x-cloak
+ @keydown.escape.prevent="$store.confirm.cancel()"
+ x-transition:enter="transition ease-out duration-300"
+ x-transition:enter-start="opacity-0"
+ x-transition:enter-end="opacity-100"
+ x-transition:leave="transition ease-in duration-200"
+ x-transition:leave-start="opacity-100"
+ x-transition:leave-end="opacity-0"
+ role="dialog" aria-modal="true"
+ class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+ <div @click.away="$store.confirm.cancel()"
+ x-transition:enter="transition ease-out duration-300"
+ x-transition:enter-start="opacity-0 scale-90"
+ x-transition:enter-end="opacity-100 scale-100"
+ class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-gray-100">
+ <div class="px-6 py-5 flex items-center gap-3 bg-gradient-gold text-accent">
+ <i data-lucide="alert-circle" class="w-6 h-6 text-accent shrink-0"></i>
+ <h3 class="text-lg font-bold text-accent" x-text="$store.confirm.title"></h3>
+ </div>
+ <div class="px-6 py-6">
+ <p class="text-gray-700 text-base leading-relaxed" x-text="$store.confirm.message"></p>
+ <p class="text-sm text-gray-500 mt-3 italic">This action cannot be undone.</p>
+ </div>
+ <div class="px-6 py-5 border-t border-gray-100 flex justify-end gap-3">
+ <button @click="$store.confirm.cancel()"
+ class="px-5 py-2.5 rounded-xl border border-gray-300 text-gray-700 font-bold text-sm hover:bg-gray-50 transition-colors">
+ Cancel
+ </button>
+ <button @click="$store.confirm.confirm()"
+ class="px-5 py-2.5 rounded-xl bg-gradient-gold text-accent font-bold text-sm transition-all hover:shadow-lg">
+ Confirm
+ </button>
+ </div>
+ </div>
+ </div>
+ </template>
 </body>
 </html>

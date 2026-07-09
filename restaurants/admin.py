@@ -1,11 +1,34 @@
 from django.contrib import admin
+from import_export.admin import ImportExportModelAdmin
+from import_export import resources
 from simple_history.admin import SimpleHistoryAdmin
 
 from .models import Region, Restaurant
 
 
+class RegionResource(resources.ModelResource):
+    class Meta:
+        model = Region
+        fields = ['id', 'name', 'created_at', 'updated_at']
+        import_id_fields = ['id']
+        skip_unchanged = True
+
+
+class RestaurantResource(resources.ModelResource):
+    class Meta:
+        model = Restaurant
+        fields = [
+            'id', 'code', 'name', 'region', 'city', 'address',
+            'latitude', 'longitude', 'phone', 'manager_email',
+            'status', 'opening_date', 'is_archived', 'created_at', 'updated_at'
+        ]
+        import_id_fields = ['code']
+        skip_unchanged = True
+
+
 @admin.register(Region)
-class RegionAdmin(SimpleHistoryAdmin):
+class RegionAdmin(ImportExportModelAdmin, SimpleHistoryAdmin):
+    resource_classes = [RegionResource]
     list_display = ['name', 'created_at']
     search_fields = ['name']
     ordering = ['name']
@@ -13,7 +36,8 @@ class RegionAdmin(SimpleHistoryAdmin):
 
 
 @admin.register(Restaurant)
-class RestaurantAdmin(SimpleHistoryAdmin):
+class RestaurantAdmin(ImportExportModelAdmin, SimpleHistoryAdmin):
+    resource_classes = [RestaurantResource]
     list_display = [
         'code', 'name', 'city', 'region', 'status',
         'phone', 'opening_date', 'created_at'

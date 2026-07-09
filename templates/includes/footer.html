@@ -1,10 +1,22 @@
-<footer class="border-t border-gray-200/50 dark:border-gray-700/50 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm px-4 sm:px-6 py-3">
-  <div class="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500">
-    <p>&copy; {% now "Y" %} <span class="font-semibold text-gray-500 dark:text-gray-400">{{ business_info.company_name|default:"McDonald's Pakistan" }}</span>. All rights reserved.</p>
-    <div class="flex items-center gap-3">
-      <span class="hidden sm:inline">Audit Management System</span>
-      <span class="h-3 w-px bg-gray-300 dark:bg-gray-600 hidden sm:block"></span>
-      <span class="font-mono text-[10px] bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">v2.0</span>
-    </div>
+<footer class="border-t border-gray-200/50 bg-white/50 backdrop-blur-sm px-4 sm:px-6 py-3">
+ <div class="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-400">
+ <p>&copy; {% now "Y" %} <span class="font-semibold text-gray-500">{{ business_info.company_name|default:"McDonald's Pakistan" }}</span>. All rights reserved.</p>
+ <div class="flex items-center gap-3">
+  {% if business_info.social_media.exists %}
+  <div class="flex items-center gap-2">
+   {% for sm in business_info.social_media.all %}
+    <a href="{{ sm.url }}" target="_blank" rel="noopener noreferrer"
+     class="text-gray-400 hover:text-gray-600 transition-colors text-sm"
+     aria-label="{{ sm.get_platform_display }}">
+     <i class="{% if sm.icon_class %}{{ sm.icon_class }}{% else %}fab fa-{{ sm.platform }}{% endif %}"></i>
+    </a>
+   {% endfor %}
+   <span class="h-3 w-px bg-gray-300"></span>
   </div>
+  {% endif %}
+  <span class="hidden sm:inline">Audit Management System</span>
+  <span class="h-3 w-px bg-gray-300 hidden sm:block"></span>
+  <span class="font-mono text-[10px] bg-gray-100 px-2 py-0.5 rounded-full">v2.0</span>
+ </div>
+ </div>
 </footer>

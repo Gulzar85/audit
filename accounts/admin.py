@@ -1,9 +1,23 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.translation import gettext_lazy as _
+from import_export.admin import ImportExportModelAdmin
+from import_export import resources
 from simple_history.admin import SimpleHistoryAdmin
 
 from .models import Department, Designation, User
+
+
+class UserResource(resources.ModelResource):
+    class Meta:
+        model = User
+        fields = [
+            'id', 'username', 'email', 'first_name', 'last_name',
+            'role', 'designation', 'department', 'mobile_number',
+            'email_notifications', 'is_active', 'is_staff', 'is_superuser'
+        ]
+        import_id_fields = ['username']
+        skip_unchanged = True
 
 
 @admin.register(Designation)
@@ -23,7 +37,8 @@ class DepartmentAdmin(SimpleHistoryAdmin):
 
 
 @admin.register(User)
-class UserAdmin(SimpleHistoryAdmin, BaseUserAdmin):
+class UserAdmin(ImportExportModelAdmin, SimpleHistoryAdmin, BaseUserAdmin):
+    resource_classes = [UserResource]
     list_display = [
         'username', 'email', 'get_full_name', 'role',
         'designation', 'department', 'email_notifications', 'is_active', 'is_admin'

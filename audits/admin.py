@@ -1,10 +1,40 @@
 from django.contrib import admin
+from import_export.admin import ImportExportModelAdmin
+from import_export import resources
 from simple_history.admin import SimpleHistoryAdmin
 
 from .models import (
     AuditTemplate, Section, Question,
     Audit, AuditSection, AuditQuestionResponse, CorrectiveAction
 )
+
+
+class AuditTemplateResource(resources.ModelResource):
+    class Meta:
+        model = AuditTemplate
+        fields = ['id', 'name', 'description', 'version', 'is_active', 'created_at', 'updated_at']
+        import_id_fields = ['name']
+        skip_unchanged = True
+
+
+class SectionResource(resources.ModelResource):
+    class Meta:
+        model = Section
+        fields = ['id', 'template', 'name', 'description', 'order', 'created_at', 'updated_at']
+        import_id_fields = ['id']
+        skip_unchanged = True
+
+
+class QuestionResource(resources.ModelResource):
+    class Meta:
+        model = Question
+        fields = [
+            'id', 'section', 'question_text', 'possible_points',
+            'is_critical', 'critical_failure_condition', 'order',
+            'created_at', 'updated_at'
+        ]
+        import_id_fields = ['id']
+        skip_unchanged = True
 
 
 class AuditSectionInline(admin.TabularInline):
@@ -33,7 +63,8 @@ class CorrectiveActionInline(admin.TabularInline):
 
 
 @admin.register(AuditTemplate)
-class AuditTemplateAdmin(SimpleHistoryAdmin):
+class AuditTemplateAdmin(ImportExportModelAdmin, SimpleHistoryAdmin):
+    resource_classes = [AuditTemplateResource]
     list_display = ['name', 'version', 'is_active', 'created_at']
     list_filter = ['is_active']
     search_fields = ['name']
@@ -41,7 +72,8 @@ class AuditTemplateAdmin(SimpleHistoryAdmin):
 
 
 @admin.register(Section)
-class SectionAdmin(SimpleHistoryAdmin):
+class SectionAdmin(ImportExportModelAdmin, SimpleHistoryAdmin):
+    resource_classes = [SectionResource]
     list_display = ['name', 'template', 'order', 'created_at']
     list_filter = ['template']
     search_fields = ['name', 'template__name']
@@ -49,7 +81,8 @@ class SectionAdmin(SimpleHistoryAdmin):
 
 
 @admin.register(Question)
-class QuestionAdmin(SimpleHistoryAdmin):
+class QuestionAdmin(ImportExportModelAdmin, SimpleHistoryAdmin):
+    resource_classes = [QuestionResource]
     list_display = ['order', 'section', 'possible_points',
                     'is_critical', 'truncated_text']
     list_filter = ['section__template', 'section', 'is_critical']

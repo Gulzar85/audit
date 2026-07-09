@@ -208,15 +208,59 @@ class CorrectiveActionForm(forms.ModelForm):
         self.helper.form_tag = False
         self.helper.attrs = {'novalidate': ''}
         self.helper.layout = Layout(
-            Field('audit', css_class=css),
-            Field('question_response', css_class=css),
-            Field('description', css_class=css),
-            Field('risk_level', css_class=css),
-            Field('assigned_to', css_class=css),
-            Field('status', css_class=css),
-            Field('deadline', css_class=css),
-            Field('comments', css_class=css),
-            Field('evidence_image', css_class=file_css),
+            HTML(
+                '<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">'
+            ),
+            Div(
+                HTML(
+                    '<div class="flex items-center gap-2 mb-4">'
+                    '<i data-lucide="link" class="h-5 w-5 text-primary"></i>'
+                    '<h3 class="font-semibold text-gray-800">Audit Reference</h3>'
+                    '</div>'
+                ),
+                Div(Field('audit', css_class=css), css_class='mb-4'),
+                Div(Field('question_response', css_class=css), css_class='mb-4'),
+                css_class='bg-white rounded-xl border border-gray-200 p-5'
+            ),
+            Div(
+                HTML(
+                    '<div class="flex items-center gap-2 mb-4">'
+                    '<i data-lucide="align-left" class="h-5 w-5 text-primary"></i>'
+                    '<h3 class="font-semibold text-gray-800">Action Details</h3>'
+                    '</div>'
+                ),
+                Div(Field('description', css_class=css), css_class='mb-4'),
+                Div(Field('risk_level', css_class=css), css_class='mb-4'),
+                Div(Field('status', css_class=css), css_class='mb-4'),
+                css_class='bg-white rounded-xl border border-gray-200 p-5'
+            ),
+            HTML('</div>'),
+            HTML(
+                '<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">'
+            ),
+            Div(
+                HTML(
+                    '<div class="flex items-center gap-2 mb-4">'
+                    '<i data-lucide="user-check" class="h-5 w-5 text-primary"></i>'
+                    '<h3 class="font-semibold text-gray-800">Assignment</h3>'
+                    '</div>'
+                ),
+                Div(Field('assigned_to', css_class=css), css_class='mb-4'),
+                Div(Field('deadline', css_class=css), css_class='mb-4'),
+                css_class='bg-white rounded-xl border border-gray-200 p-5'
+            ),
+            Div(
+                HTML(
+                    '<div class="flex items-center gap-2 mb-4">'
+                    '<i data-lucide="paperclip" class="h-5 w-5 text-primary"></i>'
+                    '<h3 class="font-semibold text-gray-800">Additional</h3>'
+                    '</div>'
+                ),
+                Div(Field('comments', css_class=css), css_class='mb-4'),
+                Div(Field('evidence_image', css_class=file_css), css_class='mb-4'),
+                css_class='bg-white rounded-xl border border-gray-200 p-5'
+            ),
+            HTML('</div>'),
         )
 
     def clean_evidence_image(self):
