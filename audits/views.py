@@ -126,6 +126,9 @@ class AuditDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['title'] = f'Audit: {self.object.restaurant.name}'
+        ctx['corrective_actions'] = self.object.corrective_actions.select_related(
+            'assigned_to', 'restaurant'
+        ).order_by('-created_at')
         return ctx
 
 
