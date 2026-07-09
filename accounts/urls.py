@@ -25,7 +25,6 @@ password_reset_view = rate_limit('password_reset', max_requests=3, window=3600)(
 
 urlpatterns = [
     path('profile/', views.ProfileView.as_view(), name='profile'),
-    path('profile/toggle-email-notifications/', views.ToggleEmailNotificationsView.as_view(), name='toggle_email_notifications'),
     path('', views.UserListView.as_view(), name='user_list'),
     path('<int:pk>/', views.UserDetailView.as_view(), name='user_detail'),
     path('login/', login_view, name='login'),
