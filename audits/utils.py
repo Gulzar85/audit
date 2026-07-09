@@ -6,7 +6,7 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 
 from core.email_utils import send_notification_email
-from core.models import Notification
+from core.models import BusinessInfo, Notification
 
 User = get_user_model()
 
@@ -20,7 +20,15 @@ EMAIL_TEMPLATES = {
 
 
 def _send_email_notifications(recipients, notification_type, email_context):
-    """Send email copies to users who have email_notifications enabled."""
+    """Send email copies to users who have email_notifications enabled.
+
+    Checks both the global master toggle (BusinessInfo.email_notifications_enabled)
+    and each user's personal preference (user.email_notifications).
+    """
+    from core.models import BusinessInfo
+    info = BusinessInfo.load()
+    if not info.email_notifications_enabled:
+        return
     template = EMAIL_TEMPLATES.get(notification_type)
     if not template:
         return

@@ -26,13 +26,14 @@ class DepartmentAdmin(SimpleHistoryAdmin):
 class UserAdmin(SimpleHistoryAdmin, BaseUserAdmin):
     list_display = [
         'username', 'email', 'get_full_name', 'role',
-        'designation', 'department', 'is_active', 'is_admin'
+        'designation', 'department', 'email_notifications', 'is_active', 'is_admin'
     ]
-    list_filter = ['role', 'is_active', 'is_staff', 'is_superuser', 'department', 'designation']
+    list_filter = ['role', 'is_active', 'is_staff', 'is_superuser', 'department', 'designation', 'email_notifications']
     list_display_links = ['username', 'email']
     search_fields = ['username', 'email', 'first_name', 'last_name', 'mobile_number']
     ordering = ['username']
     filter_horizontal = ['groups', 'user_permissions', 'restaurants']
+    actions = ['enable_email_notifications', 'disable_email_notifications']
 
     readonly_fields = ['last_login', 'date_joined']
 
@@ -48,6 +49,10 @@ class UserAdmin(SimpleHistoryAdmin, BaseUserAdmin):
         (
             'Role & Organization',
             {'fields': ['role', 'designation', 'department', 'manager', 'assigned_by']}
+        ),
+        (
+            'Notifications',
+            {'fields': ['email_notifications']}
         ),
         (
             'Restaurants',
@@ -86,3 +91,13 @@ class UserAdmin(SimpleHistoryAdmin, BaseUserAdmin):
         form = super().get_form(request, obj, **kwargs)
         form.user = request.user
         return form
+
+    @admin.action(description='Enable email notifications for selected users')
+    def enable_email_notifications(self, request, queryset):
+        updated = queryset.update(email_notifications=True)
+        self.message_user(request, f'{updated} user(s) — email notifications enabled.')
+
+    @admin.action(description='Disable email notifications for selected users')
+    def disable_email_notifications(self, request, queryset):
+        updated = queryset.update(email_notifications=False)
+        self.message_user(request, f'{updated} user(s) — email notifications disabled.')

@@ -31,6 +31,12 @@ class BusinessInfo(models.Model):
     email = models.EmailField(blank=True)
     website = models.URLField(blank=True)
 
+    email_notifications_enabled = models.BooleanField(
+        default=True,
+        verbose_name='Email notifications enabled',
+        help_text='Master switch — when disabled, no email notifications are sent to any user.',
+    )
+
     primary_color = models.CharField(max_length=7, default='#DA291C', validators=[color_validator])
     secondary_color = models.CharField(max_length=7, default='#FFC72C', validators=[color_validator])
     accent_color = models.CharField(max_length=7, default='#27251F', validators=[color_validator])
