@@ -1,0 +1,23 @@
+id,section,question_text,possible_points,is_critical,critical_failure_condition,order,created_at,updated_at
+1,1,Are all refrigeration units maintaining proper temperature (0-4 C for fridge -18 C for freezer)?,10,True,Temperature out of range,1,2025-01-01 00:00:00+00:00,2025-01-01 00:00:00+00:00
+2,1,Are food contact surfaces cleaned and sanitized between uses?,10,False,,2,2025-01-01 00:00:00+00:00,2025-01-01 00:00:00+00:00
+3,1,Are handwashing stations properly stocked and used by staff?,10,False,,3,2025-01-01 00:00:00+00:00,2025-01-01 00:00:00+00:00
+4,1,Are food items properly labeled with date and time?,5,False,,4,2025-01-01 00:00:00+00:00,2025-01-01 00:00:00+00:00
+5,1,Is the FIFO (First In First Out) system being followed?,5,False,,5,2025-01-01 00:00:00+00:00,2025-01-01 00:00:00+00:00
+6,2,Is the order accuracy rate above 95%?,10,True,Order accuracy below 95%,1,2025-01-01 00:00:00+00:00,2025-01-01 00:00:00+00:00
+7,2,Is the average wait time under 3 minutes?,5,False,,2,2025-01-01 00:00:00+00:00,2025-01-01 00:00:00+00:00
+8,2,Are staff greeting customers with a smile?,5,False,,3,2025-01-01 00:00:00+00:00,2025-01-01 00:00:00+00:00
+9,2,Is the dining area clean and well-maintained?,5,False,,4,2025-01-01 00:00:00+00:00,2025-01-01 00:00:00+00:00
+10,2,Are complaints being logged and resolved?,5,False,,5,2025-01-01 00:00:00+00:00,2025-01-01 00:00:00+00:00
+11,3,Are washrooms clean and fully stocked?,10,False,,1,2025-01-01 00:00:00+00:00,2025-01-01 00:00:00+00:00
+12,3,Is the dining floor free of debris and spills?,5,False,,2,2025-01-01 00:00:00+00:00,2025-01-01 00:00:00+00:00
+13,3,Are trash bins emptied regularly?,5,False,,3,2025-01-01 00:00:00+00:00,2025-01-01 00:00:00+00:00
+14,3,Is the exterior signage and parking area well-maintained?,5,False,,4,2025-01-01 00:00:00+00:00,2025-01-01 00:00:00+00:00
+15,4,Are all staff in proper uniform with name badges?,5,False,,1,2025-01-01 00:00:00+00:00,2025-01-01 00:00:00+00:00
+16,4,Are training records up to date for all staff?,10,True,Training records outdated,2,2025-01-01 00:00:00+00:00,2025-01-01 00:00:00+00:00
+17,4,Is the shift schedule posted and followed?,5,False,,3,2025-01-01 00:00:00+00:00,2025-01-01 00:00:00+00:00
+18,4,Are food safety certifications current?,10,True,Expired certifications,4,2025-01-01 00:00:00+00:00,2025-01-01 00:00:00+00:00
+19,5,Are all kitchen equipment in working condition?,10,False,,1,2025-01-01 00:00:00+00:00,2025-01-01 00:00:00+00:00
+20,5,Is the maintenance log up to date?,5,False,,2,2025-01-01 00:00:00+00:00,2025-01-01 00:00:00+00:00
+21,5,Are fire extinguishers inspected and accessible?,10,True,Missing or expired extinguisher,3,2025-01-01 00:00:00+00:00,2025-01-01 00:00:00+00:00
+22,5,Is the HVAC system functioning properly?,5,False,,4,2025-01-01 00:00:00+00:00,2025-01-01 00:00:00+00:00

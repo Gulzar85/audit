@@ -1,0 +1,6 @@
+username,email,first_name,last_name,role,designation,department,mobile_number,email_notifications,is_active,is_staff,is_superuser
+admin,admin@mcdonalds.pk,Admin,User,admin,,,,0300-1111001,True,True,True,True
+manager,manager@mcdonalds.pk,Ali,Khan,manager,1,1,0300-1111002,True,True,False,False
+auditor1,auditor1@mcdonalds.pk,Ahmed,Hassan,auditor,4,2,0300-1111003,True,True,False,False
+auditor2,auditor2@mcdonalds.pk,Sara,Ahmed,auditor,4,2,0300-1111004,True,True,False,False
+restuser,restuser@mcdonalds.pk,Usman,Tariq,restaurant_user,2,1,0300-1111005,True,True,False,False

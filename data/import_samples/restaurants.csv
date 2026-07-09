@@ -1,0 +1,11 @@
+code,name,region,city,address,latitude,longitude,phone,manager_email,status,opening_date,is_archived
+1270001,McDonald's Gulberg,1,Lahore,Main Boulevard Gulberg,31.5204,74.3587,042-1111001,mgr.gulberg@mcdonalds.pk,active,2020-03-15,False
+1270002,McDonald's MM Alam Road,1,Lahore,MM Alam Road Gulberg II,31.5250,74.3510,042-1111002,mgr.mmalam@mcdonalds.pk,active,2020-06-20,False
+1270003,McDonald's Johar Town,1,Lahore,Main Boulevard Johar Town,31.4717,74.2649,042-1111003,mgr.johartown@mcdonalds.pk,active,2021-01-10,False
+1270004,McDonald's Clifton,2,Karachi,Seaview Road Clifton,24.8104,67.0304,021-1111004,mgr.clifton@mcdonalds.pk,active,2019-11-01,False
+1270005,McDonald's Saddar,2,Karachi,Abdullah Haroon Road Saddar,24.8607,67.0011,021-1111005,mgr.saddar@mcdonalds.pk,active,2021-04-05,False
+1270006,McDonald's F-10 Markaz,3,Islamabad,F-10 Markaz Islamabad,33.6938,73.0250,051-1111006,mgr.f10@mcdonalds.pk,active,2020-08-30,False
+1270007,McDonald's Blue Area,3,Islamabad,Blue Area Jinnah Avenue,33.7167,73.0649,051-1111007,mgr.bluearea@mcdonalds.pk,renovation,2022-02-14,True
+1270008,McDonald's Faisalabad City,5,Faisalabad,Kutchery Road,31.4180,73.0790,041-1111008,mgr.faisalabad@mcdonalds.pk,active,2021-07-22,False
+1270009,McDonald's Multan Cantt,6,Multan,Abdali Road Multan Cantt,30.1978,71.4713,061-1111009,mgr.multan@mcdonalds.pk,active,2021-12-10,False
+1270010,McDonald's Peshawar City,8,Peshawar,Grand Trunk Road,34.0150,71.5800,091-1111010,mgr.peshawar@mcdonalds.pk,active,2023-09-01,False

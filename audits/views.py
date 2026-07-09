@@ -622,6 +622,78 @@ class DashboardView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
             }
             for f in freq_findings
         ])
+
+        # 5. Region Score Comparison
+        region_scores = (
+            submitted.values('restaurant__region__name')
+            .annotate(avg=Avg('total_percentage'), count=Count('id'))
+            .order_by('-avg')
+        )
+        ctx['region_scores'] = json.dumps([
+            {
+                'name': r['restaurant__region__name'] or 'Unassigned',
+                'avg': float(round(r['avg'], 1)) if r['avg'] else 0,
+                'count': r['count'],
+            }
+            for r in region_scores
+        ])
+
+        # 6. Top/Bottom 5 Restaurants by avg score
+        restaurant_avg = (
+            submitted.values('restaurant_id', 'restaurant__name')
+            .annotate(avg=Avg('total_percentage'), count=Count('id'))
+            .filter(count__gte=2)
+            .order_by('-avg')
+        )
+        top5 = list(restaurant_avg[:5])
+        bottom5 = list(reversed(restaurant_avg.order_by('avg')[:5]))
+        ctx['top5_restaurants'] = json.dumps([
+            {
+                'name': r['restaurant__name'],
+                'avg': float(round(r['avg'], 1)) if r['avg'] else 0,
+                'count': r['count'],
+            }
+            for r in top5
+        ])
+        ctx['bottom5_restaurants'] = json.dumps([
+            {
+                'name': r['restaurant__name'],
+                'avg': float(round(r['avg'], 1)) if r['avg'] else 0,
+                'count': r['count'],
+            }
+            for r in bottom5
+        ])
+
+        # 7. Grade Trend by Restaurant (last 6 months)
+        restaurant_trend_qs = list(
+            AuditSection.objects.filter(
+                audit_id__in=submitted_audit_ids,
+                audit__submitted_at__gte=six_months_ago,
+            )
+            .annotate(month=TruncMonth('audit__audit_date'))
+            .values('month', 'audit__restaurant__name')
+            .annotate(avg_pct=Avg('section_percentage'))
+            .order_by('month', 'audit__restaurant__name')
+        )
+        trend_by_restaurant = {}
+        all_rest_months = set()
+        for row in restaurant_trend_qs:
+            name = row['audit__restaurant__name']
+            label = row['month'].strftime('%b %Y') if row['month'] else ''
+            if name not in trend_by_restaurant:
+                trend_by_restaurant[name] = {}
+            trend_by_restaurant[name][label] = float(round(row['avg_pct'], 1)) if row['avg_pct'] else None
+            all_rest_months.add(label)
+        sorted_rest_months = sorted(all_rest_months, key=lambda m: m.split()[-1] + m.split()[0] if m else '')
+        ctx['restaurant_trend_series'] = json.dumps([
+            {
+                'name': name,
+                'data': [trend_by_restaurant[name].get(m, None) for m in sorted_rest_months],
+            }
+            for name in trend_by_restaurant
+        ])
+        ctx['restaurant_trend_months'] = json.dumps(sorted_rest_months)
+
         return ctx
 
 

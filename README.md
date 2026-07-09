@@ -7,11 +7,11 @@ A Django-based QA audit management system for McDonald's Pakistan. Auditors use 
 - **Audit Management**: Create, score, and submit restaurant audits using customizable templates with auto-save
 - **Scoring Interface**: Interactive per-question pass/fail, N/A toggle, numeric scoring, auto-save, keyboard navigation
 - **5-State Corrective Actions**: OPEN → IN_PROGRESS → COMPLETED → VERIFIED → CLOSED with status timeline
-- **Dashboard**: ApexCharts analytics (score trends, grade distribution, gauge, section performance), CA aging widget
+- **Dashboard**: ApexCharts analytics (score trends, grade distribution, gauge, section performance, CA aging, region comparison, restaurant rankings, score trends by restaurant)
+- **CSV Import/Export**: Bulk import/export of regions, restaurants, users, templates, sections, and questions via Django admin (django-import-export)
 - **SLA Deadlines**: Auto-calculated deadlines by risk level (Critical=3d, High=7d, Medium=14d, Low=30d)
 - **Escalation Command**: Daily cron job escalates overdue CAs and auto-closes stale verified ones
 - **PDF Reports**: Branded PDF audit reports via WeasyPrint
-- **Dark Mode**: Full dark mode support with persistent user preference
 - **Role-Based Access**: Admin, Manager, Auditor, Restaurant User with granular permissions
 - **Notifications**: In-app + email notifications for audit submissions and CA workflow events
 - **Audit Trail**: Full history via `django-simple-history` on all core models
@@ -156,11 +156,14 @@ Add a daily cron job to auto-escalate overdue CAs and close stale verified ones:
 ```
 audit/
 ├── accounts/          # Custom user model, auth views, admin actions
+│   └── management/commands/   # setup_groups
 ├── audits/            # Core audit app (scoring, CAs, dashboard, charts)
-│   └── management/commands/   # escalate_overdue_cas
+│   └── management/commands/   # seed_data, escalate_overdue_cas
 ├── config/            # Django settings (base/dev/prod)
 │   └── settings/
 ├── core/              # Shared models (BusinessInfo, Notification), security middleware
+├── data/              # CSV import samples (django-import-export)
+│   └── import_samples/
 ├── restaurants/       # Restaurant & region models
 ├── templates/         # Django templates
 │   ├── includes/      # Sidebar, navbar, toasts, footer
@@ -185,10 +188,11 @@ python manage.py test
 | Layer | Technology |
 |-------|------------|
 | Backend | Django 6.0, Python 3.11+ |
-| Frontend | Tailwind CSS (CDN), Alpine.js 3.14, Lucide Icons, ApexCharts |
+| Frontend | Tailwind CSS (CDN), Alpine.js 3.14, Lucide Icons, Font Awesome 6, ApexCharts 4.4 |
 | PDF | WeasyPrint |
 | Database | SQLite (WAL mode) |
 | Auth | Django auth + custom roles/permissions (Admin, Manager, Auditor, Restaurant User) |
 | History | django-simple-history |
 | Forms | django-crispy-forms + crispy-tailwind |
+| Import/Export | django-import-export |
 | Security | CSP, rate limiting, Argon2 hashing, HSTS, input validation |

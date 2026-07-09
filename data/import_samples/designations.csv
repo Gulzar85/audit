@@ -1,0 +1,7 @@
+id,name,slug,description,created_at,updated_at
+1,Regional Manager,regional-manager,Oversees restaurant operations within a region,2025-01-01 00:00:00+00:00,2025-01-01 00:00:00+00:00
+2,Restaurant Manager,restaurant-manager,Manages day-to-day restaurant operations,2025-01-01 00:00:00+00:00,2025-01-01 00:00:00+00:00
+3,Shift Manager,shift-manager,Supervises shift operations and staff,2025-01-01 00:00:00+00:00,2025-01-01 00:00:00+00:00
+4,Quality Auditor,quality-auditor,Conducts quality and compliance audits,2025-01-01 00:00:00+00:00,2025-01-01 00:00:00+00:00
+5,Training Coordinator,training-coordinator,Manages staff training and development,2025-01-01 00:00:00+00:00,2025-01-01 00:00:00+00:00
+6,Area Supervisor,area-supervisor,Supervises multiple restaurant locations,2025-01-01 00:00:00+00:00,2025-01-01 00:00:00+00:00

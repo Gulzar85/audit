@@ -3,7 +3,7 @@ from django.contrib.auth.models import Group, Permission
 from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
 
-from accounts.models import User
+from accounts.models import User, Designation, Department
 from restaurants.models import Restaurant, Region
 from audits.models import Audit, AuditTemplate, Section, Question, AuditSection, AuditQuestionResponse, CorrectiveAction
 
@@ -29,6 +29,8 @@ class Command(BaseCommand):
                     (Restaurant, ['view']),
                     (Region, ['view']),
                     (User, ['view']),
+                    (Designation, ['view']),
+                    (Department, ['view']),
                 ]
             },
             'Auditor': {
@@ -42,6 +44,8 @@ class Command(BaseCommand):
                     (CorrectiveAction, ['view', 'add', 'change', 'delete']),
                     (Restaurant, ['view']),
                     (Region, ['view']),
+                    (Designation, ['view']),
+                    (Department, ['view']),
                 ]
             },
             'Restaurant User': {
@@ -51,6 +55,8 @@ class Command(BaseCommand):
                     (AuditQuestionResponse, ['view']),
                     (CorrectiveAction, ['view', 'change']),
                     (Restaurant, ['view']),
+                    (Designation, ['view']),
+                    (Department, ['view']),
                 ]
             }
         }

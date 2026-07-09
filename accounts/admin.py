@@ -20,8 +20,25 @@ class UserResource(resources.ModelResource):
         skip_unchanged = True
 
 
+class DesignationResource(resources.ModelResource):
+    class Meta:
+        model = Designation
+        fields = ['id', 'name', 'slug', 'description', 'created_at', 'updated_at']
+        import_id_fields = ['id']
+        skip_unchanged = True
+
+
+class DepartmentResource(resources.ModelResource):
+    class Meta:
+        model = Department
+        fields = ['id', 'name', 'slug', 'description', 'created_at', 'updated_at']
+        import_id_fields = ['id']
+        skip_unchanged = True
+
+
 @admin.register(Designation)
-class DesignationAdmin(SimpleHistoryAdmin):
+class DesignationAdmin(ImportExportModelAdmin, SimpleHistoryAdmin):
+    resource_classes = [DesignationResource]
     list_display = ['name', 'slug', 'created_at']
     search_fields = ['name']
     prepopulated_fields = {'slug': ['name']}
@@ -29,7 +46,8 @@ class DesignationAdmin(SimpleHistoryAdmin):
 
 
 @admin.register(Department)
-class DepartmentAdmin(SimpleHistoryAdmin):
+class DepartmentAdmin(ImportExportModelAdmin, SimpleHistoryAdmin):
+    resource_classes = [DepartmentResource]
     list_display = ['name', 'slug', 'created_at']
     search_fields = ['name']
     prepopulated_fields = {'slug': ['name']}
