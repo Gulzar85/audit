@@ -45,6 +45,9 @@ class ProfileView(LoginRequiredMixin, TemplateView):
         ctx['designation_name'] = user.designation.name if user.designation else None
         ctx['department_name'] = user.department.name if user.department else None
 
+        if user.role == User.Roles.MANAGER:
+            ctx['auditors'] = User.objects.filter(manager=user).select_related('designation')
+
         return ctx
 
 

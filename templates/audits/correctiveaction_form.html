@@ -33,7 +33,7 @@
       <a href="{% url 'audits:corrective_actions' %}" class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border-2 border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-all min-h-[44px]"><i data-lucide="x" class="w-4 h-4 shrink-0"></i>Cancel</a>
      </div>
      {% if editing and perms.audits.delete_correctiveaction %}
-     <form method="post" action="{% url 'audits:corrective_action_delete' action.pk %}" @submit.prevent="$store.confirm.open('Delete Action', 'Delete this corrective action? This cannot be undone.', () => $el.submit())">{% csrf_token %}<button type="submit" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl border-2 border-red-200 text-red-600 font-bold hover:bg-red-50 hover:border-red-300 transition-all min-h-[44px]"><i data-lucide="trash-2" class="w-4 h-4 shrink-0"></i>Delete</button></form>
+     <form method="post" action="{% url 'audits:corrective_action_delete' action.pk %}" @submit.prevent="$store.confirm.open('Delete Action', 'Delete this corrective action? This cannot be undone.', () => $event.currentTarget.submit())">{% csrf_token %}<button type="submit" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl border-2 border-red-200 text-red-600 font-bold hover:bg-red-50 hover:border-red-300 transition-all min-h-[44px]"><i data-lucide="trash-2" class="w-4 h-4 shrink-0"></i>Delete</button></form>
      {% endif %}
     </div>
    </form>

@@ -165,8 +165,30 @@
  {% endif %}
  </div>
 
- <!-- Permissions -->
- <div class="bg-white/90 rounded-xl border border-gray-200/60 p-5 gold-card">
+  {% if auditors %}
+  <!-- Assigned Auditors -->
+  <div class="bg-white/90 rounded-xl border border-gray-200/60 p-5 gold-card">
+  <h2 class="text-sm font-bold text-gray-700 flex items-center gap-2 mb-4">
+  <div class="w-7 h-7 rounded-lg bg-gradient-gold flex items-center justify-center"><i data-lucide="users" class="w-4 h-4 text-accent"></i></div>
+  My Auditors
+  <span class="ml-auto text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{{ auditors|length }}</span>
+  </h2>
+  <div class="space-y-2">
+  {% for auditor in auditors %}
+  {% if perms.accounts.view_user %}
+  <a href="{% url 'accounts:user_detail' auditor.pk %}" class="flex items-center gap-3 p-3 rounded-xl bg-gray-50/50 border border-gray-100 hover:bg-gray-100 transition-all group">
+  <div class="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0"><span class="text-sm font-extrabold text-primary">{{ auditor.get_full_name|default:auditor.username|make_list|first|upper }}</span></div>
+  <div class="flex-1 min-w-0"><p class="text-sm font-bold text-gray-800 truncate group-hover:text-primary transition-colors">{{ auditor.get_full_name|default:auditor.username }}</p><p class="text-[11px] text-gray-400">{{ auditor.email }}{% if auditor.designation %} &middot; {{ auditor.designation.name }}{% endif %}</p></div>
+  <i data-lucide="chevron-right" class="w-4 h-4 text-gray-300 group-hover:text-gray-400 transition-colors shrink-0"></i>
+  </a>
+  {% endif %}
+  {% endfor %}
+  </div>
+  </div>
+  {% endif %}
+
+  <!-- Permissions -->
+  <div class="bg-white/90 rounded-xl border border-gray-200/60 p-5 gold-card">
  <h2 class="text-sm font-bold text-gray-700 flex items-center gap-2 mb-4">
  <div class="w-7 h-7 rounded-lg bg-gradient-gold flex items-center justify-center"><i data-lucide="shield" class="w-4 h-4 text-accent"></i></div>
  Permissions
