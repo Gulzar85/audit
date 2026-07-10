@@ -11,8 +11,9 @@
  'border-red-300/70 bg-gradient-to-br from-red-50/50 to-white/60': !isNA && getResponse({{ pk }}).scored === 0 && getResponse({{ pk }}).is_answered,
  'border-slate-200/70 bg-gradient-to-br from-slate-50/60 to-white/60': isNA
  }"
- x-data="{ isNA: getResponse({{ pk }}).is_na, pfpState: getPassFailState({{ pk }}) }"
- x-init="$watch('isNA', val => { if (val) pfpState = 'na' })">
+  x-data="{ isNA: getResponse({{ pk }}).is_na, pfpState: getPassFailState({{ pk }}), selectedPhoto: '', photoPreview: null }"
+  x-init="$watch('isNA', val => { if (val) pfpState = 'na' })"
+  x-on:photo-cleared-{{ pk }}.window="selectedPhoto = ''; photoPreview = null">
 
  {{ form.id }}
 
@@ -172,20 +173,48 @@
   class="mb-3">
   <div class="flex items-center gap-3 p-3.5 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50/60 hover:border-primary/40 hover:bg-primary/[0.03] transition-all cursor-pointer group min-h-[56px]"
   role="button" tabindex="0"
-  @click="document.getElementById('photo-upload-' + {{ pk }})?.click()"
-  @keydown.enter.prevent="document.getElementById('photo-upload-' + {{ pk }})?.click()"
-  aria-label="Attach photo evidence">
-  <div class="p-2 rounded-lg bg-slate-200/70 group-hover:bg-primary/10 transition-colors">
-  <i data-lucide="camera" class="w-4 h-4 text-slate-500 group-hover:text-primary transition-colors"></i>
-  </div>
-  <div class="flex-1 min-w-0">
-  <p class="text-xs font-bold text-slate-600 group-hover:text-primary transition-colors">Attach Photo Evidence</p>
-  <p class="text-[10px] text-slate-400">Tap to upload (JPG, PNG — max 5MB)</p>
-  </div>
-  <i data-lucide="upload" class="w-4 h-4 text-slate-400 group-hover:text-primary transition-colors"></i>
-  <input type="file" accept="image/jpeg,image/png" class="hidden" :id="'photo-upload-' + {{ pk }}"
-  aria-label="Upload photo">
-  </div>
+   @click="document.getElementById('photo-upload-' + {{ pk }})?.click()"
+   @keydown.enter.prevent="document.getElementById('photo-upload-' + {{ pk }})?.click()"
+   aria-label="Attach photo evidence">
+   <template x-if="!selectedPhoto">
+   <div class="p-2 rounded-lg bg-slate-200/70 group-hover:bg-primary/10 transition-colors">
+   <i data-lucide="camera" class="w-4 h-4 text-slate-500 group-hover:text-primary transition-colors"></i>
+   </div>
+   </template>
+   <template x-if="selectedPhoto">
+   <div class="p-2 rounded-lg bg-emerald-100/80">
+   <i data-lucide="image" class="w-4 h-4 text-emerald-600"></i>
+   </div>
+   </template>
+   <div class="flex-1 min-w-0">
+   <p class="text-xs font-bold text-slate-600 group-hover:text-primary transition-colors"
+   x-show="!selectedPhoto">Attach Photo Evidence</p>
+   <p class="text-xs font-bold text-emerald-700 truncate" x-show="selectedPhoto" x-text="selectedPhoto"></p>
+   <p class="text-[10px] text-slate-400" x-show="!selectedPhoto">Tap to upload (JPG, PNG — max 5MB)</p>
+   <p class="text-[10px] text-emerald-600" x-show="selectedPhoto">Photo selected</p>
+   </div>
+   <template x-if="!selectedPhoto">
+   <i data-lucide="upload" class="w-4 h-4 text-slate-400 group-hover:text-primary transition-colors"></i>
+   </template>
+   <template x-if="selectedPhoto">
+   <button type="button" @click.stop="selectedPhoto=''; photoPreview=null; document.getElementById('photo-upload-' + {{ pk }}).value=''"
+   class="p-1 hover:bg-red-100 rounded transition-colors" aria-label="Remove photo">
+   <i data-lucide="x" class="w-4 h-4 text-red-500"></i>
+   </button>
+   </template>
+   <input type="file" accept="image/jpeg,image/png" class="hidden" :id="'photo-upload-' + {{ pk }}"
+   @change="const f = $event.target.files[0]; if (f) { selectedPhoto = f.name; photoPreview = URL.createObjectURL(f); }"
+   aria-label="Upload photo">
+   </div>
+   <template x-if="photoPreview">
+   <div class="mt-2 relative rounded-lg overflow-hidden border border-slate-200">
+   <img :src="photoPreview" alt="Photo preview" class="w-full h-32 object-cover">
+   <button type="button" @click="selectedPhoto=''; photoPreview=null; document.getElementById('photo-upload-' + {{ pk }}).value=''"
+   class="absolute top-1 right-1 p-1 bg-black/50 hover:bg-black/70 rounded text-white transition-colors" aria-label="Remove photo">
+   <i data-lucide="x" class="w-3.5 h-3.5"></i>
+   </button>
+   </div>
+   </template>
   </div>
 
   <!-- N/A Toggle — bottom of card -->

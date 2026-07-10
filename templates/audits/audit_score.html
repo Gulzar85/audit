@@ -375,31 +375,38 @@ function scoreApp(sectionsData, auditId) {
  this.saveTimeouts[responseId] = setTimeout(() => this.saveResponse(responseId), 1500);
  },
 
- saveResponse(responseId) {
- const r = this.getResponse(responseId);
- this.savingStates[responseId] = 'saving';
- const fd = new FormData();
- fd.append('response_id', responseId);
- fd.append('scored_points', r.scored || 0);
- fd.append('comments', r.comments || '');
- fd.append('is_na', r.is_na ? 'true' : 'false');
- fd.append('needs_ca', r.needs_ca ? 'true' : 'false');
- fetch("{% url 'audits:save_response' %}", {
+  saveResponse(responseId) {
+  const r = this.getResponse(responseId);
+  this.savingStates[responseId] = 'saving';
+  const fd = new FormData();
+  fd.append('response_id', responseId);
+  fd.append('scored_points', r.scored || 0);
+  fd.append('comments', r.comments || '');
+  fd.append('is_na', r.is_na ? 'true' : 'false');
+  fd.append('needs_ca', r.needs_ca ? 'true' : 'false');
+  const fileInput = document.getElementById('photo-upload-' + responseId);
+  if (fileInput && fileInput.files.length > 0) {
+    fd.append('image', fileInput.files[0]);
+  }
+  fetch("{% url 'audits:save_response' %}", {
  method: 'POST',
  headers: { 'X-CSRFToken': this.csrf() },
  body: fd
  })
  .then(resp => resp.json())
- .then(d => {
- if (d.success) {
- this.savingStates[responseId] = 'saved';
- setTimeout(() => {
- if (this.savingStates[responseId] === 'saved') delete this.savingStates[responseId];
- }, 2000);
- } else {
- this.savingStates[responseId] = 'error';
- }
- })
+  .then(d => {
+  if (d.success) {
+  this.savingStates[responseId] = 'saved';
+  const fi = document.getElementById('photo-upload-' + responseId);
+  if (fi) { fi.value = ''; }
+  window.dispatchEvent(new CustomEvent('photo-cleared-' + responseId));
+  setTimeout(() => {
+  if (this.savingStates[responseId] === 'saved') delete this.savingStates[responseId];
+  }, 2000);
+  } else {
+  this.savingStates[responseId] = 'error';
+  }
+  })
  .catch(() => { this.savingStates[responseId] = 'error'; });
  },
 
