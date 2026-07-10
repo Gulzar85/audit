@@ -42,7 +42,8 @@ class AuditListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
         if not user.is_superuser:
             qs = qs.filter(
                 Q(auditor=user) |
-                Q(restaurant__in=user.restaurants.all())
+                Q(restaurant__in=user.restaurants.all()) |
+                Q(auditor__manager=user)
             )
 
         search = self.request.GET.get('q', '').strip()
@@ -119,7 +120,8 @@ class AuditDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
         if not user.is_superuser:
             qs = qs.filter(
                 Q(auditor=user) |
-                Q(restaurant__in=user.restaurants.all())
+                Q(restaurant__in=user.restaurants.all()) |
+                Q(auditor__manager=user)
             )
         return qs
 
@@ -144,7 +146,8 @@ class AuditScoreView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
         if not user.is_superuser:
             qs = qs.filter(
                 Q(auditor=user) |
-                Q(restaurant__in=user.restaurants.all())
+                Q(restaurant__in=user.restaurants.all()) |
+                Q(auditor__manager=user)
             )
         return qs
 
@@ -301,7 +304,8 @@ class AuditResultView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
         if not user.is_superuser:
             qs = qs.filter(
                 Q(auditor=user) |
-                Q(restaurant__in=user.restaurants.all())
+                Q(restaurant__in=user.restaurants.all()) |
+                Q(auditor__manager=user)
             )
         return qs
 
@@ -327,7 +331,8 @@ class AuditReportPdfView(LoginRequiredMixin, PermissionRequiredMixin, DetailView
         if not user.is_superuser:
             qs = qs.filter(
                 Q(auditor=user) |
-                Q(restaurant__in=user.restaurants.all())
+                Q(restaurant__in=user.restaurants.all()) |
+                Q(auditor__manager=user)
             )
         return qs
 
@@ -411,7 +416,8 @@ class DashboardView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
         if not user.is_superuser:
             qs = qs.filter(
                 Q(auditor=user) |
-                Q(restaurant__in=user.restaurants.all())
+                Q(restaurant__in=user.restaurants.all()) |
+                Q(auditor__manager=user)
             )
         return qs
 
@@ -446,7 +452,10 @@ class DashboardView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
         ca_qs = CorrectiveAction.objects.all()
         user = self.request.user
         if not user.is_superuser:
-            ca_qs = ca_qs.filter(restaurant__in=user.restaurants.all())
+            ca_qs = ca_qs.filter(
+                Q(restaurant__in=user.restaurants.all()) |
+                Q(audit__auditor__manager=user)
+            )
         if selected_template_id:
             ca_qs = ca_qs.filter(audit__template_id=selected_template_id)
         ctx['open_ca'] = ca_qs.exclude(status__in=['COMPLETED', 'VERIFIED', 'CLOSED']).count()
@@ -712,7 +721,8 @@ class DashboardExportView(LoginRequiredMixin, PermissionRequiredMixin, View):
         if not user.is_superuser:
             qs = qs.filter(
                 Q(auditor=user) |
-                Q(restaurant__in=user.restaurants.all())
+                Q(restaurant__in=user.restaurants.all()) |
+                Q(auditor__manager=user)
             )
 
         from_date = request.GET.get('from_date', '')
@@ -764,7 +774,10 @@ class CorrectiveActionListView(LoginRequiredMixin, PermissionRequiredMixin, List
 
         user = self.request.user
         if not user.is_superuser:
-            qs = qs.filter(restaurant__in=user.restaurants.all())
+            qs = qs.filter(
+                Q(restaurant__in=user.restaurants.all()) |
+                Q(audit__auditor__manager=user)
+            )
 
         status = self.request.GET.get('status', 'open')
         if status == 'open':
@@ -801,7 +814,10 @@ class CorrectiveActionCompleteView(LoginRequiredMixin, PermissionRequiredMixin, 
         qs = CorrectiveAction.objects.all()
         user = request.user
         if not user.is_superuser:
-            qs = qs.filter(restaurant__in=user.restaurants.all())
+            qs = qs.filter(
+                Q(restaurant__in=user.restaurants.all()) |
+                Q(audit__auditor__manager=user)
+            )
         return get_object_or_404(qs, pk=pk)
 
     @transaction.atomic
@@ -860,7 +876,10 @@ class CorrectiveActionVerifyView(LoginRequiredMixin, PermissionRequiredMixin, Vi
         qs = CorrectiveAction.objects.all()
         user = request.user
         if not user.is_superuser:
-            qs = qs.filter(restaurant__in=user.restaurants.all())
+            qs = qs.filter(
+                Q(restaurant__in=user.restaurants.all()) |
+                Q(audit__auditor__manager=user)
+            )
         return get_object_or_404(qs, pk=pk)
 
     @transaction.atomic
@@ -912,7 +931,10 @@ class CorrectiveActionCloseView(LoginRequiredMixin, PermissionRequiredMixin, Vie
         qs = CorrectiveAction.objects.all()
         user = request.user
         if not user.is_superuser:
-            qs = qs.filter(restaurant__in=user.restaurants.all())
+            qs = qs.filter(
+                Q(restaurant__in=user.restaurants.all()) |
+                Q(audit__auditor__manager=user)
+            )
         return get_object_or_404(qs, pk=pk)
 
     @transaction.atomic
@@ -980,7 +1002,10 @@ class CorrectiveActionDetailView(LoginRequiredMixin, PermissionRequiredMixin, De
         )
         user = self.request.user
         if not user.is_superuser:
-            qs = qs.filter(restaurant__in=user.restaurants.all())
+            qs = qs.filter(
+                Q(restaurant__in=user.restaurants.all()) |
+                Q(audit__auditor__manager=user)
+            )
         return qs
 
     def get_context_data(self, **kwargs):
@@ -1038,7 +1063,8 @@ class CorrectiveActionCreateView(LoginRequiredMixin, PermissionRequiredMixin, Cr
             if not user.is_superuser:
                 qs = qs.filter(
                     Q(auditor=user) |
-                    Q(restaurant__in=user.restaurants.all())
+                    Q(restaurant__in=user.restaurants.all()) |
+                    Q(auditor__manager=user)
                 )
             audit = qs.filter(pk=audit_pk).first()
             if audit:
@@ -1082,7 +1108,10 @@ class CorrectiveActionUpdateView(LoginRequiredMixin, PermissionRequiredMixin, Up
         qs = CorrectiveAction.objects.all()
         user = self.request.user
         if not user.is_superuser:
-            qs = qs.filter(restaurant__in=user.restaurants.all())
+            qs = qs.filter(
+                Q(restaurant__in=user.restaurants.all()) |
+                Q(audit__auditor__manager=user)
+            )
         return qs
 
     def get_form_kwargs(self):
@@ -1112,7 +1141,10 @@ class CorrectiveActionDeleteView(LoginRequiredMixin, PermissionRequiredMixin, Vi
         qs = CorrectiveAction.objects.all()
         user = self.request.user
         if not user.is_superuser:
-            qs = qs.filter(restaurant__in=user.restaurants.all())
+            qs = qs.filter(
+                Q(restaurant__in=user.restaurants.all()) |
+                Q(audit__auditor__manager=user)
+            )
         return qs
 
     def post(self, request, pk):
@@ -1136,7 +1168,8 @@ class AuditSubmitView(LoginRequiredMixin, PermissionRequiredMixin, View):
         if not user.is_superuser:
             qs = qs.filter(
                 Q(auditor=user) |
-                Q(restaurant__in=user.restaurants.all())
+                Q(restaurant__in=user.restaurants.all()) |
+                Q(auditor__manager=user)
             )
         return get_object_or_404(qs, pk=pk)
 
@@ -1167,7 +1200,8 @@ class AuditDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View):
         if not user.is_superuser:
             qs = qs.filter(
                 Q(auditor=user) |
-                Q(restaurant__in=user.restaurants.all())
+                Q(restaurant__in=user.restaurants.all()) |
+                Q(auditor__manager=user)
             )
         return qs
 
@@ -1213,7 +1247,8 @@ class SaveResponseView(LoginRequiredMixin, PermissionRequiredMixin, View):
         if not user.is_superuser:
             qs = qs.filter(
                 Q(audit_section__audit__auditor=user) |
-                Q(audit_section__audit__restaurant__in=user.restaurants.all())
+                Q(audit_section__audit__restaurant__in=user.restaurants.all()) |
+                Q(audit_section__audit__auditor__manager=user)
             )
         resp = get_object_or_404(qs, pk=response_id)
 
@@ -1299,7 +1334,8 @@ class FillRemainingView(LoginRequiredMixin, PermissionRequiredMixin, View):
         if not user.is_superuser:
             qs = qs.filter(
                 Q(auditor=user) |
-                Q(restaurant__in=user.restaurants.all())
+                Q(restaurant__in=user.restaurants.all()) |
+                Q(auditor__manager=user)
             )
         audit = get_object_or_404(qs, pk=audit_id)
         # Lock row
@@ -1374,7 +1410,8 @@ class AuditSubmitJSONView(LoginRequiredMixin, PermissionRequiredMixin, View):
         if not user.is_superuser:
             qs = qs.filter(
                 Q(auditor=user) |
-                Q(restaurant__in=user.restaurants.all())
+                Q(restaurant__in=user.restaurants.all()) |
+                Q(auditor__manager=user)
             )
         audit = get_object_or_404(qs, pk=pk)
         # Lock row to prevent race condition on submission

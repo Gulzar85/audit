@@ -14,20 +14,33 @@ class ProfileView(LoginRequiredMixin, TemplateView):
         ctx['title'] = 'My Profile'
         user = self.request.user
 
-        audits = Audit.objects.filter(auditor=user, is_archived=False)
-        ctx['audit_count'] = audits.count()
-        ctx['submitted_audit_count'] = audits.filter(is_submitted=True).count()
-        avg = audits.filter(is_submitted=True).aggregate(avg=Avg('total_percentage'))['avg']
+        if user.role == User.Roles.MANAGER:
+            audit_qs = Audit.objects.filter(
+                Q(auditor=user) |
+                Q(auditor__manager=user),
+                is_archived=False
+            )
+        else:
+            audit_qs = Audit.objects.filter(auditor=user, is_archived=False)
+        ctx['audit_count'] = audit_qs.count()
+        ctx['submitted_audit_count'] = audit_qs.filter(is_submitted=True).count()
+        avg = audit_qs.filter(is_submitted=True).aggregate(avg=Avg('total_percentage'))['avg']
         ctx['avg_score'] = round(avg, 1) if avg else None
 
-        ctx['latest_audit'] = audits.select_related(
+        ctx['latest_audit'] = audit_qs.select_related(
             'restaurant', 'template'
         ).order_by('-audit_date').first()
 
         ctx['restaurant_count'] = user.restaurants.count()
-        ctx['open_ca_count'] = CorrectiveAction.objects.filter(
-            restaurant__in=user.restaurants.all()
-        ).exclude(status__in=['COMPLETED', 'VERIFIED', 'CLOSED']).count()
+        ca_qs = CorrectiveAction.objects.all()
+        if user.role == User.Roles.MANAGER:
+            ca_qs = ca_qs.filter(
+                Q(restaurant__in=user.restaurants.all()) |
+                Q(audit__auditor__manager=user)
+            )
+        else:
+            ca_qs = ca_qs.filter(restaurant__in=user.restaurants.all())
+        ctx['open_ca_count'] = ca_qs.exclude(status__in=['COMPLETED', 'VERIFIED', 'CLOSED']).count()
 
         ctx['designation_name'] = user.designation.name if user.designation else None
         ctx['department_name'] = user.department.name if user.department else None
