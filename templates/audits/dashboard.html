@@ -9,7 +9,7 @@
 
 {% block content %}
 {% if perms.audits.view_audit %}
-<div x-data="{ activeTab: 'overview' }" class="max-w-7xl mx-auto space-y-6 animate-fade-in">
+<div x-data="{ activeTab: 'overview' }" class="max-w-7xl mx-auto space-y-8 animate-fade-in">
 
  <!-- ===== HERO ===== -->
   <div class="relative overflow-hidden rounded-2xl bg-gradient-dark p-6 sm:p-8">
@@ -41,7 +41,7 @@
   </a>
   {% endif %}
   {% if perms.audits.view_correctiveaction %}
-  <a href="{% url 'audits:corrective_actions' %}" class="px-4 py-2 rounded-xl bg-white/10 text-white text-sm font-semibold hover:bg-white/20 transition-all flex items-center gap-2 border border-white/10">
+  <a href="{% url 'audits:corrective_actions' %}" class="px-4 py-2.5 rounded-xl bg-white/10 text-white text-sm font-semibold hover:bg-white/20 transition-all flex items-center gap-2 border border-white/10">
   <i data-lucide="alert-triangle" class="w-4 h-4"></i> Actions
   {% if open_ca > 0 %}<span class="w-5 h-5 rounded-full bg-amber-400 text-[10px] font-extrabold text-accent flex items-center justify-center">{{ open_ca }}</span>{% endif %}
   </a>
@@ -60,8 +60,8 @@
   </div>
 
  <!-- ===== TEMPLATE FILTER BAR ===== -->
- <div class="bg-white/90 rounded-xl border border-gray-200/60 p-4 gold-card">
- <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+ <div class="bg-white/90 rounded-xl border border-gray-200/60 p-5 gold-card">
+  <div class="flex flex-col sm:flex-row sm:items-center gap-3">
  <div class="flex items-center gap-2 shrink-0">
  <i data-lucide="file-text" class="w-4 h-4 text-gray-400"></i>
  <span class="text-xs font-bold uppercase tracking-widest text-gray-500 ">Template</span>
@@ -87,15 +87,15 @@
  </div>
 
  <!-- ===== STATS ===== -->
- <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
- <div class="bg-white rounded-xl border border-gray-200/60 p-4 gold-card hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
+  <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+  <div class="bg-white rounded-xl border border-gray-200/60 p-5 gold-card hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
  <div class="flex items-center justify-between mb-2">
  <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Total Audits</p>
  <div class="w-8 h-8 rounded-xl bg-gradient-primary flex items-center justify-center shadow-sm"><i data-lucide="clipboard-check" class="w-4 h-4 text-white"></i></div>
  </div>
  <p class="text-2xl font-extrabold text-gray-900">{{ total_audits }}</p>
  </div>
- <div class="bg-white rounded-xl border border-gray-200/60 p-4 gold-card hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
+ <div class="bg-white rounded-xl border border-gray-200/60 p-5 gold-card hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
  <div class="flex items-center justify-between mb-2">
  <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Submitted</p>
  <div class="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center shadow-sm"><i data-lucide="check-circle" class="w-4 h-4 text-emerald-600"></i></div>
@@ -107,14 +107,14 @@
  </div>
  {% endif %}
  </div>
- <div class="bg-white rounded-xl border border-gray-200/60 p-4 gold-card hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
+ <div class="bg-white rounded-xl border border-gray-200/60 p-5 gold-card hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
  <div class="flex items-center justify-between mb-2">
  <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Drafts</p>
  <div class="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center shadow-sm"><i data-lucide="clock" class="w-4 h-4 text-amber-600"></i></div>
  </div>
  <p class="text-2xl font-extrabold text-amber-600">{{ draft_audits }}</p>
  </div>
- <div class="bg-white rounded-xl border border-gray-200/60 p-4 gold-card hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
+ <div class="bg-white rounded-xl border border-gray-200/60 p-5 gold-card hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
  <div class="flex items-center justify-between mb-2">
  <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Avg Score</p>
  <div class="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm {% if avg_score >= 90 %}bg-emerald-100{% elif avg_score >= 80 %}bg-amber-100{% else %}bg-red-100{% endif %}"><i data-lucide="trending-up" class="w-4 h-4 {% if avg_score >= 90 %}text-emerald-600{% elif avg_score >= 80 %}text-amber-600{% else %}text-red-600{% endif %}"></i></div>
@@ -126,14 +126,14 @@
  </div>
  {% endif %}
  </div>
- <div class="bg-white rounded-xl border border-gray-200/60 p-4 gold-card hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
+ <div class="bg-white rounded-xl border border-gray-200/60 p-5 gold-card hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
  <div class="flex items-center justify-between mb-2">
  <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Open Actions</p>
  <div class="w-8 h-8 rounded-xl {% if open_ca > 0 %}bg-amber-100{% else %}bg-emerald-100{% endif %} flex items-center justify-center shadow-sm"><i data-lucide="alert-triangle" class="w-4 h-4 {% if open_ca > 0 %}text-amber-600{% else %}text-emerald-600{% endif %}"></i></div>
  </div>
  <p class="text-2xl font-extrabold {% if open_ca > 0 %}text-amber-600{% else %}text-emerald-600{% endif %}">{{ open_ca }}</p>
  </div>
- <div class="bg-white rounded-xl border border-gray-200/60 p-4 gold-card hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
+ <div class="bg-white rounded-xl border border-gray-200/60 p-5 gold-card hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
  <div class="flex items-center justify-between mb-2">
  <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Overdue</p>
  <div class="w-8 h-8 rounded-xl {% if overdue_ca > 0 %}bg-red-100{% else %}bg-emerald-100{% endif %} flex items-center justify-center shadow-sm"><i data-lucide="alert-circle" class="w-4 h-4 {% if overdue_ca > 0 %}text-red-600{% else %}text-emerald-600{% endif %}"></i></div>
@@ -158,9 +158,9 @@
  </h3>
  {% if score_trends %}<span class="text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-1 rounded-md">Last 6 months</span>{% endif %}
  </div>
- {% if score_trends %}
- <div id="scoreTrendChart" class="h-[220px]"></div>
- {% else %}
+  {% if score_trends %}
+  <div class="overflow-x-auto"><div id="scoreTrendChart" class="h-[220px] min-w-[300px]"></div></div>
+  {% else %}
  <div class="flex flex-col items-center justify-center h-[220px] text-gray-400">
  <i data-lucide="trending-up" class="w-12 h-12 mb-3 text-gray-200"></i>
  <p class="text-sm font-semibold">No trend data yet</p>
@@ -176,8 +176,8 @@
  Grade Distribution
  </h3>
  </div>
- {% if grade_distribution %}
- <div id="gradeDonutChart" class="h-[180px]"></div>
+  {% if grade_distribution %}
+  <div class="overflow-x-auto"><div id="gradeDonutChart" class="h-[180px] min-w-[240px]"></div></div>
  <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 mt-3 px-2">
  {% for grade, data in grade_distribution.items %}
  <div class="flex items-center gap-1.5 text-[11px] bg-gray-50 px-2 py-1 rounded-md">
@@ -204,9 +204,9 @@
  Overall
  </h3>
  </div>
- {% if submitted_audits %}
- <div id="overallGauge" class="h-[220px]"></div>
- {% else %}
+  {% if submitted_audits %}
+  <div class="overflow-x-auto"><div id="overallGauge" class="h-[220px] min-w-[240px]"></div></div>
+  {% else %}
  <div class="flex flex-col items-center justify-center h-[220px] text-gray-400">
  <i data-lucide="gauge" class="w-12 h-12 mb-3 text-gray-200"></i>
  <p class="text-sm font-semibold">No data yet</p>
@@ -348,19 +348,19 @@
  <h2 class="text-sm font-bold text-gray-700 uppercase tracking-wider">Corrective Action Aging</h2>
  </div>
  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
- <div class="bg-white rounded-xl border border-gray-200/60 p-4 gold-card text-center hover:shadow-md transition-shadow duration-200">
+  <div class="bg-white rounded-xl border border-gray-200/60 p-5 gold-card text-center hover:shadow-md transition-shadow duration-200">
  <span class="text-2xl font-black {% if ca_aging.critical > 0 %}text-red-600{% else %}text-gray-400{% endif %}">{{ ca_aging.critical }}</span>
  <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mt-1">Critical<br><span class="text-[9px] font-normal normal-case tracking-normal text-gray-400">Overdue &gt;3d</span></p>
  </div>
- <div class="bg-white rounded-xl border border-gray-200/60 p-4 gold-card text-center hover:shadow-md transition-shadow duration-200">
+  <div class="bg-white rounded-xl border border-gray-200/60 p-5 gold-card text-center hover:shadow-md transition-shadow duration-200">
  <span class="text-2xl font-black {% if ca_aging.over_14 > 0 %}text-orange-500{% else %}text-gray-400{% endif %}">{{ ca_aging.over_14 }}</span>
  <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mt-1">Aging<br><span class="text-[9px] font-normal normal-case tracking-normal text-gray-400">14–30 days</span></p>
  </div>
- <div class="bg-white rounded-xl border border-gray-200/60 p-4 gold-card text-center hover:shadow-md transition-shadow duration-200">
+  <div class="bg-white rounded-xl border border-gray-200/60 p-5 gold-card text-center hover:shadow-md transition-shadow duration-200">
  <span class="text-2xl font-black {% if ca_aging.7_14 > 0 %}text-amber-500{% else %}text-gray-400{% endif %}">{{ ca_aging.7_14 }}</span>
  <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mt-1">Moderate<br><span class="text-[9px] font-normal normal-case tracking-normal text-gray-400">7–14 days</span></p>
  </div>
- <div class="bg-white rounded-xl border border-gray-200/60 p-4 gold-card text-center hover:shadow-md transition-shadow duration-200">
+  <div class="bg-white rounded-xl border border-gray-200/60 p-5 gold-card text-center hover:shadow-md transition-shadow duration-200">
  <span class="text-2xl font-black text-emerald-600">{{ ca_aging.0_7 }}</span>
  <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mt-1">Recent<br><span class="text-[9px] font-normal normal-case tracking-normal text-gray-400">&lt; 7 days</span></p>
  </div>
@@ -377,8 +377,8 @@
    CA Aging
    </h3>
    </div>
-   {% if ca_aging_data and ca_aging_data != '[]' %}
-   <div id="caAgingChart" class="h-[220px]"></div>
+  {% if ca_aging_data and ca_aging_data != '[]' %}
+    <div class="overflow-x-auto"><div id="caAgingChart" class="h-[220px] min-w-[300px]"></div></div>
    {% else %}
    <div class="flex flex-col items-center justify-center h-[220px] text-gray-400">
    <i data-lucide="clock" class="w-12 h-12 mb-3 text-gray-200"></i>
@@ -394,8 +394,8 @@
    </h3>
    <span class="text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-1 rounded-md">Last 6 months</span>
    </div>
-   {% if ca_monthly_close and ca_monthly_close != '[]' %}
-   <div id="caCloseChart" class="h-[220px]"></div>
+  {% if ca_monthly_close and ca_monthly_close != '[]' %}
+    <div class="overflow-x-auto"><div id="caCloseChart" class="h-[220px] min-w-[300px]"></div></div>
    {% else %}
    <div class="flex flex-col items-center justify-center h-[220px] text-gray-400">
    <i data-lucide="check-circle" class="w-12 h-12 mb-3 text-gray-200"></i>
@@ -419,8 +419,8 @@
  Section Performance
  </h3>
  </div>
- {% if section_performance and section_performance != '[]' %}
- <div id="sectionPerfChart" class="h-[220px]"></div>
+  {% if section_performance and section_performance != '[]' %}
+  <div class="overflow-x-auto"><div id="sectionPerfChart" class="h-[220px] min-w-[300px]"></div></div>
  {% else %}
  <div class="flex flex-col items-center justify-center h-[220px] text-gray-400">
  <i data-lucide="bar-chart-horizontal" class="w-12 h-12 mb-3 text-gray-200"></i>
@@ -436,8 +436,8 @@
  Points Deducted
  </h3>
  </div>
- {% if section_deductions and section_deductions != '[]' %}
- <div id="sectionDedChart" class="h-[220px]"></div>
+  {% if section_deductions and section_deductions != '[]' %}
+  <div class="overflow-x-auto"><div id="sectionDedChart" class="h-[220px] min-w-[300px]"></div></div>
  {% else %}
  <div class="flex flex-col items-center justify-center h-[220px] text-gray-400">
  <i data-lucide="bar-chart-3" class="w-12 h-12 mb-3 text-gray-200"></i>
@@ -462,8 +462,8 @@
    Region Score Comparison
    </h3>
    </div>
-   {% if region_scores and region_scores != '[]' %}
-   <div id="regionScoreChart" class="h-[220px]"></div>
+  {% if region_scores and region_scores != '[]' %}
+    <div class="overflow-x-auto"><div id="regionScoreChart" class="h-[220px] min-w-[300px]"></div></div>
    {% else %}
    <div class="flex flex-col items-center justify-center h-[220px] text-gray-400">
    <i data-lucide="map-pin" class="w-12 h-12 mb-3 text-gray-200"></i>
@@ -478,8 +478,8 @@
    Top &amp; Bottom Performers
    </h3>
    </div>
-   {% if top5_restaurants and top5_restaurants != '[]' %}
-   <div id="topBottomChart" class="h-[220px]"></div>
+  {% if top5_restaurants and top5_restaurants != '[]' %}
+    <div class="overflow-x-auto"><div id="topBottomChart" class="h-[220px] min-w-[300px]"></div></div>
    {% else %}
    <div class="flex flex-col items-center justify-center h-[220px] text-gray-400">
    <i data-lucide="award" class="w-12 h-12 mb-3 text-gray-200"></i>
@@ -504,7 +504,7 @@
  <div class="mb-3">
  <select id="sectionTrendSelect" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-xs focus:border-primary focus:ring-2 focus:ring-primary outline-none transition-all bg-gray-50/50 font-semibold"></select>
  </div>
- <div id="sectionTrendChart" class="h-[220px]"></div>
+  <div class="overflow-x-auto"><div id="sectionTrendChart" class="h-[220px] min-w-[300px]"></div></div>
  {% else %}
  <div class="flex flex-col items-center justify-center h-[220px] text-gray-400">
  <i data-lucide="trending-up" class="w-12 h-12 mb-3 text-gray-200"></i>
@@ -560,7 +560,7 @@
   <div class="mb-3">
    <select id="restaurantTrendSelect" class="w-full sm:w-72 px-3 py-2 rounded-lg border border-gray-300 text-xs focus:border-primary focus:ring-2 focus:ring-primary outline-none transition-all bg-gray-50/50 font-semibold"></select>
   </div>
-  <div id="restaurantTrendChart" class="h-[260px]"></div>
+  <div class="overflow-x-auto"><div id="restaurantTrendChart" class="h-[260px] min-w-[300px]"></div></div>
   {% else %}
   <div class="flex flex-col items-center justify-center h-[220px] text-gray-400">
    <i data-lucide="line-chart" class="w-12 h-12 mb-3 text-gray-200"></i>
@@ -568,202 +568,7 @@
   </div>
   {% endif %}
   </div>
- </div>
-   CA Aging
-   </h3>
-   </div>
-   {% if ca_aging_data and ca_aging_data != '[]' %}
-   <div id="caAgingChart" class="h-[220px]"></div>
-   {% else %}
-   <div class="flex flex-col items-center justify-center h-[220px] text-gray-400">
-   <i data-lucide="clock" class="w-12 h-12 mb-3 text-gray-200"></i>
-   <p class="text-sm font-semibold">No aging data yet</p>
-   </div>
-   {% endif %}
   </div>
-  <div class="bg-white rounded-xl border border-gray-200/60 p-5 gold-card hover:shadow-md transition-shadow duration-200">
-   <div class="flex items-center justify-between mb-4">
-   <h3 class="text-xs font-bold text-gray-600 flex items-center gap-2 uppercase tracking-wider">
-   <div class="w-7 h-7 rounded-xl bg-gradient-primary flex items-center justify-center"><i data-lucide="check-circle" class="w-3.5 h-3.5 text-white"></i></div>
-   Monthly Close Rate
-   </h3>
-   <span class="text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-1 rounded-md">Last 6 months</span>
-   </div>
-   {% if ca_monthly_close and ca_monthly_close != '[]' %}
-   <div id="caCloseChart" class="h-[220px]"></div>
-   {% else %}
-   <div class="flex flex-col items-center justify-center h-[220px] text-gray-400">
-   <i data-lucide="check-circle" class="w-12 h-12 mb-3 text-gray-200"></i>
-   <p class="text-sm font-semibold">No close data yet</p>
-   </div>
-   {% endif %}
-  </div>
- </div>
-
- <!-- ===== SECTION ANALYTICS ===== -->
- <div>
- <div class="flex items-center gap-2 mb-3">
- <div class="w-1 h-5 bg-gradient-gold rounded-full"></div>
- <h2 class="text-sm font-bold text-gray-700 uppercase tracking-wider">Section Analytics</h2>
- </div>
- <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
- <div class="bg-white rounded-xl border border-gray-200/60 p-5 gold-card hover:shadow-md transition-shadow duration-200">
- <div class="flex items-center justify-between mb-4">
- <h3 class="text-xs font-bold text-gray-600 flex items-center gap-2 uppercase tracking-wider">
- <div class="w-7 h-7 rounded-xl bg-gradient-gold flex items-center justify-center"><i data-lucide="layers" class="w-3.5 h-3.5 text-accent"></i></div>
- Section Performance
- </h3>
- </div>
- {% if section_performance and section_performance != '[]' %}
- <div id="sectionPerfChart" class="h-[220px]"></div>
- {% else %}
- <div class="flex flex-col items-center justify-center h-[220px] text-gray-400">
- <i data-lucide="bar-chart-horizontal" class="w-12 h-12 mb-3 text-gray-200"></i>
- <p class="text-sm font-semibold">No section data yet</p>
- <p class="text-xs text-gray-400">Section breakdown will appear after audits</p>
- </div>
- {% endif %}
- </div>
- <div class="bg-white rounded-xl border border-gray-200/60 p-5 gold-card hover:shadow-md transition-shadow duration-200">
- <div class="flex items-center justify-between mb-4">
- <h3 class="text-xs font-bold text-gray-600 flex items-center gap-2 uppercase tracking-wider">
- <div class="w-7 h-7 rounded-xl bg-gradient-primary flex items-center justify-center"><i data-lucide="bar-chart-3" class="w-3.5 h-3.5 text-white"></i></div>
- Points Deducted
- </h3>
- </div>
- {% if section_deductions and section_deductions != '[]' %}
- <div id="sectionDedChart" class="h-[220px]"></div>
- {% else %}
- <div class="flex flex-col items-center justify-center h-[220px] text-gray-400">
- <i data-lucide="bar-chart-3" class="w-12 h-12 mb-3 text-gray-200"></i>
- <p class="text-sm font-semibold">No deduction data yet</p>
- </div>
- {% endif %}
- </div>
- </div>
- </div>
-
- <!-- ===== RESTAURANT ANALYTICS ===== -->
- <div>
-  <div class="flex items-center gap-2 mb-3">
-  <div class="w-1 h-5 bg-gradient-primary rounded-full"></div>
-  <h2 class="text-sm font-bold text-gray-700 uppercase tracking-wider">Restaurant Analytics</h2>
-  </div>
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-  <div class="bg-white rounded-xl border border-gray-200/60 p-5 gold-card hover:shadow-md transition-shadow duration-200">
-   <div class="flex items-center justify-between mb-4">
-   <h3 class="text-xs font-bold text-gray-600 flex items-center gap-2 uppercase tracking-wider">
-   <div class="w-7 h-7 rounded-xl bg-gradient-gold flex items-center justify-center"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-accent"></i></div>
-   Region Score Comparison
-   </h3>
-   </div>
-   {% if region_scores and region_scores != '[]' %}
-   <div id="regionScoreChart" class="h-[220px]"></div>
-   {% else %}
-   <div class="flex flex-col items-center justify-center h-[220px] text-gray-400">
-   <i data-lucide="map-pin" class="w-12 h-12 mb-3 text-gray-200"></i>
-   <p class="text-sm font-semibold">No region data yet</p>
-   </div>
-   {% endif %}
-  </div>
-  <div class="bg-white rounded-xl border border-gray-200/60 p-5 gold-card hover:shadow-md transition-shadow duration-200">
-   <div class="flex items-center justify-between mb-4">
-   <h3 class="text-xs font-bold text-gray-600 flex items-center gap-2 uppercase tracking-wider">
-   <div class="w-7 h-7 rounded-xl bg-gradient-primary flex items-center justify-center"><i data-lucide="award" class="w-3.5 h-3.5 text-white"></i></div>
-   Top &amp; Bottom Performers
-   </h3>
-   </div>
-   {% if top5_restaurants and top5_restaurants != '[]' %}
-   <div id="topBottomChart" class="h-[220px]"></div>
-   {% else %}
-   <div class="flex flex-col items-center justify-center h-[220px] text-gray-400">
-   <i data-lucide="award" class="w-12 h-12 mb-3 text-gray-200"></i>
-   <p class="text-sm font-semibold">Not enough data</p>
-   <p class="text-xs text-gray-400">Need at least 2 audits per restaurant</p>
-   </div>
-   {% endif %}
-  </div>
-  </div>
- </div>
-
- <!-- ===== SECTION TREND + FREQUENT FINDINGS ===== -->
- <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
- <div class="bg-white rounded-xl border border-gray-200/60 p-5 gold-card hover:shadow-md transition-shadow duration-200">
- <div class="flex items-center justify-between mb-4">
- <h3 class="text-xs font-bold text-gray-600 flex items-center gap-2 uppercase tracking-wider">
- <div class="w-7 h-7 rounded-xl bg-gradient-gold flex items-center justify-center"><i data-lucide="trending-up" class="w-3.5 h-3.5 text-accent"></i></div>
- Section Trend
- </h3>
- </div>
- {% if section_trend_series and section_trend_series != '[]' %}
- <div class="mb-3">
- <select id="sectionTrendSelect" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-xs focus:border-primary focus:ring-2 focus:ring-primary outline-none transition-all bg-gray-50/50 font-semibold"></select>
- </div>
- <div id="sectionTrendChart" class="h-[220px]"></div>
- {% else %}
- <div class="flex flex-col items-center justify-center h-[220px] text-gray-400">
- <i data-lucide="trending-up" class="w-12 h-12 mb-3 text-gray-200"></i>
- <p class="text-sm font-semibold">No trend data yet</p>
- </div>
- {% endif %}
- </div>
- <div class="bg-white rounded-xl border border-gray-200/60 p-5 gold-card hover:shadow-md transition-shadow duration-200">
- <div class="flex items-center justify-between mb-4">
- <h3 class="text-xs font-bold text-gray-600 flex items-center gap-2 uppercase tracking-wider">
- <div class="w-7 h-7 rounded-xl bg-gradient-primary flex items-center justify-center"><i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-white"></i></div>
- Frequent Findings
- </h3>
- <span class="text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-1 rounded-md">{{ submitted_audits }} audits</span>
- </div>
- {% if frequent_findings and frequent_findings != '[]' %}
- <div class="overflow-x-auto -mx-5 px-5">
- <table class="w-full text-xs">
- <thead>
- <tr class="border-b border-gray-200 text-left text-[10px] font-bold text-gray-500 uppercase tracking-widest">
- <th scope="col" class="pb-2.5 pr-2 w-8">#</th>
- <th scope="col" class="pb-2.5 pr-2">Finding</th>
- <th scope="col" class="pb-2.5 pr-2 hidden sm:table-cell w-24">Section</th>
- <th scope="col" class="pb-2.5 text-right w-16">Lost</th>
- </tr>
- </thead>
- <tbody class="divide-y divide-gray-100" id="findingsTableBody"></tbody>
- </table>
- </div>
- {% else %}
- <div class="flex flex-col items-center justify-center h-[220px] text-gray-400">
- <i data-lucide="search" class="w-12 h-12 mb-3 text-gray-200"></i>
- <p class="text-sm font-semibold">No frequent deductions</p>
- </div>
- {% endif %}
-  </div>
- </div>
-
- <!-- ===== GRADE TREND BY RESTAURANT ===== -->
- <div>
-  <div class="flex items-center gap-2 mb-3">
-  <div class="w-1 h-5 bg-gradient-gold rounded-full"></div>
-  <h2 class="text-sm font-bold text-gray-700 uppercase tracking-wider">Restaurant Score Trends</h2>
-  </div>
-  <div class="bg-white rounded-xl border border-gray-200/60 p-5 gold-card hover:shadow-md transition-shadow duration-200">
-  <div class="flex items-center justify-between mb-4">
-   <h3 class="text-xs font-bold text-gray-600 flex items-center gap-2 uppercase tracking-wider">
-   <div class="w-7 h-7 rounded-xl bg-gradient-primary flex items-center justify-center"><i data-lucide="line-chart" class="w-3.5 h-3.5 text-white"></i></div>
-   Grade Trend by Restaurant
-   </h3>
-  </div>
-  {% if restaurant_trend_series and restaurant_trend_series != '[]' %}
-  <div class="mb-3">
-   <select id="restaurantTrendSelect" class="w-full sm:w-72 px-3 py-2 rounded-lg border border-gray-300 text-xs focus:border-primary focus:ring-2 focus:ring-primary outline-none transition-all bg-gray-50/50 font-semibold"></select>
-  </div>
-  <div id="restaurantTrendChart" class="h-[260px]"></div>
-  {% else %}
-  <div class="flex flex-col items-center justify-center h-[220px] text-gray-400">
-   <i data-lucide="line-chart" class="w-12 h-12 mb-3 text-gray-200"></i>
-   <p class="text-sm font-semibold">No trend data yet</p>
-  </div>
-  {% endif %}
-  </div>
- </div>
 
 </div>
 {% else %}
@@ -876,7 +681,7 @@ document.addEventListener('DOMContentLoaded', function() {
  xaxis: { categories: dedData.map(function(s) { return s.name; }) },
  colors: ['#22c55e', '#ef4444'],
  dataLabels: { enabled: false },
- legend: { position: 'top', horizontalAlign: 'right', fontSize: '10px' },
+ legend: { position: 'bottom', horizontalAlign: 'center', fontSize: '10px' },
  grid: { borderColor: '#e2e8f0' },
  tooltip: { y: { formatter: function(v) { return v + ' pts'; } } },
  }).render();
