@@ -95,6 +95,7 @@ class Notification(BaseModel):
         CA_COMPLETED = 'ca_completed', 'Corrective Action Completed'
         CA_VERIFIED = 'ca_verified', 'Corrective Action Verified'
         CA_CLOSED = 'ca_closed', 'Corrective Action Closed'
+        CA_ESCALATED = 'ca_escalated', 'Corrective Action Escalated'
 
     recipient = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='notifications')

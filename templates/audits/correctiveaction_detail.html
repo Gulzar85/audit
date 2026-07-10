@@ -91,7 +91,7 @@
  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-gray-100">
  <div>
  <label class="text-xs font-bold uppercase tracking-widest text-gray-500">Assigned To</label>
- <p class="mt-1 text-sm font-semibold text-gray-800">{{ action.assigned_to.get_full_name|default:action.assigned_to.username|default:'Unassigned' }}</p>
+ <p class="mt-1 text-sm font-semibold text-gray-800">{% if action.assigned_to %}{{ action.assigned_to.get_full_name|default:action.assigned_to.username }}{% else %}Unassigned{% endif %}</p>
  </div>
  <div>
  <label class="text-xs font-bold uppercase tracking-widest text-gray-500">Risk Level</label>

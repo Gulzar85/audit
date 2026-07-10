@@ -16,6 +16,7 @@ EMAIL_TEMPLATES = {
     Notification.Type.CA_COMPLETED: 'emails/ca_completed.html',
     Notification.Type.CA_VERIFIED: 'emails/ca_verified.html',
     Notification.Type.CA_CLOSED: 'emails/ca_closed.html',
+    Notification.Type.CA_ESCALATED: 'emails/ca_escalated.html',
 }
 
 

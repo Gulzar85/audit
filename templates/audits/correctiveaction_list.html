@@ -68,7 +68,7 @@
  <div class="flex items-center gap-2 flex-wrap"><span class="text-xs font-bold text-gray-400 uppercase tracking-wider">{{ action.restaurant.name }}</span><span class="text-xs text-gray-300">&middot;</span><span class="text-xs text-gray-500 font-semibold">{{ action.audit.audit_date|date:"M d, Y" }}</span></div>
  <p class="text-sm font-bold text-gray-800 mt-1">{{ action.description|truncatechars:120 }}</p>
  <div class="flex items-center gap-4 mt-2 text-xs text-gray-500">
- <span class="flex items-center gap-1"><i data-lucide="user" class="h-3.5 w-3.5"></i > {{ action.assigned_to.get_full_name|default:action.assigned_to.username|default:'Unassigned' }}</span>
+ <span class="flex items-center gap-1"><i data-lucide="user" class="h-3.5 w-3.5"></i >{% if action.assigned_to %}{{ action.assigned_to.get_full_name|default:action.assigned_to.username }}{% else %}Unassigned{% endif %}</span>
  <span class="flex items-center gap-1 {% if action.is_overdue %}text-red-600 font-bold{% endif %}"><i data-lucide="calendar" class="h-3.5 w-3.5"></i > {% if action.completed %}Done {{ action.completion_date|date:"M d, Y" }}{% elif action.is_overdue %}Overdue {{ action.deadline|date:"M d, Y" }}{% else %}Due {{ action.deadline|date:"M d, Y" }} ({{ action.days_remaining }}d){% endif %}</span>
  {% if action.question_response %}<span class="flex items-center gap-1" title="{{ action.question_response.question.question_text }}"><i data-lucide="help-circle" class="h-3.5 w-3.5"></i > {{ action.question_response.question.question_text|truncatechars:40 }}</span>{% endif %}
  </div>

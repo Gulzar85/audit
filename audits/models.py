@@ -395,7 +395,7 @@ class CorrectiveAction(BaseModel):
     @completed.setter
     def completed(self, value):
         if value:
-            if self.status == self.Status.OPEN:
+            if self.status in (self.Status.OPEN, self.Status.IN_PROGRESS):
                 self.status = self.Status.COMPLETED
         else:
             if self.status in (self.Status.COMPLETED, self.Status.VERIFIED, self.Status.CLOSED):

@@ -142,7 +142,7 @@ class Restaurant(BaseModel):
             models.Index(fields=['city', 'status']),
         ]
 
-# -------------------------
+    # -------------------------
     # SAVE (Transformations)
     # -------------------------
     def save(self, *args, **kwargs):

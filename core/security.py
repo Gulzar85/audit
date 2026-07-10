@@ -91,7 +91,7 @@ def get_client_ip(request):
 
 def check_suspicious_activity(request, action_type, threshold=10):
     """
-    Detect suspicious activity patterns.
+    Detect suspicious activity patterns using atomic cache increment.
     
     Args:
         request: Django request object
@@ -104,7 +104,15 @@ def check_suspicious_activity(request, action_type, threshold=10):
     ip = get_client_ip(request)
     cache_key = f"suspicious:{action_type}:{ip}"
     
-    attempts = cache.get(cache_key, 0)
+    # Atomic fixed-window counter (same pattern as rate_limit)
+    if cache.add(cache_key, 1, 3600):
+        attempts = 1
+    else:
+        try:
+            attempts = cache.incr(cache_key)
+        except ValueError:
+            cache.set(cache_key, 1, 3600)
+            attempts = 1
     
     if attempts >= threshold:
         log_security_event(
@@ -115,51 +123,7 @@ def check_suspicious_activity(request, action_type, threshold=10):
         )
         return True
     
-    # Increment and set 1-hour window
-    cache.set(cache_key, attempts + 1, 3600)
     return False
-
-
-def secure_redirect(request, next_url, allowed_hosts=None):
-    """
-    Safely redirect to next URL, preventing open redirect attacks.
-    
-    Args:
-        request: Django request object
-        next_url: URL to redirect to
-        allowed_hosts: List of allowed hosts (defaults to ALLOWED_HOSTS)
-    
-    Returns:
-        Validated URL or default redirect
-    """
-    from django.urls import reverse
-    from urllib.parse import urlparse
-    from django.conf import settings
-    
-    if not next_url:
-        return reverse('audits:dashboard')
-    
-    # Don't allow protocol-relative URLs
-    if next_url.startswith('//'):
-        return reverse('audits:dashboard')
-    
-    # Parse URL
-    parsed = urlparse(next_url)
-    
-    # Allow relative URLs only
-    if parsed.netloc:
-        # This is an absolute URL - check if it's allowed
-        allowed = allowed_hosts or settings.ALLOWED_HOSTS
-        if parsed.netloc not in allowed:
-            log_security_event(
-                'OPEN_REDIRECT_ATTEMPT',
-                request.user,
-                f"Attempted redirect to: {parsed.netloc}",
-                severity='WARNING'
-            )
-            return reverse('audits:dashboard')
-    
-    return next_url
 
 
 # Middleware classes

@@ -641,24 +641,30 @@ class DashboardView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
         # 6. Top/Bottom 5 Restaurants by avg score
         restaurant_avg = (
             submitted.values('restaurant_id', 'restaurant__name')
-            .annotate(avg=Avg('total_percentage'), count=Count('id'))
+            .annotate(
+                avg=Avg('total_percentage'),
+                count=Count('id')
+            )
             .filter(count__gte=2)
             .order_by('-avg')
         )
+
         top5 = list(restaurant_avg[:5])
         bottom5 = list(reversed(restaurant_avg.order_by('avg')[:5]))
+
         ctx['top5_restaurants'] = json.dumps([
             {
                 'name': r['restaurant__name'],
-                'avg': float(round(r['avg'], 1)) if r['avg'] else 0,
+                'avg': round(float(r['avg']), 1) if r['avg'] else 0,
                 'count': r['count'],
             }
             for r in top5
         ])
+
         ctx['bottom5_restaurants'] = json.dumps([
             {
                 'name': r['restaurant__name'],
-                'avg': float(round(r['avg'], 1)) if r['avg'] else 0,
+                'avg': round(float(r['avg']), 1) if r['avg'] else 0,
                 'count': r['count'],
             }
             for r in bottom5
@@ -798,8 +804,9 @@ class CorrectiveActionCompleteView(LoginRequiredMixin, PermissionRequiredMixin, 
             qs = qs.filter(restaurant__in=user.restaurants.all())
         return get_object_or_404(qs, pk=pk)
 
+    @transaction.atomic
     def post(self, request, pk):
-        action = self._get_action_or_404(request, pk)
+        action = CorrectiveAction.objects.select_for_update().get(pk=self._get_action_or_404(request, pk).pk)
         user = request.user
         previous_status = action.status
 
@@ -808,6 +815,9 @@ class CorrectiveActionCompleteView(LoginRequiredMixin, PermissionRequiredMixin, 
             messages.error(request, 'You cannot reopen a verified or closed corrective action.')
             return redirect('audits:corrective_actions')
 
+        # Initialise msg so it is always bound even if the status check somehow
+        # falls through (guards against future state additions).
+        msg = 'updated'
         # Determine allowed transitions based on role
         if action.status in (action.Status.OPEN, action.Status.IN_PROGRESS):
             action.status = action.Status.COMPLETED
@@ -853,8 +863,9 @@ class CorrectiveActionVerifyView(LoginRequiredMixin, PermissionRequiredMixin, Vi
             qs = qs.filter(restaurant__in=user.restaurants.all())
         return get_object_or_404(qs, pk=pk)
 
+    @transaction.atomic
     def post(self, request, pk):
-        action = self._get_action_or_404(request, pk)
+        action = CorrectiveAction.objects.select_for_update().get(pk=self._get_action_or_404(request, pk).pk)
         user = request.user
 
         # Only auditors, managers, or admins can verify
@@ -904,8 +915,9 @@ class CorrectiveActionCloseView(LoginRequiredMixin, PermissionRequiredMixin, Vie
             qs = qs.filter(restaurant__in=user.restaurants.all())
         return get_object_or_404(qs, pk=pk)
 
+    @transaction.atomic
     def post(self, request, pk):
-        action = self._get_action_or_404(request, pk)
+        action = CorrectiveAction.objects.select_for_update().get(pk=self._get_action_or_404(request, pk).pk)
         user = request.user
 
         # Only auditors, managers, or admins can close
@@ -1162,10 +1174,13 @@ class AuditDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View):
     def post(self, request, pk):
         qs = self.get_queryset()
         audit = get_object_or_404(qs, pk=pk)
+        # Acquire the row-level lock BEFORE the is_submitted guard to close
+        # the TOCTOU window where a concurrent request could submit the audit
+        # between the check and the actual archive.
+        audit = type(audit).objects.select_for_update().get(pk=audit.pk)
         if audit.is_submitted:
             messages.warning(request, 'Submitted audits cannot be deleted. Archive them instead.')
             return redirect('audits:detail', pk=pk)
-        audit = type(audit).objects.select_for_update().get(pk=audit.pk)
         audit.is_archived = True
         audit.save(update_fields=['is_archived', 'updated_at'])
         logger.info('Audit %s archived (soft-deleted) by %s', pk, request.user)
@@ -1210,6 +1225,10 @@ class SaveResponseView(LoginRequiredMixin, PermissionRequiredMixin, View):
         is_na = request.POST.get('is_na') == 'true'
         needs_ca = request.POST.get('needs_ca') == 'true'
 
+        if 'image' in request.FILES:
+            from .models import validate_uploaded_image
+            resp.image = request.FILES['image']
+
         if scored_points is not None:
             try:
                 scored_points = Decimal(scored_points)
@@ -1228,7 +1247,6 @@ class SaveResponseView(LoginRequiredMixin, PermissionRequiredMixin, View):
 
         if is_na:
             resp.scored_points = Decimal('0.00')
-            resp.comments = ''
             resp.needs_corrective_action = False
 
         # Disconnect signals to prevent per-response cascade
@@ -1418,3 +1436,22 @@ class AuditQuestionResponsesJSONView(LoginRequiredMixin, PermissionRequiredMixin
             'label': f'{r.audit_section.section.name} → {r.question.question_text[:60]}',
         } for r in qs]
         return JsonResponse({'responses': data})
+
+
+class AuditUsersJSONView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    permission_required = 'accounts.view_user'
+
+    def get(self, request, audit_pk):
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        from audits.models import Audit
+        audit = get_object_or_404(Audit, pk=audit_pk, is_archived=False)
+        qs = User.objects.filter(is_active=True, restaurants=audit.restaurant).distinct()
+        user = request.user
+        if not user.is_superuser:
+            qs = qs.filter(restaurants__in=user.restaurants.all())
+        data = [{
+            'id': u.pk,
+            'label': u.get_full_name() or u.username,
+        } for u in qs.order_by('username')]
+        return JsonResponse({'users': data})

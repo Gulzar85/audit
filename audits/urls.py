@@ -29,4 +29,5 @@ urlpatterns = [
     path('corrective-actions/<int:pk>/close/', views.CorrectiveActionCloseView.as_view(), name='corrective_action_close'),
     path('corrective-actions/<int:pk>/delete/', views.CorrectiveActionDeleteView.as_view(), name='corrective_action_delete'),
     path('ajax/audit-responses/<int:audit_pk>/', views.AuditQuestionResponsesJSONView.as_view(), name='audit_responses_json'),
+    path('ajax/audit-users/<int:audit_pk>/', views.AuditUsersJSONView.as_view(), name='audit_users_json'),
 ]

@@ -12,7 +12,7 @@ class AuditForm(forms.ModelForm):
     class Meta:
         model = Audit
         fields = ['template', 'restaurant', 'audit_date',
-                  'manager_on_duty', 'auditor']
+                  'manager_on_duty', 'auditor', 'auditor_signature', 'auditee_signature']
         widgets = {
             'audit_date': forms.DateInput(attrs={'type': 'date'}),
         }
@@ -40,6 +40,7 @@ class AuditForm(forms.ModelForm):
         if user:
             self.fields['auditor'].initial = user
 
+        css = 'w-full rounded-xl border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none'
         self.helper.layout = Layout(
             HTML(
                 '<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">'
@@ -51,16 +52,8 @@ class AuditForm(forms.ModelForm):
                     '<h3 class="font-semibold text-gray-800">Restaurant &amp; Template</h3>'
                     '</div>'
                 ),
-                Div(
-                    Field('template', placeholder='Select audit template',
-                          css_class='w-full rounded-lg border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20'),
-                    css_class='mb-4'
-                ),
-                Div(
-                    Field('restaurant', placeholder='Select restaurant',
-                          css_class='w-full rounded-lg border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20'),
-                    css_class='mb-4'
-                ),
+                Div(Field('template', css_class=css), css_class='mb-4'),
+                Div(Field('restaurant', css_class=css), css_class='mb-4'),
                 css_class='bg-white rounded-xl border border-gray-200 p-5'
             ),
             Div(
@@ -70,21 +63,9 @@ class AuditForm(forms.ModelForm):
                     '<h3 class="font-semibold text-gray-800">Audit Details</h3>'
                     '</div>'
                 ),
-                Div(
-                    Field('audit_date', placeholder='2026-06-16',
-                          css_class='w-full rounded-lg border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20'),
-                    css_class='mb-4'
-                ),
-                Div(
-                    Field('manager_on_duty', placeholder='e.g. Ali Khan',
-                          css_class='w-full rounded-lg border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20'),
-                    css_class='mb-4'
-                ),
-                Div(
-                    Field('auditor', placeholder='Select auditor',
-                          css_class='w-full rounded-lg border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20'),
-                    css_class='mb-4'
-                ),
+                Div(Field('audit_date', css_class=css), css_class='mb-4'),
+                Div(Field('manager_on_duty', css_class=css), css_class='mb-4'),
+                Div(Field('auditor', css_class=css), css_class='mb-4'),
                 css_class='bg-white rounded-xl border border-gray-200 p-5'
             ),
             HTML('</div>'),
@@ -131,7 +112,7 @@ class AuditForm(forms.ModelForm):
 class AuditScoreForm(forms.ModelForm):
     class Meta:
         model = AuditQuestionResponse
-        fields = ['scored_points', 'comments', 'needs_corrective_action', 'is_na']
+        fields = ['scored_points', 'comments', 'needs_corrective_action', 'is_na', 'image']
         widgets = {
             'comments': forms.Textarea(attrs={'rows': 2}),
         }
@@ -214,13 +195,13 @@ class CorrectiveActionForm(forms.ModelForm):
             Div(
                 HTML(
                     '<div class="flex items-center gap-2 mb-4">'
-                    '<i data-lucide="link" class="h-5 w-5 text-primary"></i>'
-                    '<h3 class="font-semibold text-gray-800">Audit Reference</h3>'
+                    '<i data-lucide="search" class="h-5 w-5 text-primary"></i>'
+                    '<h3 class="font-semibold text-gray-800">Audit &amp; Question</h3>'
                     '</div>'
                 ),
                 Div(Field('audit', css_class=css), css_class='mb-4'),
-                Div(Field('question_response', css_class=css), css_class='mb-4'),
-                css_class='bg-white rounded-xl border border-gray-200 p-5'
+                Div(Field('question_response', css_class=css, attrs={'data-initial': ''}), css_class='mb-4'),
+                css_class='glass rounded-xl p-5'
             ),
             Div(
                 HTML(
@@ -229,10 +210,10 @@ class CorrectiveActionForm(forms.ModelForm):
                     '<h3 class="font-semibold text-gray-800">Action Details</h3>'
                     '</div>'
                 ),
-                Div(Field('description', css_class=css), css_class='mb-4'),
+                Div(Field('description', css_class=css + ' resize-vertical min-h-[80px]'), css_class='mb-4'),
                 Div(Field('risk_level', css_class=css), css_class='mb-4'),
                 Div(Field('status', css_class=css), css_class='mb-4'),
-                css_class='bg-white rounded-xl border border-gray-200 p-5'
+                css_class='glass rounded-xl p-5'
             ),
             HTML('</div>'),
             HTML(
@@ -246,8 +227,8 @@ class CorrectiveActionForm(forms.ModelForm):
                     '</div>'
                 ),
                 Div(Field('assigned_to', css_class=css), css_class='mb-4'),
-                Div(Field('deadline', css_class=css), css_class='mb-4'),
-                css_class='bg-white rounded-xl border border-gray-200 p-5'
+                Div(Field('deadline', css_class=css + ' [color-scheme:light]'), css_class='mb-4'),
+                css_class='glass rounded-xl p-5'
             ),
             Div(
                 HTML(
@@ -256,9 +237,9 @@ class CorrectiveActionForm(forms.ModelForm):
                     '<h3 class="font-semibold text-gray-800">Additional</h3>'
                     '</div>'
                 ),
-                Div(Field('comments', css_class=css), css_class='mb-4'),
+                Div(Field('comments', css_class=css + ' resize-vertical'), css_class='mb-4'),
                 Div(Field('evidence_image', css_class=file_css), css_class='mb-4'),
-                css_class='bg-white rounded-xl border border-gray-200 p-5'
+                css_class='glass rounded-xl p-5'
             ),
             HTML('</div>'),
         )

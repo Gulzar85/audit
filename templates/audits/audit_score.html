@@ -13,228 +13,227 @@
  <meta name="csrf-token" content="{{ csrf_token }}">
 
  <div class="max-w-7xl mx-auto">
- <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-7">
+ <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-7 pb-20 lg:pb-0">
 
- <!-- ====== SIDEBAR — Audit Progress Panel ====== -->
- <aside class="lg:col-span-3 order-2 lg:order-1">
- <div class="sticky top-0 glass-card rounded-2xl overflow-hidden gold-card">
+  <!-- ══════ SIDEBAR — Audit Progress Panel ══════ -->
+  <aside class="lg:col-span-3 order-2 lg:order-1">
+  <div class="sticky top-20 glass-premium rounded-2xl overflow-hidden border border-slate-200/40 shadow-drop">
 
- <!-- Header -->
- <div class="px-5 py-4 bg-gradient-primary-h">
- <div class="flex items-center gap-3">
- <div class="p-2 bg-white/20 rounded-lg">
- <i data-lucide="chart-bars" class="w-5 h-5 text-white"></i>
- </div>
- <div>
- <h2 class="text-sm font-bold text-white">Audit Progress</h2>
- <p class="text-xs text-white/70" x-text="completedSections + '/' + sections.length + ' sections'"></p>
- </div>
- </div>
- </div>
+  <!-- Header -->
+  <div class="px-5 py-4 bg-gradient-primary-h">
+  <div class="flex items-center gap-3">
+   <div class="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+   <i data-lucide="chart-bars" class="w-5 h-5 text-white"></i>
+   </div>
+   <div>
+   <h2 class="text-sm font-bold text-white">Audit Progress</h2>
+   <p class="text-xs text-white/70" x-text="completedSections + '/' + sections.length + ' sections'"></p>
+   </div>
+  </div>
+  </div>
 
- <div class="p-5 space-y-5">
+  <div class="p-5 space-y-5">
 
- <!-- Audit Info -->
- <div class="space-y-2.5">
- <div class="flex justify-between items-start gap-2">
- <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest shrink-0">Restaurant</span>
- <span class="text-xs font-bold text-gray-900 text-right max-w-[140px] truncate-2">{{ audit.restaurant.name }}</span>
- </div>
- <div class="flex justify-between items-start gap-2">
- <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest shrink-0">Date</span>
- <span class="text-xs font-bold text-gray-700 ">{{ audit.audit_date|date:"M d, Y" }}</span>
- </div>
- <div class="flex justify-between items-start gap-2">
- <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest shrink-0">Auditor</span>
- <span class="text-xs font-bold text-gray-700 text-right truncate">{{ audit.auditor.get_full_name|default:audit.auditor.username }}</span>
- </div>
- <div class="flex justify-between items-start gap-2">
- <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest shrink-0">Checklist</span>
- <span class="text-xs font-bold text-gray-700 text-right truncate">{{ audit.template.name }} <span class="text-gray-400">v{{ audit.template.version }}</span></span>
- </div>
- </div>
+  <!-- Audit Info -->
+  <div class="space-y-2.5">
+  <div class="flex justify-between items-start gap-2">
+   <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest shrink-0">Restaurant</span>
+   <span class="text-xs font-bold text-slate-900 text-right max-w-[140px] truncate-2">{{ audit.restaurant.name }}</span>
+  </div>
+  <div class="flex justify-between items-start gap-2">
+   <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest shrink-0">Date</span>
+   <span class="text-xs font-bold text-slate-700">{{ audit.audit_date|date:"M d, Y" }}</span>
+  </div>
+  <div class="flex justify-between items-start gap-2">
+   <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest shrink-0">Auditor</span>
+   <span class="text-xs font-bold text-slate-700 text-right truncate">{{ audit.auditor.get_full_name|default:audit.auditor.username }}</span>
+  </div>
+  <div class="flex justify-between items-start gap-2">
+   <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest shrink-0">Checklist</span>
+   <span class="text-xs font-bold text-slate-700 text-right truncate">{{ audit.template.name }} <span class="text-slate-400">v{{ audit.template.version }}</span></span>
+  </div>
+  </div>
 
- <div class="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
+  <div class="h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
 
- <!-- Jump to Section -->
- <div>
- <label for="jump-section" class="block text-[10px] font-bold text-gray-500 mb-2 uppercase tracking-widest">Jump to Section</label>
- <select id="jump-section"
- :value="isNaN(currentSection) ? '' : currentSection"
- @change="handleSectionSelect($event)"
- class="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
- <option value="">Select...</option>
- {% for group in section_formsets %}
- <option :value="{{ forloop.counter0 }}" x-text="sectionLabel({{ forloop.counter0 }})"></option>
- {% endfor %}
- </select>
- </div>
+  <!-- Section Jump -->
+  <div>
+  <label for="jump-section" class="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Jump to Section</label>
+  <select id="jump-section"
+  :value="isNaN(currentSection) ? '' : currentSection"
+  @change="handleSectionSelect($event)"
+  class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
+  <option value="">Select...</option>
+  {% for group in section_formsets %}
+  <option :value="{{ forloop.counter0 }}" x-text="sectionLabel({{ forloop.counter0 }})"></option>
+  {% endfor %}
+  </select>
+  </div>
 
- <!-- Progress Bar -->
- <div class="space-y-2.5">
- <div class="flex items-center justify-between">
- <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Progress</span>
- <span class="text-xs font-bold text-gray-500" x-text="completedSections + '/' + sections.length + ' done'"></span>
- </div>
- <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden shadow-inner">
- <div class="h-full rounded-full transition-all duration-700 ease-out"
- :style="'width: ' + (sections.length > 0 ? (completedSections / sections.length * 100) : 0) + '%'"
- :class="completedSections === sections.length ? 'bg-gradient-to-r from-emerald-500 to-emerald-600' : 'bg-gradient-to-r from-amber-500 to-amber-600'">
- </div>
- </div>
- <div class="flex items-center justify-between">
- <span class="text-sm font-extrabold" :class="gradeColorClass" x-text="totalPercentage.toFixed(1) + '%'"></span>
- <span class="text-xs text-gray-500 font-bold" x-text="totalScored.toFixed(1) + '/' + totalPossible.toFixed(1) + ' pts'"></span>
- </div>
- </div>
+  <!-- Progress Bar -->
+  <div class="space-y-2.5">
+  <div class="flex items-center justify-between">
+   <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Progress</span>
+   <span class="text-xs font-bold text-slate-500" x-text="completedSections + '/' + sections.length + ' done'"></span>
+  </div>
+  <div class="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden shadow-inner">
+   <div class="h-full rounded-full transition-all duration-700 ease-out"
+   :style="'width: ' + (sections.length > 0 ? (completedSections / sections.length * 100) : 0) + '%'"
+   :class="completedSections === sections.length ? 'bg-gradient-to-r from-emerald-500 to-emerald-600' : 'bg-gradient-to-r from-amber-500 to-amber-600'">
+   </div>
+  </div>
+  <div class="flex items-center justify-between">
+   <span class="text-sm font-extrabold" :class="gradeColorClass" x-text="totalPercentage.toFixed(1) + '%'"></span>
+   <span class="text-xs text-slate-500 font-bold" x-text="totalScored.toFixed(1) + '/' + totalPossible.toFixed(1) + ' pts'"></span>
+  </div>
+  </div>
 
- <div class="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
+  <div class="h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
 
- <!-- Grade Display -->
- <div class="text-center py-2">
- <div class="text-3xl font-extrabold" :class="gradeColorClass" x-text="gradeLabel.split(' ')[0]"></div>
- <div class="text-xs font-bold text-gray-500 mt-1" x-text="gradeLabel"></div>
- </div>
+  <!-- Grade -->
+  <div class="text-center py-2">
+  <div class="text-3xl font-extrabold" :class="gradeColorClass" x-text="gradeLabel.split(' ')[0]"></div>
+  <div class="text-xs font-bold text-slate-500 mt-1" x-text="gradeLabel"></div>
+  </div>
 
- <!-- Navigation Buttons -->
- <div class="grid grid-cols-2 gap-2">
- <button type="button" @click="navigateSection('prev')" :disabled="currentSection === 0"
- class="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs font-bold text-gray-700 hover:bg-gray-50 :bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
- <i data-lucide="chevron-left" class="w-4 h-4"></i > Prev
- </button>
- <button type="button" @click="navigateSection('next')" :disabled="currentSection === sections.length - 1"
- class="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs font-bold text-gray-700 hover:bg-gray-50 :bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
- Next <i data-lucide="chevron-right" class="w-4 h-4"></i>
- </button>
- </div>
+  <!-- Navigation (desktop) -->
+  <div class="grid grid-cols-2 gap-2">
+  <button type="button" @click="navigateSection('prev')" :disabled="currentSection === 0"
+  class="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all min-h-[44px]">
+  <i data-lucide="chevron-left" class="w-4 h-4"></i> Prev
+  </button>
+  <button type="button" @click="navigateSection('next')" :disabled="currentSection === sections.length - 1"
+  class="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all min-h-[44px]">
+  Next <i data-lucide="chevron-right" class="w-4 h-4"></i>
+  </button>
+  </div>
 
- <!-- Submit Button -->
- <button type="button" @click="confirmSubmit()"
- class="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white text-sm font-bold transition-all shadow-lg shadow-emerald-600/20 hover:shadow-xl hover:shadow-emerald-600/30 active:scale-[0.98]">
- <i data-lucide="check-circle-2" class="w-5 h-5"></i > Save &amp; Submit
- </button>
+  <!-- Submit (desktop) -->
+  <button type="button" @click="confirmSubmit()"
+  class="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-success text-white text-sm font-bold transition-all shadow-lg shadow-emerald-600/20 hover:shadow-xl hover:shadow-emerald-600/30 active:scale-[0.97] min-h-[44px]">
+  <i data-lucide="check-circle-2" class="w-5 h-5"></i> Save &amp; Submit
+  </button>
 
- <!-- Utility Links -->
- <div class="grid grid-cols-2 gap-2">
- <a href="{% url 'audits:dashboard' %}"
- class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 :bg-gray-700 text-xs font-semibold transition-colors">
- <i data-lucide="home" class="w-3.5 h-3.5"></i > Dashboard
- </a>
- <a href="{% url 'audits:list' %}"
- class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 :bg-gray-700 text-xs font-semibold transition-colors">
- <i data-lucide="list" class="w-3.5 h-3.5"></i > Audits
- </a>
- </div>
- </div>
- </div>
- </aside>
+  <!-- Utility -->
+  <div class="grid grid-cols-2 gap-2">
+  <a href="{% url 'audits:dashboard' %}"
+  class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 text-xs font-semibold transition-colors min-h-[44px]">
+  <i data-lucide="home" class="w-3.5 h-3.5"></i> Dashboard
+  </a>
+  <a href="{% url 'audits:list' %}"
+  class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 text-xs font-semibold transition-colors min-h-[44px]">
+  <i data-lucide="list" class="w-3.5 h-3.5"></i> Audits
+  </a>
+  </div>
+  </div>
+  </div>
+  </aside>
 
- <!-- ====== MAIN CONTENT — Sections & Questions ====== -->
- <div class="lg:col-span-9 order-1 lg:order-2 space-y-5">
+  <!-- ══════ MAIN — Sections & Questions ══════ -->
+  <div class="lg:col-span-9 order-1 lg:order-2 space-y-5">
 
- <!-- Header Card -->
- <div class="glass-card rounded-2xl overflow-hidden gold-card">
- <div class="px-5 sm:px-7 py-5 border-b border-gray-100 bg-gradient-to-r from-gray-50/80 to-white/80 backdrop-blur-sm">
- <div class="flex items-center justify-between gap-4 flex-wrap">
- <div class="flex items-center gap-3 flex-1 min-w-0">
- <div class="p-2.5 bg-gradient-primary rounded-lg shrink-0 shadow-lg shadow-primary/25">
- <i data-lucide="clipboard-check" class="w-5 h-5 text-white"></i>
- </div>
- <div class="min-w-0">
- <h1 class="text-lg font-extrabold text-gray-900 ">{{ audit.restaurant.name }}</h1>
- <p class="text-sm text-gray-500 ">{{ audit.template.name }} <span class="text-gray-400 ">v{{ audit.template.version }}</span></p>
- </div>
- </div>
- <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 ">
- <i data-lucide="save" class="w-3.5 h-3.5"></i>
- <span>Auto-save</span>
- </span>
- </div>
- </div>
- </div>
+  <!-- Header Card -->
+  <div class="glass-premium rounded-2xl overflow-hidden border border-slate-200/40">
+  <div class="px-5 sm:px-7 py-5 border-b border-slate-100 bg-gradient-to-r from-slate-50/80 to-white/80">
+  <div class="flex items-center justify-between gap-4 flex-wrap">
+   <div class="flex items-center gap-3 flex-1 min-w-0">
+   <div class="p-2.5 bg-gradient-primary rounded-lg shrink-0 shadow-lg shadow-primary/25">
+   <i data-lucide="clipboard-check" class="w-5 h-5 text-white"></i>
+   </div>
+   <div class="min-w-0">
+   <h1 class="text-lg font-extrabold text-slate-900">{{ audit.restaurant.name }}</h1>
+   <p class="text-sm text-slate-500">{{ audit.template.name }} <span class="text-slate-400">v{{ audit.template.version }}</span></p>
+   </div>
+   </div>
+   <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm">
+   <i data-lucide="save" class="w-3.5 h-3.5"></i>
+   <span>Auto-save</span>
+   </span>
+  </div>
+  </div>
+  </div>
 
- <!-- Section Formsets -->
- {% for group in section_formsets %}
- <section x-show="currentSection === {{ forloop.counter0 }}"
- x-cloak
- x-transition:enter="transition ease-out duration-300"
- x-transition:enter-start="opacity-0 translate-y-4"
- x-transition:enter-end="opacity-100 translate-y-0">
+  <!-- Sections -->
+  {% for group in section_formsets %}
+  <section x-show="currentSection === {{ forloop.counter0 }}" x-cloak
+  x-transition:enter="transition ease-out duration-300"
+  x-transition:enter-start="opacity-0 translate-y-4"
+  x-transition:enter-end="opacity-100 translate-y-0">
 
- <div class="glass-card rounded-2xl overflow-hidden gold-card">
- <!-- Section Header -->
- <div class="px-5 sm:px-7 py-4 bg-gradient-primary-h flex items-center justify-between gap-4">
- <div class="flex-1 min-w-0">
- <h3 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
- <i data-lucide="folder-open" class="w-5 h-5 shrink-0"></i>
- <span class="truncate">{{ forloop.counter }}. {{ group.section.section.name }}</span>
- <span class="text-sm font-bold text-white/70 whitespace-nowrap" x-text="'(' + sectionAnswered({{ forloop.counter0 }}) + '/' + sectionTotal({{ forloop.counter0 }}) + ')'"></span>
- </h3>
- {% if group.section.section.description %}
- <p class="text-xs text-red-100/80 mt-0.5 truncate">{{ group.section.section.description }}</p>
- {% endif %}
- </div>
- <div class="flex items-center gap-3 shrink-0">
- <button type="button" @click="fillSectionAJAX({{ forloop.counter0 }})"
- class="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-bold transition-colors"
- title="Auto-fill unanswered questions">
- <i data-lucide="zap" class="w-4 h-4"></i>
- <span class="hidden sm:inline">Fill</span>
- </button>
- <span class="px-2.5 py-1 rounded-full bg-white/20 text-white text-xs font-bold tabular-nums">
- {{ forloop.counter }}/{{ section_formsets|length }}
- </span>
- </div>
- </div>
+  <div class="glass-premium rounded-2xl overflow-hidden border border-slate-200/40">
+  <!-- Section Header -->
+  <div class="px-5 sm:px-7 py-4 bg-gradient-primary-h flex items-center justify-between gap-4">
+  <div class="flex-1 min-w-0">
+   <h3 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+   <i data-lucide="folder-open" class="w-5 h-5 shrink-0"></i>
+   <span class="truncate">{{ forloop.counter }}. {{ group.section.section.name }}</span>
+   <span class="text-sm font-bold text-white/70 whitespace-nowrap" x-text="'(' + sectionAnswered({{ forloop.counter0 }}) + '/' + sectionTotal({{ forloop.counter0 }}) + ')'"></span>
+   </h3>
+   {% if group.section.section.description %}
+   <p class="text-xs text-red-100/80 mt-0.5 truncate">{{ group.section.section.description }}</p>
+   {% endif %}
+  </div>
+  <div class="flex items-center gap-3 shrink-0">
+   <button type="button" @click="fillSectionAJAX({{ forloop.counter0 }})"
+   class="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-bold transition-colors min-h-[36px]"
+   title="Auto-fill unanswered">
+   <i data-lucide="zap" class="w-4 h-4"></i>
+   <span class="hidden sm:inline">Fill</span>
+   </button>
+   <span class="px-2.5 py-1 rounded-full bg-white/20 text-white text-xs font-bold tabular-nums">
+   {{ forloop.counter }}/{{ section_formsets|length }}
+   </span>
+  </div>
+  </div>
 
- <!-- Question Cards -->
- <div class="p-4 sm:p-5 space-y-3">
- {% for form in group.formset %}
- {% include 'components/audit_question_card.html' with form=form counter=forloop.counter %}
- {% empty %}
- <div class="text-center py-10">
- <div class="flex justify-center mb-3">
- <div class="p-3 rounded-full bg-blue-100 ">
- <i data-lucide="info" class="w-6 h-6 text-blue-500 "></i>
- </div>
- </div>
- <p class="text-sm text-gray-500 ">No questions available for this section.</p>
- </div>
- {% endfor %}
- </div>
- </div>
- </section>
- {% endfor %}
-
- <!-- Bottom Action Bar -->
- <div class="flex flex-col sm:flex-row justify-between items-center gap-4 py-4">
- <div class="flex gap-2">
- <button type="button" @click="navigateSection('prev')" :disabled="currentSection === 0"
- class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 font-bold text-sm hover:bg-gray-50 :bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm">
- <i data-lucide="chevron-left" class="w-4 h-4"></i > Previous
- </button>
- <button type="button" @click="navigateSection('next')" :disabled="currentSection === sections.length - 1"
- class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 font-bold text-sm hover:bg-gray-50 :bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm">
- Next <i data-lucide="chevron-right" class="w-4 h-4"></i>
- </button>
- </div>
- <div class="flex gap-2">
- <button type="button" @click="fillAllAJAX()"
- class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-sm transition-all shadow-md shadow-amber-500/20 active:scale-[0.98]">
- <i data-lucide="zap" class="w-4 h-4"></i > Fill All
- </button>
- <button type="button" @click="confirmSubmit()"
- class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-bold text-sm transition-all shadow-lg shadow-emerald-600/20 active:scale-[0.98]">
- <i data-lucide="check-circle-2" class="w-4 h-4"></i > Save &amp; Submit
- </button>
+  <!-- Questions -->
+  <div class="p-4 sm:p-5 space-y-3">
+  {% for form in group.formset %}
+  {% include 'components/audit_question_card.html' with form=form counter=forloop.counter %}
+  {% empty %}
+  <div class="text-center py-12">
+   <div class="flex justify-center mb-3">
+   <div class="p-3 rounded-full bg-blue-100">
+   <i data-lucide="info" class="w-6 h-6 text-blue-500"></i>
+   </div>
+   </div>
+   <p class="text-sm text-slate-500">No questions available for this section.</p>
+  </div>
+  {% endfor %}
+  </div>
+  </div>
+  </section>
+  {% endfor %}
+  </div>
  </div>
  </div>
 
- </div>
+ <!-- ══════ STICKY BOTTOM ACTION BAR (mobile-first) ══════ -->
+ <div class="fixed bottom-0 left-0 right-0 z-30 glass-strong border-t border-slate-200/60 px-3 sm:px-5 py-3 lg:hidden block">
+ <div class="flex items-center justify-between gap-2 max-w-7xl mx-auto">
+  <div class="flex gap-2">
+  <button type="button" @click="navigateSection('prev')" :disabled="currentSection === 0"
+  class="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-xs hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all min-h-[44px] shadow-sm">
+  <i data-lucide="chevron-left" class="w-4 h-4"></i>
+  </button>
+  <button type="button" @click="navigateSection('next')" :disabled="currentSection === sections.length - 1"
+  class="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-xs hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all min-h-[44px] shadow-sm">
+  <i data-lucide="chevron-right" class="w-4 h-4"></i>
+  </button>
+  </div>
+  <div class="flex items-center gap-2">
+  <div class="text-center px-2">
+   <span class="font-extrabold text-sm" :class="gradeColorClass" x-text="totalPercentage.toFixed(1) + '%'"></span>
+  </div>
+  <button type="button" @click="confirmSubmit()"
+  class="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-gradient-success text-white font-bold text-sm transition-all shadow-lg shadow-emerald-600/20 active:scale-[0.97] min-h-[44px]">
+  <i data-lucide="check-circle-2" class="w-4 h-4"></i> Submit
+  </button>
+  </div>
  </div>
  </div>
 
- <!-- ====== SUBMIT CONFIRMATION MODAL ====== -->
+ <!-- ══════ SUBMIT CONFIRMATION MODAL ══════ -->
  <template x-teleport="body">
  <div x-show="modal.type" x-cloak
  @keydown.escape.prevent="closeModal()"
@@ -245,69 +244,66 @@
  x-transition:leave-start="opacity-100"
  x-transition:leave-end="opacity-0"
  role="dialog" aria-modal="true" aria-labelledby="modal-title"
- class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+ class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
 
  <div @click.away="modal.type && modal.type !== 'confirm' ? modal.type = '' : null"
  x-transition:enter="transition ease-out duration-300"
  x-transition:enter-start="opacity-0 scale-90"
  x-transition:enter-end="opacity-100 scale-100"
- class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-gray-100 ">
+ class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200/60">
 
- <!-- Modal Header -->
- <div class="px-6 py-5 flex items-center gap-3"
- :class="{'bg-gradient-gold text-accent': modal.type === 'confirm', 'bg-emerald-600': modal.type === 'success', 'bg-red-600': modal.type === 'error'}">
- <template x-if="modal.type === 'confirm'"><i data-lucide="alert-circle" class="w-6 h-6 text-accent shrink-0"></i></template>
- <template x-if="modal.type === 'success'"><i data-lucide="check-circle-2" class="w-6 h-6 text-white shrink-0"></i></template>
- <template x-if="modal.type === 'error'"><i data-lucide="x-circle" class="w-6 h-6 text-white shrink-0"></i></template>
- <h3 id="modal-title" class="text-lg font-bold" :class="modal.type === 'confirm' ? 'text-accent' : 'text-white'" x-text="modal.title"></h3>
- </div>
+  <!-- Header -->
+  <div class="px-6 py-5 flex items-center gap-3"
+  :class="{'bg-gradient-gold text-accent': modal.type === 'confirm', 'bg-emerald-600 text-white': modal.type === 'success', 'bg-red-600 text-white': modal.type === 'error'}">
+  <template x-if="modal.type === 'confirm'"><i data-lucide="alert-circle" class="w-6 h-6 text-accent shrink-0"></i></template>
+  <template x-if="modal.type === 'success'"><i data-lucide="check-circle-2" class="w-6 h-6 text-white shrink-0"></i></template>
+  <template x-if="modal.type === 'error'"><i data-lucide="x-circle" class="w-6 h-6 text-white shrink-0"></i></template>
+  <h3 id="modal-title" class="text-lg font-bold" :class="modal.type === 'confirm' ? 'text-accent' : 'text-white'" x-text="modal.title"></h3>
+  </div>
 
- <!-- Modal Body -->
- <div class="px-6 py-6">
- <p class="text-gray-700 text-base leading-relaxed" x-text="modal.body"></p>
- <p x-show="modal.note" class="text-sm text-gray-500 mt-3 italic" x-text="modal.note"></p>
+  <!-- Body -->
+  <div class="px-6 py-6">
+  <p class="text-slate-700 text-base leading-relaxed" x-text="modal.body"></p>
+  <p x-show="modal.note" class="text-sm text-slate-500 mt-3 italic" x-text="modal.note"></p>
 
- <!-- Score Summary (Confirm only) -->
- <div x-show="modal.type === 'confirm' && modal.showScoreSummary"
- class="mt-5 space-y-2.5 bg-gray-50 rounded-xl p-4 border border-gray-100 ">
- <div class="flex justify-between items-center">
- <span class="text-sm text-gray-600 font-bold">Score</span>
- <span class="text-lg font-extrabold" :class="gradeColorClass" x-text="totalPercentage.toFixed(1) + '%'"></span>
- </div>
- <div class="flex justify-between items-center">
- <span class="text-sm text-gray-600 font-bold">Points</span>
- <span class="text-base font-extrabold text-gray-900 " x-text="totalScored.toFixed(1) + '/' + totalPossible.toFixed(1)"></span>
- </div>
- <div class="flex justify-between items-center">
- <span class="text-sm text-gray-600 font-bold">Grade</span>
- <span class="text-base font-extrabold" :class="gradeColorClass" x-text="gradeLabel"></span>
- </div>
- <div class="flex justify-between items-center">
- <span class="text-sm text-gray-600 font-bold">Sections</span>
- <span class="text-base font-extrabold text-gray-900 " x-text="completedSections + '/' + sections.length + ' complete'"></span>
- </div>
- </div>
- </div>
+  <!-- Score Summary -->
+  <div x-show="modal.type === 'confirm' && modal.showScoreSummary"
+  class="mt-5 space-y-2.5 bg-slate-50 rounded-xl p-4 border border-slate-100">
+  <div class="flex justify-between items-center">
+   <span class="text-sm text-slate-600 font-bold">Score</span>
+   <span class="text-lg font-extrabold" :class="gradeColorClass" x-text="totalPercentage.toFixed(1) + '%'"></span>
+  </div>
+  <div class="flex justify-between items-center">
+   <span class="text-sm text-slate-600 font-bold">Points</span>
+   <span class="text-base font-extrabold text-slate-900" x-text="totalScored.toFixed(1) + '/' + totalPossible.toFixed(1)"></span>
+  </div>
+  <div class="flex justify-between items-center">
+   <span class="text-sm text-slate-600 font-bold">Grade</span>
+   <span class="text-base font-extrabold" :class="gradeColorClass" x-text="gradeLabel"></span>
+  </div>
+  <div class="flex justify-between items-center">
+   <span class="text-sm text-slate-600 font-bold">Sections</span>
+   <span class="text-base font-extrabold text-slate-900" x-text="completedSections + '/' + sections.length + ' complete'"></span>
+  </div>
+  </div>
+  </div>
 
- <!-- Modal Footer -->
- <div class="px-6 py-5 border-t border-gray-100 flex justify-end gap-3">
- <button x-show="modal.type === 'confirm'"
- @click="modal.type = ''"
- class="px-5 py-2.5 rounded-xl border border-gray-300 text-gray-700 font-bold text-sm hover:bg-gray-50 :bg-gray-700 transition-colors">
- Cancel
- </button>
- <button @click="modal.onConfirm()" :disabled="modal.loading"
- class="px-5 py-2.5 rounded-xl text-white font-bold text-sm transition-all disabled:opacity-50 flex items-center gap-2"
- :class="{'bg-gradient-gold text-accent': modal.type === 'confirm', 'bg-emerald-600': modal.type === 'success', 'bg-red-600': modal.type === 'error'}">
- <template x-if="modal.loading">
- <svg class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
- <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
- <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
- </svg>
- </template>
- <span x-text="modal.actionText"></span>
- </button>
- </div>
+  <!-- Footer -->
+  <div class="px-6 py-5 border-t border-slate-100 flex justify-end gap-3">
+  <button x-show="modal.type === 'confirm'"
+  @click="modal.type = ''"
+  class="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-sm hover:bg-slate-50 transition-colors">
+  Cancel
+  </button>
+  <button @click="modal.onConfirm()" :disabled="modal.loading"
+  class="px-5 py-2.5 rounded-xl text-white font-bold text-sm transition-all disabled:opacity-50 flex items-center gap-2 min-h-[44px]"
+  :class="{'bg-gradient-gold text-accent': modal.type === 'confirm', 'bg-emerald-600': modal.type === 'success', 'bg-red-600': modal.type === 'error'}">
+  <template x-if="modal.loading">
+  <svg class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+  </template>
+  <span x-text="modal.actionText"></span>
+  </button>
+  </div>
  </div>
  </div>
  </template>
@@ -315,17 +311,6 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<style>
- /* Range slider custom styling */
- input[type=range] { -webkit-appearance: none; appearance: none; background: transparent; }
- input[type=range]::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: #e5e7eb; }
- input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: white; border: 2px solid var(--primary); margin-top: -5px; box-shadow: 0 2px 6px rgba(0,0,0,0.15); cursor: pointer; transition: transform 0.15s; }
- input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.25); }
- input[type=range]::-moz-range-track { height: 6px; border-radius: 3px; background: #e5e7eb; }
- input[type=range]::-moz-range-thumb { height: 16px; width: 16px; border-radius: 50%; background: white; border: 2px solid var(--primary); box-shadow: 0 2px 6px rgba(0,0,0,0.15); cursor: pointer; }
- input[type=range]:disabled { opacity: 0.3; cursor: not-allowed; }
- input[type=range]:disabled::-webkit-slider-thumb { cursor: not-allowed; transform: none; }
-</style>
 <script>
 function scoreApp(sectionsData, auditId) {
  return {
@@ -352,7 +337,6 @@ function scoreApp(sectionsData, auditId) {
  return m ? m.getAttribute('content') : '';
  },
 
- // ── Pass / Fail / NA Toggle State ──
  getPassFailState(responseId) {
  const r = this.getResponse(responseId);
  if (!r) return null;
@@ -363,7 +347,6 @@ function scoreApp(sectionsData, auditId) {
  return null;
  },
 
- // ── Set Pass / Fail / NA ──
  setPassFail(responseId, state) {
  const r = this.getResponse(responseId);
  if (!r) return;
@@ -387,7 +370,6 @@ function scoreApp(sectionsData, auditId) {
  this.scheduleSave(responseId);
  },
 
- // ── Save Logic ──
  scheduleSave(responseId) {
  clearTimeout(this.saveTimeouts[responseId]);
  this.saveTimeouts[responseId] = setTimeout(() => this.saveResponse(responseId), 1500);
@@ -446,7 +428,6 @@ function scoreApp(sectionsData, auditId) {
  }
  },
 
- // ── Fill AJAX ──
  fillSectionAJAX(sIdx) {
  const sec = this.sections[sIdx];
  if (!sec) return;
@@ -503,7 +484,6 @@ function scoreApp(sectionsData, auditId) {
  .catch(() => { this.modal.loading = false; });
  },
 
- // ── Navigation ──
  get isFirstSection() { return this.currentSection === 0; },
  get isLastSection() { return this.currentSection === this.sections.length - 1; },
 
@@ -523,7 +503,6 @@ function scoreApp(sectionsData, auditId) {
  }
  },
 
- // ── Computed Metrics ──
  sectionAnswered(sIdx) {
  const sec = this.sections[sIdx];
  return sec ? sec.responses.filter(r => r.is_answered && !r.is_na).length : 0;
@@ -588,14 +567,13 @@ function scoreApp(sectionsData, auditId) {
 
  get gradeColorClass() {
  const p = this.totalPercentage;
- if (p === 0 && this.totalPossible === 0) return 'text-gray-400';
+ if (p === 0 && this.totalPossible === 0) return 'text-slate-400';
  if (this.criticalCount > 0) return 'text-red-600';
  if (p >= 90) return 'text-emerald-600';
  if (p >= 80) return 'text-amber-600';
  return 'text-red-600';
  },
 
- // ── Modal ──
  openModal(type, title, body, actionText, onConfirm) {
  this.modal.type = type;
  this.modal.title = title;

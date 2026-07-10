@@ -1,21 +1,28 @@
-<div class="fixed top-4 right-4 z-50 space-y-2 w-[calc(100%-2rem)] sm:w-auto" x-data>
+<!--
+ Premium Toast Notifications v2
+ - Fixed top-right, stacked, auto-dismiss after 5s
+ - Glassmorphism backgrounds with colored left border accent
+ - Lucide icon per severity level
+-->
+<div class="fixed top-4 right-4 z-50 space-y-3 w-[calc(100%-2rem)] sm:w-auto pointer-events-none" x-data>
  {% for message in messages %}
- <div class="toast-enter flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl border min-w-0 sm:min-w-[360px] max-w-md backdrop-blur-md"
+ <div class="pointer-events-auto animate-slide-in-right flex items-start gap-3.5 px-5 py-4 rounded-2xl shadow-drop border backdrop-blur-xl min-w-0 sm:min-w-[380px] max-w-md transition-all duration-300"
  x-data="toast"
  x-show="show"
  x-init="setTimeout(() => dismiss(), 5000)"
  :class="{
- 'glass-premium border-emerald-200/60': '{{ message.tags }}' === 'success',
- 'glass-premium border-red-200/60': '{{ message.tags }}' === 'error',
- 'glass-premium border-amber-200/60': '{{ message.tags }}' === 'warning',
- 'glass-premium border-blue-200/60': '{{ message.tags }}' === 'info'
+ 'bg-emerald-50/90 border-emerald-200/60': '{{ message.tags }}' === 'success',
+ 'bg-red-50/90 border-red-200/60': '{{ message.tags }}' === 'error',
+ 'bg-amber-50/90 border-amber-200/60': '{{ message.tags }}' === 'warning',
+ 'bg-blue-50/90 border-blue-200/60': '{{ message.tags }}' === 'info'
  }">
+ <div class="shrink-0 mt-0.5">
  <div :class="{
  'bg-emerald-100 text-emerald-600': '{{ message.tags }}' === 'success',
  'bg-red-100 text-red-600': '{{ message.tags }}' === 'error',
  'bg-amber-100 text-amber-600': '{{ message.tags }}' === 'warning',
  'bg-blue-100 text-blue-600': '{{ message.tags }}' === 'info'
- }" class="h-8 w-8 rounded-xl flex items-center justify-center shrink-0">
+ }" class="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm">
  <i :data-lucide="{
  'success': 'check-circle-2',
  'error': 'alert-circle',
@@ -23,9 +30,13 @@
  'info': 'info'
  }['{{ message.tags }}'] || 'info'" class="h-4 w-4"></i>
  </div>
- <p class="text-sm font-semibold flex-1 text-gray-800 ">{{ message }}</p>
- <button @click="dismiss()" class="shrink-0 opacity-40 hover:opacity-100 transition-opacity btn btn-icon btn-ghost !min-h-0 !min-w-0 !p-1 !rounded-lg">
- <i data-lucide="x" class="h-4 w-4"></i>
+ </div>
+ <div class="flex-1 min-w-0 py-0.5">
+ <p class="text-sm font-bold text-slate-800">{{ message }}</p>
+ </div>
+ <button @click="dismiss()"
+ class="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 transition-all opacity-60 hover:opacity-100">
+ <i data-lucide="x" class="h-3.5 w-3.5"></i>
  </button>
  </div>
  {% endfor %}

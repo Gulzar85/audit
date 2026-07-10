@@ -9,8 +9,9 @@
  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
  <link rel="preconnect" href="https://fonts.googleapis.com">
  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+ <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+ <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+ {% block extra_head %}{% endblock %}
  {% if business_info.favicon %}
  <link rel="icon" type="image/png" href="{{ business_info.favicon.url }}">
  <link rel="apple-touch-icon" href="{{ business_info.favicon.url }}">
@@ -18,97 +19,194 @@
  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📋</text></svg>">
  {% endif %}
  <style>
- :root {
- --primary: {{ business_info.primary_color|default:'#DA291C' }};
- --primary-dark: #B71C1C;
- --secondary: {{ business_info.secondary_color|default:'#FFC72C' }};
- --secondary-light: #FFD700;
- --accent: {{ business_info.accent_color|default:'#27251F' }};
- --success: #10B981;
- --warning: #F59E0B;
- --danger: #EF4444;
- --info: #3B82F6;
- --gold: #FFC72C;
- --gold-light: #FFD700;
- }
- .glass {
- background: rgba(255, 255, 255, 0.72);
- backdrop-filter: blur(20px) saturate(180%);
- -webkit-backdrop-filter: blur(20px) saturate(180%);
- border: 1px solid rgba(255, 255, 255, 0.3);
- box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
- }
- .glass-strong {
- background: rgba(255, 255, 255, 0.92);
- backdrop-filter: blur(24px) saturate(200%);
- -webkit-backdrop-filter: blur(24px) saturate(200%);
- border: 1px solid rgba(255, 255, 255, 0.5);
- box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
- }
- .glass-dark {
- background: rgba(17, 24, 39, 0.78);
- backdrop-filter: blur(20px) saturate(160%);
- -webkit-backdrop-filter: blur(20px) saturate(160%);
- border: 1px solid rgba(255, 255, 255, 0.06);
- box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
- }
- .glass-card {
- background: rgba(255, 255, 255, 0.65);
- backdrop-filter: blur(16px) saturate(180%);
- border: 1px solid rgba(255, 255, 255, 0.25);
- box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
- }
- .gold-card {
- border: 1px solid rgba(255, 199, 44, 0.25);
- box-shadow: 0 4px 20px rgba(255, 199, 44, 0.06);
- }
- .gold-card:hover {
- border-color: rgba(255, 199, 44, 0.5);
- box-shadow: 0 8px 30px rgba(255, 199, 44, 0.12);
- }
- .bg-gradient-primary { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); }
- .bg-gradient-primary-h { background: linear-gradient(to right, var(--primary) 0%, var(--primary-dark) 100%); }
- .bg-gradient-gold { background: linear-gradient(135deg, var(--secondary) 0%, var(--gold-light) 100%); }
- .bg-gradient-gold-h { background: linear-gradient(to right, var(--secondary) 0%, var(--gold-light) 100%); }
- .bg-gradient-dark { background: linear-gradient(135deg, var(--accent) 0%, #1a1a1a 100%); }
- .text-gradient-primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
- .text-gradient-gold { background: linear-gradient(135deg, var(--secondary), var(--gold-light)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
- @keyframes slideInRight { from { transform: translateX(100%) scale(0.95); opacity: 0; } to { transform: translateX(0) scale(1); opacity: 1; } }
- @keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
- @keyframes scaleIn { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
- @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
- @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
- .toast-enter { animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
- .animate-fade-in-up { animation: fadeInUp 0.4s ease-out; }
- .animate-scale-in { animation: scaleIn 0.3s ease-out; }
- .animate-slide-down { animation: slideDown 0.25s ease-out; }
- .skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
- html { scroll-behavior: smooth; }
- body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
- .sidebar-transition { transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
- .sidebar-margin-transition { transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
- .scrollbar-thin::-webkit-scrollbar { width: 4px; }
- .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
- .scrollbar-thin::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 2px; }
- .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+  :root {
+  --primary: {{ business_info.primary_color|default:'#DA291C' }};
+  --primary-dark: #B71C1C;
+  --primary-light: #FF6B6B;
+  --secondary: {{ business_info.secondary_color|default:'#FFC72C' }};
+  --secondary-light: #FFE066;
+  --accent: {{ business_info.accent_color|default:'#27251F' }};
+  --surface: #F8F9FC;
+  --surface-elevated: #FFFFFF;
+  --border-light: rgba(0, 0, 0, 0.06);
+  --border-medium: rgba(0, 0, 0, 0.10);
+  --success: #10B981;
+  --success-light: #D1FAE5;
+  --warning: #F59E0B;
+  --warning-light: #FEF3C7;
+  --danger: #EF4444;
+  --danger-light: #FEE2E2;
+  --info: #3B82F6;
+  --info-light: #DBEAFE;
+  --gold: #FFC72C;
+  --gold-light: #FFE066;
+  --slate-50: #F8FAFC;
+  --slate-100: #F1F5F9;
+  --slate-200: #E2E8F0;
+  --slate-300: #CBD5E1;
+  --slate-400: #94A3B8;
+  --slate-500: #64748B;
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-800: #1E293B;
+  --slate-900: #0F172A;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --shadow-glass: 0 4px 24px rgba(0, 0, 0, 0.06);
+  --shadow-glass-lg: 0 8px 40px rgba(0, 0, 0, 0.08);
+  --shadow-glass-xl: 0 16px 48px rgba(0, 0, 0, 0.10);
+  --shadow-elevated: 0 4px 20px rgba(0, 0, 0, 0.04);
+  --shadow-drop: 0 8px 32px rgba(0, 0, 0, 0.06);
+  }
 
- [x-cloak] { display: none !important; }
- .pattern-grid { background-image: radial-gradient(color-mix(in srgb, var(--primary) 3%, transparent) 1px, transparent 1px); background-size: 24px 24px; }
- @media (prefers-reduced-motion: reduce) {
- *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
- html { scroll-behavior: auto; }
- }
+  /* ── Glass Morphism Utilities ── */
+  .glass {
+  background: rgba(255, 255, 255, 0.70);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.30);
+  box-shadow: var(--shadow-glass);
+  }
+  .glass-strong {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.50);
+  box-shadow: var(--shadow-glass-lg);
+  }
+  .glass-dark {
+  background: rgba(15, 23, 42, 0.82);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  }
+  .glass-card {
+  background: rgba(255, 255, 255, 0.60);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: var(--shadow-glass);
+  }
+  .glass-premium {
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: var(--shadow-glass-lg);
+  }
+  .glass-tinted {
+  background: color-mix(in srgb, var(--secondary) 6%, rgba(255, 255, 255, 0.72));
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid color-mix(in srgb, var(--secondary) 18%, rgba(255, 255, 255, 0.30));
+  box-shadow: 0 4px 24px color-mix(in srgb, var(--secondary) 4%, transparent);
+  }
+  .glass-danger {
+  background: color-mix(in srgb, var(--danger) 6%, rgba(255, 255, 255, 0.72));
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid color-mix(in srgb, var(--danger) 18%, rgba(255, 255, 255, 0.30));
+  box-shadow: 0 4px 24px color-mix(in srgb, var(--danger) 4%, transparent);
+  }
+
+  /* ── Gold Accent Cards ── */
+  .gold-card {
+  border: 1px solid color-mix(in srgb, var(--secondary) 22%, transparent);
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--secondary) 4%, transparent);
+  }
+  .gold-card:hover {
+  border-color: color-mix(in srgb, var(--secondary) 45%, transparent);
+  box-shadow: 0 8px 30px color-mix(in srgb, var(--secondary) 10%, transparent);
+  }
+
+  /* ── Gradients ── */
+  .bg-gradient-primary { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); }
+  .bg-gradient-primary-h { background: linear-gradient(to right, var(--primary) 0%, var(--primary-dark) 100%); }
+  .bg-gradient-gold { background: linear-gradient(135deg, var(--secondary) 0%, var(--gold-light) 100%); }
+  .bg-gradient-gold-h { background: linear-gradient(to right, var(--secondary) 0%, var(--gold-light) 100%); }
+  .bg-gradient-dark { background: linear-gradient(135deg, var(--accent) 0%, #1a1a1a 100%); }
+  .bg-gradient-success { background: linear-gradient(135deg, var(--success) 0%, #059669 100%); }
+  .bg-gradient-danger { background: linear-gradient(135deg, var(--danger) 0%, #DC2626 100%); }
+  .text-gradient-primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .text-gradient-gold { background: linear-gradient(135deg, var(--secondary), var(--gold-light)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+  /* ── Animations ── */
+  @keyframes slideInRight { from { transform: translateX(100%) scale(0.95); opacity: 0; } to { transform: translateX(0) scale(1); opacity: 1; } }
+  @keyframes slideInLeft { from { transform: translateX(-20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  @keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeInDown { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes scaleIn { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+  @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pulseSoft { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+  @keyframes checkPop { 0% { transform: scale(0); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+  .animate-slide-in-right { animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+  .animate-slide-in-left { animation: slideInLeft 0.30s ease-out; }
+  .animate-fade-in-up { animation: fadeInUp 0.40s ease-out; }
+  .animate-fade-in-down { animation: fadeInDown 0.30s ease-out; }
+  .animate-scale-in { animation: scaleIn 0.30s ease-out; }
+  .animate-slide-down { animation: slideDown 0.25s ease-out; }
+  .animate-pulse-soft { animation: pulseSoft 2s ease-in-out infinite; }
+  .animate-check-pop { animation: checkPop 0.30s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+
+  /* ── Base ── */
+  html { scroll-behavior: smooth; -webkit-tap-highlight-color: transparent; }
+  body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background-color: var(--surface); }
+  ::selection { background: color-mix(in srgb, var(--primary) 20%, transparent); color: var(--accent); }
+
+  /* ── Sidebar Transitions ── */
+  .sidebar-transition { transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
+  .sidebar-margin-transition { transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
+
+  /* ── Scrollbar ── */
+  .scrollbar-thin::-webkit-scrollbar { width: 4px; height: 4px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: var(--slate-300); border-radius: 2px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: var(--slate-400); }
+  @media (max-width: 1023px) { .scrollbar-thin { -webkit-overflow-scrolling: touch; } }
+
+  /* ── Pattern Grid ── */
+  .pattern-grid { background-image: radial-gradient(color-mix(in srgb, var(--slate-900) 2.5%, transparent) 1px, transparent 1px); background-size: 24px 24px; }
+
+  /* ── Focus Ring ── */
+  .focus-ring { @apply focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary; }
+
+  /* ── Truncate 2 lines ── */
+  .truncate-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+  /* ── Range Slider ── */
+  input[type=range] { -webkit-appearance: none; appearance: none; background: transparent; cursor: pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: var(--slate-200); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%; background: white; border: 2.5px solid var(--primary); margin-top: -7px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; }
+  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); box-shadow: 0 2px 12px rgba(0,0,0,0.20); }
+  input[type=range]::-webkit-slider-thumb:active { transform: scale(0.95); }
+  input[type=range]::-moz-range-track { height: 6px; border-radius: 3px; background: var(--slate-200); }
+  input[type=range]::-moz-range-thumb { height: 20px; width: 20px; border-radius: 50%; background: white; border: 2.5px solid var(--primary); box-shadow: 0 2px 8px rgba(0,0,0,0.15); cursor: pointer; }
+  input[type=range]:disabled { opacity: 0.30; cursor: not-allowed; }
+  input[type=range]:disabled::-webkit-slider-thumb { cursor: not-allowed; transform: none; }
+
+  /* ── Alpine ── */
+  [x-cloak] { display: none !important; }
+
+  @media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  html { scroll-behavior: auto; }
+  }
  </style>
- {% block extra_head %}{% endblock %}
-</head>
-<body class="bg-gray-50 pattern-grid overflow-hidden">
+ </head>
+<body class="bg-surface pattern-grid overflow-hidden text-slate-800 antialiased">
 
  <a href="#main-content"
  class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:px-5 focus:py-3 focus:bg-white focus:text-primary focus:font-bold focus:rounded-xl focus:shadow-2xl focus:ring-2 focus:ring-primary">
  Skip to main content
  </a>
 
- <!-- Mobile sidebar overlay backdrop -->
+ <!-- Mobile sidebar overlay -->
  <div x-show="$store.app.mobileSidebarOpen" x-cloak
  x-transition:enter="transition ease-out duration-250"
  x-transition:enter-start="opacity-0"
@@ -117,13 +215,13 @@
  x-transition:leave-start="opacity-100"
  x-transition:leave-end="opacity-0"
  @click="$store.app.mobileSidebarOpen = false"
- class="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
+ class="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm lg:hidden"
  aria-hidden="true"></div>
 
  <!-- Sidebar -->
  {% include 'includes/sidebar.html' %}
 
- <!-- Main content area — margin-left on desktop only -->
+ <!-- Main wrapper -->
  <div class="flex flex-col h-screen sidebar-margin-transition"
  x-data
  :class="{
@@ -136,7 +234,7 @@
 
  <!-- Main content -->
  <main id="main-content" role="main"
- class="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-7 scrollbar-thin bg-gray-50/50">
+ class="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-7 scrollbar-thin">
 
  {% if messages %}
  {% include 'includes/toasts.html' %}
@@ -187,6 +285,7 @@
  </script>
  {% block extra_scripts %}{% endblock %}
 
+ <!-- Global Confirm Modal -->
  <template x-teleport="body">
  <div x-show="$store.confirm.show" x-cloak
  @keydown.escape.prevent="$store.confirm.cancel()"
@@ -197,27 +296,27 @@
  x-transition:leave-start="opacity-100"
  x-transition:leave-end="opacity-0"
  role="dialog" aria-modal="true"
- class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+ class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
  <div @click.away="$store.confirm.cancel()"
  x-transition:enter="transition ease-out duration-300"
  x-transition:enter-start="opacity-0 scale-90"
  x-transition:enter-end="opacity-100 scale-100"
- class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-gray-100">
+ class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200/60 shadow-xl">
  <div class="px-6 py-5 flex items-center gap-3 bg-gradient-gold text-accent">
  <i data-lucide="alert-circle" class="w-6 h-6 text-accent shrink-0"></i>
  <h3 class="text-lg font-bold text-accent" x-text="$store.confirm.title"></h3>
  </div>
  <div class="px-6 py-6">
- <p class="text-gray-700 text-base leading-relaxed" x-text="$store.confirm.message"></p>
- <p class="text-sm text-gray-500 mt-3 italic">This action cannot be undone.</p>
+ <p class="text-slate-700 text-base leading-relaxed" x-text="$store.confirm.message"></p>
+ <p class="text-sm text-slate-500 mt-3 italic">This action cannot be undone.</p>
  </div>
- <div class="px-6 py-5 border-t border-gray-100 flex justify-end gap-3">
+ <div class="px-6 py-5 border-t border-slate-100 flex justify-end gap-3">
  <button @click="$store.confirm.cancel()"
- class="px-5 py-2.5 rounded-xl border border-gray-300 text-gray-700 font-bold text-sm hover:bg-gray-50 transition-colors">
+ class="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-sm hover:bg-slate-50 transition-colors">
  Cancel
  </button>
  <button @click="$store.confirm.confirm()"
- class="px-5 py-2.5 rounded-xl bg-gradient-gold text-accent font-bold text-sm transition-all hover:shadow-lg">
+ class="px-5 py-2.5 rounded-xl bg-gradient-gold text-accent font-bold text-sm transition-all hover:shadow-lg active:scale-[0.98]">
  Confirm
  </button>
  </div>

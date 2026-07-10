@@ -48,7 +48,7 @@ class Command(BaseCommand):
 
             # Notify the restaurant users + assignee
             notify_restaurant_users(
-                Notification.Type.CA_CREATED,
+                Notification.Type.CA_ESCALATED,
                 title, message, link, ca.restaurant,
                 email_context=email_context,
                 extra_recipients=[ca.assigned_to] if ca.assigned_to else None,
@@ -57,7 +57,7 @@ class Command(BaseCommand):
             # Notify auditors manager for escalation
             if ca.audit and ca.audit.auditor:
                 notify_auditor_and_manager(
-                    Notification.Type.CA_CREATED,
+                    Notification.Type.CA_ESCALATED,
                     title, message, link, ca.audit.auditor,
                     email_context=email_context,
                 )

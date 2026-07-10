@@ -434,6 +434,35 @@ class AuditViewTest(TestCase):
         self.assertContains(resp, 'Test R')
         self.assertNotContains(resp, 'Other')
 
+    def test_audit_users_json(self):
+        # Create a restaurant and a user assigned to it
+        from django.contrib.auth import get_user_model
+        from django.contrib.contenttypes.models import ContentType
+        from django.contrib.auth.models import Permission
+        User = get_user_model()
+
+        # AuditUsersJSONView requires accounts.view_user; grant it to self.user.
+        ct_user = ContentType.objects.get_for_model(User)
+        perm = Permission.objects.get(content_type=ct_user, codename='view_user')
+        self.user.user_permissions.add(perm)
+
+        user = User.objects.create_user('test_user', 'u@t.com', 'pass')
+        restaurant = Restaurant.objects.create(name='Test Rest', code='1234567')
+        user.restaurants.add(restaurant)
+        # The view scopes results to restaurants the *requesting* user belongs to,
+        # so self.user must also be linked to the new restaurant.
+        self.user.restaurants.add(restaurant)
+        audit = Audit.objects.create(
+            restaurant=restaurant, auditor=self.user, template=self.template,
+            audit_date='2026-06-15', manager_on_duty='M',
+        )
+
+        # Test endpoint
+        resp = self.client.get(f'/audits/ajax/audit-users/{audit.pk}/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('users', resp.json())
+        self.assertTrue(any(u['id'] == user.pk for u in resp.json()['users']))
+
     def test_audit_responses_json(self):
         resp = self.client.get(f'/audits/ajax/audit-responses/{self.audit.pk}/')
         self.assertEqual(resp.status_code, 200)
@@ -804,11 +833,11 @@ class AJAXSaveResponseViewTest(TestCase):
         resp = self.client.post('/audits/save-response/', {'response_id': 99999})
         self.assertEqual(resp.status_code, 404)
 
-    def test_save_response_is_na_clears_fields(self):
+    def test_save_response_is_na_zeroes_score_and_clears_ca_flag(self):
         resp = self.client.post('/audits/save-response/', {
             'response_id': self.response.pk,
             'scored_points': '5',
-            'comments': 'Should be cleared',
+            'comments': 'Item not present at time of audit',
             'is_na': 'true',
             'needs_ca': 'true',
         })
@@ -816,7 +845,8 @@ class AJAXSaveResponseViewTest(TestCase):
         self.response.refresh_from_db()
         self.assertTrue(self.response.is_na)
         self.assertEqual(self.response.scored_points, Decimal('0.00'))
-        self.assertEqual(self.response.comments, '')
+        # Comments preserved to avoid data loss if N/A is later unchecked
+        self.assertEqual(self.response.comments, 'Item not present at time of audit')
         self.assertFalse(self.response.needs_corrective_action)
 
     def test_save_response_score_exceeds_max(self):

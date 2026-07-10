@@ -1,9 +1,9 @@
-<!-- ==========================================================================
- Premium Glassmorphic Sidebar
- - Desktop (lg+): Fixed left, collapsible (w-64 ↔ w-16), pushes main content
- - Mobile (< lg): Overlay, slides in from left, backdrop behind
- ========================================================================== -->
-
+<!--
+ Premium Glassmorphic Sidebar v2
+ - Desktop (lg+): Fixed left, collapsible w-64 / w-16, pushes content
+ - Mobile (< lg): Overlay slides in from left with backdrop
+ - Dark gradient base with glass overlay sheen
+-->
 <aside x-data class="fixed left-0 top-0 h-full z-50 lg:z-30 flex flex-col shadow-2xl bg-gradient-dark sidebar-transition overflow-hidden -translate-x-full lg:translate-x-0"
  :class="{
  'w-64': $store.app.sidebarOpen,
@@ -11,18 +11,18 @@
  'translate-x-0': $store.app.mobileSidebarOpen
  }">
 
- <!-- Glass overlay sheen -->
- <div class="absolute inset-0 pointer-events-none bg-gradient-to-b from-white/[0.04] to-transparent"></div>
+ <!-- Glass sheen overlay -->
+ <div class="absolute inset-0 pointer-events-none bg-gradient-to-b from-white/[0.04] via-transparent to-white/[0.02]"></div>
 
- <!-- ─── BRAND ─── -->
+ <!-- Brand Header -->
  <div class="relative flex items-center h-16 px-4 shrink-0"
- style="border-bottom: 1px solid color-mix(in srgb, var(--secondary) 12%, transparent);">
+ style="border-bottom: 1px solid color-mix(in srgb, var(--secondary) 10%, transparent);">
  <a href="{% url 'audits:dashboard' %}"
  class="flex items-center gap-3 min-w-0 relative z-10 transition-opacity hover:opacity-90">
  {% if business_info.logo %}
- <img src="{{ business_info.logo.url }}" alt="Logo" class="h-9 w-9 shrink-0 object-contain rounded-lg ring-1 ring-white/10">
+ <img src="{{ business_info.logo.url }}" alt="Logo" class="h-9 w-9 shrink-0 object-contain rounded-lg ring-1 ring-white/10 shadow-md">
  {% else %}
- <div class="h-9 w-9 rounded-xl bg-gradient-gold flex items-center justify-center text-accent font-black text-lg shrink-0 shadow-lg shadow-yellow-500/20 ring-2 ring-white/10">
+ <div class="h-9 w-9 rounded-xl bg-gradient-gold flex items-center justify-center text-accent font-black text-lg shrink-0 shadow-lg ring-2 ring-white/10">
  {{ business_info.company_name|default:'M'|make_list|first|upper }}
  </div>
  {% endif %}
@@ -31,7 +31,6 @@
  <span class="text-[10px] font-medium text-yellow-400/70 truncate tracking-wider uppercase">Audit System</span>
  </div>
  </a>
- <!-- Mobile close -->
  <button @click="$store.app.mobileSidebarOpen = false; $store.app.sidebarOpen = false"
  class="lg:hidden ml-auto p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/5 transition-colors"
  aria-label="Close sidebar">
@@ -39,17 +38,17 @@
  </button>
  </div>
 
- <!-- ─── NAV ─── -->
+ <!-- Navigation -->
  <nav class="flex-1 overflow-y-auto py-4 px-2 space-y-0.5 scrollbar-thin" aria-label="Sidebar navigation">
  {% with url_name=request.resolver_match.url_name %}
  <div x-show="$store.app.sidebarOpen" x-cloak class="px-3 pb-2">
- <span class="text-[10px] font-semibold uppercase tracking-widest text-yellow-400/60">Main Menu</span>
+ <span class="text-[10px] font-semibold uppercase tracking-[0.12em] text-yellow-400/60">Main Menu</span>
  </div>
 
  {% if perms.audits.view_audit %}
  <a href="{% url 'audits:dashboard' %}"
  {% if url_name == 'dashboard' %}aria-current="page"{% endif %}
- class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-secondary
+ class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-secondary min-h-[44px]
  {% if url_name == 'dashboard' %}bg-gradient-gold text-accent font-bold shadow-lg shadow-yellow-500/20{% else %}text-white/70 hover:text-white hover:bg-white/5{% endif %}">
  <i data-lucide="layout-dashboard" class="h-5 w-5 shrink-0 transition-transform duration-200 group-hover:scale-110"></i>
  <span x-show="$store.app.sidebarOpen" x-cloak class="text-sm font-medium truncate">Dashboard</span>
@@ -60,7 +59,7 @@
  {% if perms.audits.view_audit %}
  <a href="{% url 'audits:list' %}"
  {% if url_name == 'list' %}aria-current="page"{% endif %}
- class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-secondary
+ class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-secondary min-h-[44px]
  {% if url_name == 'list' %}bg-gradient-gold text-accent font-bold shadow-lg shadow-yellow-500/20{% else %}text-white/70 hover:text-white hover:bg-white/5{% endif %}">
  <i data-lucide="clipboard-list" class="h-5 w-5 shrink-0 transition-transform duration-200 group-hover:scale-110"></i>
  <span x-show="$store.app.sidebarOpen" x-cloak class="text-sm font-medium truncate">Audits</span>
@@ -73,9 +72,9 @@
  {% if perms.audits.add_audit %}
  <a href="{% url 'audits:create' %}"
  {% if url_name == 'create' %}aria-current="page"{% endif %}
- class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-secondary
+ class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-secondary min-h-[44px]
  {% if url_name == 'create' %}bg-gradient-gold text-accent font-bold shadow-lg shadow-yellow-500/20{% else %}text-white/70 hover:text-white hover:bg-white/5{% endif %}">
- <i data-lucide="plus-circle" class="h-5 w-5 shrink-0 transition-transform group-hover:scale-110 group-hover:rotate-90"></i>
+ <i data-lucide="plus-circle" class="h-5 w-5 shrink-0 transition-transform duration-200 group-hover:scale-110 group-hover:rotate-90"></i>
  <span x-show="$store.app.sidebarOpen" x-cloak class="text-sm font-medium truncate">New Audit</span>
  </a>
  {% endif %}
@@ -83,7 +82,7 @@
  {% if perms.audits.view_correctiveaction %}
  <a href="{% url 'audits:corrective_actions' %}"
  {% if 'corrective_action' in url_name %}aria-current="page"{% endif %}
- class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-secondary
+ class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-secondary min-h-[44px]
  {% if 'corrective_action' in url_name %}bg-gradient-gold text-accent font-bold shadow-lg shadow-yellow-500/20{% else %}text-white/70 hover:text-white hover:bg-white/5{% endif %}">
  <i data-lucide="alert-triangle" class="h-5 w-5 shrink-0 transition-transform duration-200 group-hover:scale-110"></i>
  <span x-show="$store.app.sidebarOpen" x-cloak class="text-sm font-medium truncate">Corrective Actions</span>
@@ -93,11 +92,11 @@
  </a>
  {% endif %}
 
- <div x-show="$store.app.sidebarOpen" x-cloak class="h-px my-3 mx-3" style="background: linear-gradient(to right, transparent, color-mix(in srgb, var(--secondary) 12%, transparent), transparent);"></div>
+ <div x-show="$store.app.sidebarOpen" x-cloak class="h-px my-3 mx-3" style="background: linear-gradient(to right, transparent, color-mix(in srgb, var(--secondary) 10%, transparent), transparent);"></div>
 
  <a href="{% url 'core:notifications' %}"
  {% if 'notifications' in url_name %}aria-current="page"{% endif %}
- class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-secondary
+ class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-secondary min-h-[44px]
  {% if 'notifications' in url_name %}bg-gradient-gold text-accent font-bold shadow-lg shadow-yellow-500/20{% else %}text-white/70 hover:text-white hover:bg-white/5{% endif %}">
  <i data-lucide="bell" class="h-5 w-5 shrink-0 transition-transform duration-200 group-hover:scale-110"></i>
  <span x-show="$store.app.sidebarOpen" x-cloak class="text-sm font-medium truncate">Notifications</span>
@@ -109,7 +108,7 @@
  {% if perms.restaurants.view_restaurant %}
  <a href="{% url 'restaurants:restaurant_list' %}"
  {% if url_name == 'restaurant_list' or url_name == 'restaurant_detail' or url_name == 'region_detail' %}aria-current="page"{% endif %}
- class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200
+ class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 min-h-[44px]
  {% if url_name == 'restaurant_list' or url_name == 'restaurant_detail' or url_name == 'region_detail' %}bg-gradient-gold text-accent font-bold shadow-lg shadow-yellow-500/20{% else %}text-white/70 hover:text-white hover:bg-white/5{% endif %}">
  <i data-lucide="store" class="h-5 w-5 shrink-0 transition-transform duration-200 group-hover:scale-110"></i>
  <span x-show="$store.app.sidebarOpen" x-cloak class="text-sm font-medium truncate">Restaurants</span>
@@ -119,7 +118,7 @@
  {% if perms.audits.view_audittemplate %}
  <a href="{% url 'audits:template_list' %}"
  {% if 'template' in url_name %}aria-current="page"{% endif %}
- class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200
+ class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 min-h-[44px]
  {% if 'template' in url_name %}bg-gradient-gold text-accent font-bold shadow-lg shadow-yellow-500/20{% else %}text-white/70 hover:text-white hover:bg-white/5{% endif %}">
  <i data-lucide="file-text" class="h-5 w-5 shrink-0 transition-transform duration-200 group-hover:scale-110"></i>
  <span x-show="$store.app.sidebarOpen" x-cloak class="text-sm font-medium truncate">Templates</span>
@@ -129,18 +128,18 @@
  {% if perms.accounts.view_user %}
  <a href="{% url 'accounts:user_list' %}"
  {% if url_name == 'user_list' %}aria-current="page"{% endif %}
- class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200
+ class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 min-h-[44px]
  {% if url_name == 'user_list' %}bg-gradient-gold text-accent font-bold shadow-lg shadow-yellow-500/20{% else %}text-white/70 hover:text-white hover:bg-white/5{% endif %}">
  <i data-lucide="users" class="h-5 w-5 shrink-0 transition-transform duration-200 group-hover:scale-110"></i>
  <span x-show="$store.app.sidebarOpen" x-cloak class="text-sm font-medium truncate">Users</span>
  </a>
  {% endif %}
 
- <div x-show="$store.app.sidebarOpen" x-cloak class="h-px my-3 mx-3" style="background: linear-gradient(to right, transparent, color-mix(in srgb, var(--secondary) 12%, transparent), transparent);"></div>
+ <div x-show="$store.app.sidebarOpen" x-cloak class="h-px my-3 mx-3" style="background: linear-gradient(to right, transparent, color-mix(in srgb, var(--secondary) 10%, transparent), transparent);"></div>
 
  {% if user.is_staff %}
  <a href="{% url 'admin:index' %}"
- class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary text-white/60 hover:text-white hover:bg-white/5">
+ class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary text-white/60 hover:text-white hover:bg-white/5 min-h-[44px]">
  <i data-lucide="settings" class="h-5 w-5 shrink-0 transition-transform duration-200 group-hover:rotate-90"></i>
  <span x-show="$store.app.sidebarOpen" x-cloak class="text-sm font-medium truncate">Admin Panel</span>
  </a>
@@ -148,10 +147,10 @@
  {% endwith %}
  </nav>
 
- <!-- ─── FOOTER: Toggle ─── -->
- <div class="p-3 shrink-0 border-t" style="border-color: color-mix(in srgb, var(--secondary) 8%, transparent);">
+ <!-- Collapse Toggle -->
+ <div class="p-3 shrink-0 border-t" style="border-color: color-mix(in srgb, var(--secondary) 6%, transparent);">
  <button @click="$store.app.sidebarOpen = !$store.app.sidebarOpen"
- class="group flex items-center gap-3 w-full px-3 py-2 rounded-xl text-white/50 hover:text-white/80 hover:bg-white/5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary"
+ class="group flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-white/50 hover:text-white/80 hover:bg-white/5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary min-h-[44px]"
  aria-label="Toggle sidebar">
  <i data-lucide="panel-left-close" x-show="$store.app.sidebarOpen" x-cloak class="h-5 w-5 shrink-0 transition-transform duration-300"></i>
  <i data-lucide="panel-left-open" x-show="!$store.app.sidebarOpen" x-cloak class="h-5 w-5 shrink-0 transition-transform duration-300 group-hover:scale-110"></i>

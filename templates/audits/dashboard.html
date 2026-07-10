@@ -4,7 +4,7 @@
 {% block page_title %}Dashboard{% endblock %}
 
 {% block extra_head %}
-<script src="https://cdn.jsdelivr.net/npm/apexcharts@4.4.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.41.0"></script>
 {% endblock %}
 
 {% block content %}
@@ -569,6 +569,201 @@
   {% endif %}
   </div>
  </div>
+   CA Aging
+   </h3>
+   </div>
+   {% if ca_aging_data and ca_aging_data != '[]' %}
+   <div id="caAgingChart" class="h-[220px]"></div>
+   {% else %}
+   <div class="flex flex-col items-center justify-center h-[220px] text-gray-400">
+   <i data-lucide="clock" class="w-12 h-12 mb-3 text-gray-200"></i>
+   <p class="text-sm font-semibold">No aging data yet</p>
+   </div>
+   {% endif %}
+  </div>
+  <div class="bg-white rounded-xl border border-gray-200/60 p-5 gold-card hover:shadow-md transition-shadow duration-200">
+   <div class="flex items-center justify-between mb-4">
+   <h3 class="text-xs font-bold text-gray-600 flex items-center gap-2 uppercase tracking-wider">
+   <div class="w-7 h-7 rounded-xl bg-gradient-primary flex items-center justify-center"><i data-lucide="check-circle" class="w-3.5 h-3.5 text-white"></i></div>
+   Monthly Close Rate
+   </h3>
+   <span class="text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-1 rounded-md">Last 6 months</span>
+   </div>
+   {% if ca_monthly_close and ca_monthly_close != '[]' %}
+   <div id="caCloseChart" class="h-[220px]"></div>
+   {% else %}
+   <div class="flex flex-col items-center justify-center h-[220px] text-gray-400">
+   <i data-lucide="check-circle" class="w-12 h-12 mb-3 text-gray-200"></i>
+   <p class="text-sm font-semibold">No close data yet</p>
+   </div>
+   {% endif %}
+  </div>
+ </div>
+
+ <!-- ===== SECTION ANALYTICS ===== -->
+ <div>
+ <div class="flex items-center gap-2 mb-3">
+ <div class="w-1 h-5 bg-gradient-gold rounded-full"></div>
+ <h2 class="text-sm font-bold text-gray-700 uppercase tracking-wider">Section Analytics</h2>
+ </div>
+ <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+ <div class="bg-white rounded-xl border border-gray-200/60 p-5 gold-card hover:shadow-md transition-shadow duration-200">
+ <div class="flex items-center justify-between mb-4">
+ <h3 class="text-xs font-bold text-gray-600 flex items-center gap-2 uppercase tracking-wider">
+ <div class="w-7 h-7 rounded-xl bg-gradient-gold flex items-center justify-center"><i data-lucide="layers" class="w-3.5 h-3.5 text-accent"></i></div>
+ Section Performance
+ </h3>
+ </div>
+ {% if section_performance and section_performance != '[]' %}
+ <div id="sectionPerfChart" class="h-[220px]"></div>
+ {% else %}
+ <div class="flex flex-col items-center justify-center h-[220px] text-gray-400">
+ <i data-lucide="bar-chart-horizontal" class="w-12 h-12 mb-3 text-gray-200"></i>
+ <p class="text-sm font-semibold">No section data yet</p>
+ <p class="text-xs text-gray-400">Section breakdown will appear after audits</p>
+ </div>
+ {% endif %}
+ </div>
+ <div class="bg-white rounded-xl border border-gray-200/60 p-5 gold-card hover:shadow-md transition-shadow duration-200">
+ <div class="flex items-center justify-between mb-4">
+ <h3 class="text-xs font-bold text-gray-600 flex items-center gap-2 uppercase tracking-wider">
+ <div class="w-7 h-7 rounded-xl bg-gradient-primary flex items-center justify-center"><i data-lucide="bar-chart-3" class="w-3.5 h-3.5 text-white"></i></div>
+ Points Deducted
+ </h3>
+ </div>
+ {% if section_deductions and section_deductions != '[]' %}
+ <div id="sectionDedChart" class="h-[220px]"></div>
+ {% else %}
+ <div class="flex flex-col items-center justify-center h-[220px] text-gray-400">
+ <i data-lucide="bar-chart-3" class="w-12 h-12 mb-3 text-gray-200"></i>
+ <p class="text-sm font-semibold">No deduction data yet</p>
+ </div>
+ {% endif %}
+ </div>
+ </div>
+ </div>
+
+ <!-- ===== RESTAURANT ANALYTICS ===== -->
+ <div>
+  <div class="flex items-center gap-2 mb-3">
+  <div class="w-1 h-5 bg-gradient-primary rounded-full"></div>
+  <h2 class="text-sm font-bold text-gray-700 uppercase tracking-wider">Restaurant Analytics</h2>
+  </div>
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+  <div class="bg-white rounded-xl border border-gray-200/60 p-5 gold-card hover:shadow-md transition-shadow duration-200">
+   <div class="flex items-center justify-between mb-4">
+   <h3 class="text-xs font-bold text-gray-600 flex items-center gap-2 uppercase tracking-wider">
+   <div class="w-7 h-7 rounded-xl bg-gradient-gold flex items-center justify-center"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-accent"></i></div>
+   Region Score Comparison
+   </h3>
+   </div>
+   {% if region_scores and region_scores != '[]' %}
+   <div id="regionScoreChart" class="h-[220px]"></div>
+   {% else %}
+   <div class="flex flex-col items-center justify-center h-[220px] text-gray-400">
+   <i data-lucide="map-pin" class="w-12 h-12 mb-3 text-gray-200"></i>
+   <p class="text-sm font-semibold">No region data yet</p>
+   </div>
+   {% endif %}
+  </div>
+  <div class="bg-white rounded-xl border border-gray-200/60 p-5 gold-card hover:shadow-md transition-shadow duration-200">
+   <div class="flex items-center justify-between mb-4">
+   <h3 class="text-xs font-bold text-gray-600 flex items-center gap-2 uppercase tracking-wider">
+   <div class="w-7 h-7 rounded-xl bg-gradient-primary flex items-center justify-center"><i data-lucide="award" class="w-3.5 h-3.5 text-white"></i></div>
+   Top &amp; Bottom Performers
+   </h3>
+   </div>
+   {% if top5_restaurants and top5_restaurants != '[]' %}
+   <div id="topBottomChart" class="h-[220px]"></div>
+   {% else %}
+   <div class="flex flex-col items-center justify-center h-[220px] text-gray-400">
+   <i data-lucide="award" class="w-12 h-12 mb-3 text-gray-200"></i>
+   <p class="text-sm font-semibold">Not enough data</p>
+   <p class="text-xs text-gray-400">Need at least 2 audits per restaurant</p>
+   </div>
+   {% endif %}
+  </div>
+  </div>
+ </div>
+
+ <!-- ===== SECTION TREND + FREQUENT FINDINGS ===== -->
+ <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+ <div class="bg-white rounded-xl border border-gray-200/60 p-5 gold-card hover:shadow-md transition-shadow duration-200">
+ <div class="flex items-center justify-between mb-4">
+ <h3 class="text-xs font-bold text-gray-600 flex items-center gap-2 uppercase tracking-wider">
+ <div class="w-7 h-7 rounded-xl bg-gradient-gold flex items-center justify-center"><i data-lucide="trending-up" class="w-3.5 h-3.5 text-accent"></i></div>
+ Section Trend
+ </h3>
+ </div>
+ {% if section_trend_series and section_trend_series != '[]' %}
+ <div class="mb-3">
+ <select id="sectionTrendSelect" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-xs focus:border-primary focus:ring-2 focus:ring-primary outline-none transition-all bg-gray-50/50 font-semibold"></select>
+ </div>
+ <div id="sectionTrendChart" class="h-[220px]"></div>
+ {% else %}
+ <div class="flex flex-col items-center justify-center h-[220px] text-gray-400">
+ <i data-lucide="trending-up" class="w-12 h-12 mb-3 text-gray-200"></i>
+ <p class="text-sm font-semibold">No trend data yet</p>
+ </div>
+ {% endif %}
+ </div>
+ <div class="bg-white rounded-xl border border-gray-200/60 p-5 gold-card hover:shadow-md transition-shadow duration-200">
+ <div class="flex items-center justify-between mb-4">
+ <h3 class="text-xs font-bold text-gray-600 flex items-center gap-2 uppercase tracking-wider">
+ <div class="w-7 h-7 rounded-xl bg-gradient-primary flex items-center justify-center"><i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-white"></i></div>
+ Frequent Findings
+ </h3>
+ <span class="text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-1 rounded-md">{{ submitted_audits }} audits</span>
+ </div>
+ {% if frequent_findings and frequent_findings != '[]' %}
+ <div class="overflow-x-auto -mx-5 px-5">
+ <table class="w-full text-xs">
+ <thead>
+ <tr class="border-b border-gray-200 text-left text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+ <th scope="col" class="pb-2.5 pr-2 w-8">#</th>
+ <th scope="col" class="pb-2.5 pr-2">Finding</th>
+ <th scope="col" class="pb-2.5 pr-2 hidden sm:table-cell w-24">Section</th>
+ <th scope="col" class="pb-2.5 text-right w-16">Lost</th>
+ </tr>
+ </thead>
+ <tbody class="divide-y divide-gray-100" id="findingsTableBody"></tbody>
+ </table>
+ </div>
+ {% else %}
+ <div class="flex flex-col items-center justify-center h-[220px] text-gray-400">
+ <i data-lucide="search" class="w-12 h-12 mb-3 text-gray-200"></i>
+ <p class="text-sm font-semibold">No frequent deductions</p>
+ </div>
+ {% endif %}
+  </div>
+ </div>
+
+ <!-- ===== GRADE TREND BY RESTAURANT ===== -->
+ <div>
+  <div class="flex items-center gap-2 mb-3">
+  <div class="w-1 h-5 bg-gradient-gold rounded-full"></div>
+  <h2 class="text-sm font-bold text-gray-700 uppercase tracking-wider">Restaurant Score Trends</h2>
+  </div>
+  <div class="bg-white rounded-xl border border-gray-200/60 p-5 gold-card hover:shadow-md transition-shadow duration-200">
+  <div class="flex items-center justify-between mb-4">
+   <h3 class="text-xs font-bold text-gray-600 flex items-center gap-2 uppercase tracking-wider">
+   <div class="w-7 h-7 rounded-xl bg-gradient-primary flex items-center justify-center"><i data-lucide="line-chart" class="w-3.5 h-3.5 text-white"></i></div>
+   Grade Trend by Restaurant
+   </h3>
+  </div>
+  {% if restaurant_trend_series and restaurant_trend_series != '[]' %}
+  <div class="mb-3">
+   <select id="restaurantTrendSelect" class="w-full sm:w-72 px-3 py-2 rounded-lg border border-gray-300 text-xs focus:border-primary focus:ring-2 focus:ring-primary outline-none transition-all bg-gray-50/50 font-semibold"></select>
+  </div>
+  <div id="restaurantTrendChart" class="h-[260px]"></div>
+  {% else %}
+  <div class="flex flex-col items-center justify-center h-[220px] text-gray-400">
+   <i data-lucide="line-chart" class="w-12 h-12 mb-3 text-gray-200"></i>
+   <p class="text-sm font-semibold">No trend data yet</p>
+  </div>
+  {% endif %}
+  </div>
+ </div>
 
 </div>
 {% else %}
@@ -578,13 +773,13 @@
 
 {% block extra_scripts %}
 <script>
-document.addEventListener('alpine:after-render', function() {
+document.addEventListener('DOMContentLoaded', function() {
  var primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#DA291C';
  var secondaryColor = getComputedStyle(document.documentElement).getPropertyValue('--secondary').trim() || '#FFC72C';
  var accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#27251F';
  if (typeof ApexCharts === 'undefined') { console.error('ApexCharts not loaded'); return; }
  {% if score_trends %}
- var opts = {
+ var scoreTrendOpts = {
  chart: { type: 'area', height: 200, toolbar: { show: false } },
  series: [{ name: 'Score', data: {{ score_trends.data|safe }} }],
  xaxis: { categories: {{ score_trends.labels|safe }} },
@@ -596,7 +791,10 @@ document.addEventListener('alpine:after-render', function() {
  grid: { borderColor: '#e2e8f0' },
  tooltip: { y: { formatter: function(v) { return v + '%'; } } },
  };
- new ApexCharts(el, opts).render();
+ var scoreTrendEl = document.getElementById('scoreTrendChart');
+ if (scoreTrendEl) {
+ new ApexCharts(scoreTrendEl, scoreTrendOpts).render();
+ }
  {% endif %}
  
  {% if grade_distribution %}
@@ -658,6 +856,7 @@ document.addEventListener('alpine:after-render', function() {
  colors: perfData.map(function(s) { return s.avg >= 90 ? '#10b981' : s.avg >= 80 ? '#f59e0b' : '#ef4444'; }),
  dataLabels: { enabled: true, formatter: function(v) { return v + '%'; }, style: { fontSize: '9px', fontWeight: 700, colors: ['#fff'] }, offsetX: 20 },
  grid: { borderColor: '#e2e8f0' },
+ legend: { show: false },
  tooltip: { y: { formatter: function(v) { return v + '%'; } } },
  }).render();
  }
@@ -710,7 +909,6 @@ document.addEventListener('alpine:after-render', function() {
  stroke: { curve: 'smooth', width: 2 },
  dataLabels: { enabled: false },
  markers: { size: 3, hover: { size: 5 } },
- legend: { position: 'top', horizontalAlign: 'right', fontSize: '9px' },
  grid: { borderColor: '#e2e8f0' },
  tooltip: { y: { formatter: function(v) { return v + '%'; } } },
  });
@@ -770,6 +968,7 @@ document.addEventListener('alpine:after-render', function() {
   {% endif %}
 
   // --- CA Aging Bar Chart ---
+  {% if ca_aging_data and ca_aging_data != '[]' %}
   var agingEl = document.getElementById('caAgingChart');
   if (agingEl) {
    var agingLabels = {{ ca_aging_labels|safe }};
@@ -783,11 +982,14 @@ document.addEventListener('alpine:after-render', function() {
     colors: agingColors,
     dataLabels: { enabled: true, style: { fontSize: '10px', fontWeight: 700 } },
     grid: { borderColor: '#e2e8f0' },
+    legend: { show: false },
     tooltip: { y: { formatter: function(v) { return v + ' actions'; } } },
    }).render();
   }
+  {% endif %}
 
   // --- CA Monthly Close Rate ---
+  {% if ca_monthly_close and ca_monthly_close != '[]' %}
   var closeEl = document.getElementById('caCloseChart');
   if (closeEl) {
    var closeData = {{ ca_monthly_close|safe }};
@@ -804,6 +1006,7 @@ document.addEventListener('alpine:after-render', function() {
     tooltip: { y: { formatter: function(v) { return v + ' CAs'; } } },
    }).render();
   }
+  {% endif %}
 
   // --- Region Score Comparison ---
   var regionEl = document.getElementById('regionScoreChart');
@@ -815,6 +1018,7 @@ document.addEventListener('alpine:after-render', function() {
     plotOptions: { bar: { horizontal: true, borderRadius: 3, barHeight: '55%', distributed: true } },
     xaxis: { categories: regionData.map(function(r) { return r.name; }), max: 100 },
     yaxis: { labels: { style: { fontSize: '9px' } } },
+    legend: { show: false },
     colors: regionData.map(function(r) { return r.avg >= 90 ? '#10b981' : r.avg >= 80 ? '#f59e0b' : '#ef4444'; }),
     dataLabels: { enabled: true, formatter: function(v) { return v + '%'; }, style: { fontSize: '9px', fontWeight: 700, colors: ['#fff'] }, offsetX: 20 },
     grid: { borderColor: '#e2e8f0' },
@@ -839,11 +1043,13 @@ document.addEventListener('alpine:after-render', function() {
     colors: allVals.map(function(v) { return v >= 90 ? '#10b981' : v >= 80 ? '#f59e0b' : '#ef4444'; }),
     dataLabels: { enabled: true, formatter: function(v) { return v + '%'; }, style: { fontSize: '9px', fontWeight: 700, colors: ['#fff'] }, offsetX: 20 },
     grid: { borderColor: '#e2e8f0' },
+    legend: { show: false },
     tooltip: { y: { formatter: function(v) { return v + '%'; } } },
    }).render();
   }
 
   // --- Grade Trend by Restaurant ---
+  {% if restaurant_trend_series and restaurant_trend_series != '[]' %}
   var restTrendSeries = {{ restaurant_trend_series|safe }};
   var restTrendMonths = {{ restaurant_trend_months|safe }};
   var restTrendSelect = document.getElementById('restaurantTrendSelect');
@@ -869,7 +1075,7 @@ document.addEventListener('alpine:after-render', function() {
      stroke: { curve: 'smooth', width: 2 },
      dataLabels: { enabled: false },
      markers: { size: 3, hover: { size: 5 } },
-     legend: { position: 'top', horizontalAlign: 'right', fontSize: '9px' },
+     legend: { show: false },
      grid: { borderColor: '#e2e8f0' },
      tooltip: { y: { formatter: function(v) { return v + '%'; } } },
     });
@@ -879,6 +1085,7 @@ document.addEventListener('alpine:after-render', function() {
    renderRestTrend('__all__');
    restTrendSelect.addEventListener('change', function(e) { renderRestTrend(e.target.value); });
   }
+  {% endif %}
  });
 </script>
 {% endblock %}
