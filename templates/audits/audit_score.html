@@ -347,28 +347,31 @@ function scoreApp(sectionsData, auditId) {
  return null;
  },
 
- setPassFail(responseId, state) {
- const r = this.getResponse(responseId);
- if (!r) return;
- if (state === 'pass') {
- r.is_na = false;
- r.scored = r.max;
- r.is_answered = true;
- r.comments = '';
- r.needs_ca = false;
- } else if (state === 'fail') {
- r.is_na = false;
- r.scored = 0;
- r.is_answered = true;
- } else if (state === 'na') {
- r.is_na = true;
- r.scored = 0;
- r.is_answered = false;
- r.comments = '';
- r.needs_ca = false;
- }
- this.scheduleSave(responseId);
- },
+  setPassFail(responseId, state) {
+  const r = this.getResponse(responseId);
+  if (!r) return;
+  if (state === 'none') {
+  r.is_na = false;
+  r.is_answered = false;
+  } else if (state === 'pass') {
+  r.is_na = false;
+  r.scored = r.max;
+  r.is_answered = true;
+  r.comments = '';
+  r.needs_ca = false;
+  } else if (state === 'fail') {
+  r.is_na = false;
+  r.scored = 0;
+  r.is_answered = true;
+  } else if (state === 'na') {
+  r.is_na = true;
+  r.scored = 0;
+  r.is_answered = false;
+  r.comments = '';
+  r.needs_ca = false;
+  }
+  this.scheduleSave(responseId);
+  },
 
  scheduleSave(responseId) {
  clearTimeout(this.saveTimeouts[responseId]);
@@ -425,17 +428,7 @@ function scoreApp(sectionsData, auditId) {
  return { scored: 0, max: 0, is_na: false, is_critical: false, comments: '', needs_ca: false, is_answered: false };
  },
 
- onNaToggle(id, checked) {
- const r = this.getResponse(id);
- r.is_na = checked;
- if (checked) {
- r.scored = 0;
- r.comments = '';
- r.needs_ca = false;
- }
- },
-
- fillSectionAJAX(sIdx) {
+  fillSectionAJAX(sIdx) {
  const sec = this.sections[sIdx];
  if (!sec) return;
  this.flushAllSaves();

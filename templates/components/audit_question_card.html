@@ -17,122 +17,171 @@
 
  {{ form.id }}
 
- <div class="p-4 sm:p-5">
-  <!-- Header: Status + Question + Save indicator -->
-  <div class="flex items-start gap-3 mb-3">
-  <!-- Animated Status Dot -->
-  <span class="inline-block w-3 h-3 rounded-full shrink-0 mt-1 ring-2 ring-offset-2 transition-all duration-300"
-  :class="{
-  'bg-slate-300 ring-slate-200': isNA,
-  'bg-emerald-500 ring-emerald-100': !isNA && getResponse({{ pk }}).scored > 0 && getResponse({{ pk }}).is_answered,
-  'bg-amber-500 ring-amber-100': !isNA && getResponse({{ pk }}).scored === 0 && getResponse({{ pk }}).is_answered,
-  'bg-slate-300 ring-slate-200 animate-pulse-soft': !isNA && !getResponse({{ pk }}).is_answered
-  }"
-  :title="isNA ? 'N/A' : getResponse({{ pk }}).is_answered ? (getResponse({{ pk }}).scored > 0 ? 'Passed' : 'Failed') : 'Unanswered'"
-  aria-hidden="true"></span>
+  <div class="p-4 sm:p-5">
+   <!-- Header: Status + Question + Save indicator -->
+   <div class="flex items-start gap-3 mb-3">
+   <!-- Animated Status Dot -->
+   <span class="inline-block w-3 h-3 rounded-full shrink-0 mt-1 ring-2 ring-offset-2 transition-all duration-300"
+   :class="{
+   'bg-slate-300 ring-slate-200': isNA,
+   'bg-emerald-500 ring-emerald-100': !isNA && getResponse({{ pk }}).scored > 0 && getResponse({{ pk }}).is_answered,
+   'bg-amber-500 ring-amber-100': !isNA && getResponse({{ pk }}).scored === 0 && getResponse({{ pk }}).is_answered,
+   'bg-slate-300 ring-slate-200 animate-pulse-soft': !isNA && !getResponse({{ pk }}).is_answered
+   }"
+   :title="isNA ? 'N/A' : getResponse({{ pk }}).is_answered ? (getResponse({{ pk }}).scored > 0 ? 'Passed' : 'Failed') : 'Unanswered'"
+   aria-hidden="true"></span>
 
-  <!-- Question -->
-  <div class="flex-1 min-w-0">
-  <div class="flex items-start gap-2">
-   <span class="text-[11px] font-extrabold text-slate-400 shrink-0 mt-0.5">Q{{ counter }}.</span>
-   <p class="text-sm font-medium text-slate-800 leading-relaxed"
-   :class="{ 'line-through opacity-50': isNA }">
-   {{ question.question_text }}
-   </p>
-  </div>
-  <div class="flex items-center gap-2 flex-wrap mt-2">
-   <span class="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
-   Max: {{ question.possible_points }} pts
-   </span>
-   {% if question.is_critical %}
-   <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-red-100 text-red-700">
-   <i data-lucide="alert-triangle" class="w-3 h-3"></i> Critical
-   </span>
-   {% endif %}
-  </div>
-  </div>
+   <!-- Question -->
+   <div class="flex-1 min-w-0">
+   <div class="flex items-start gap-2">
+    <span class="text-[11px] font-extrabold text-slate-400 shrink-0 mt-0.5">Q{{ counter }}.</span>
+    <p class="text-sm font-medium text-slate-800 leading-relaxed"
+    :class="{ 'line-through opacity-50': isNA }">
+    {{ question.question_text }}
+    </p>
+   </div>
+   <div class="flex items-center gap-2 flex-wrap mt-2">
+    <span class="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+    Max: {{ question.possible_points }} pts
+    </span>
+    {% if question.is_critical %}
+    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-red-100 text-red-700">
+    <i data-lucide="alert-triangle" class="w-3 h-3"></i> Critical
+    </span>
+    {% endif %}
+   </div>
+   </div>
 
-  <!-- Save indicator -->
-  <div x-show="savingStates[{{ pk }}]" x-cloak
-  class="flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1.5 rounded-lg shrink-0 transition-all"
-  :class="{
-  'text-amber-700 bg-amber-100': savingStates[{{ pk }}] === 'saving',
-  'text-emerald-700 bg-emerald-100': savingStates[{{ pk }}] === 'saved',
-  'text-red-700 bg-red-100': savingStates[{{ pk }}] === 'error'
-  }"
-  role="status" aria-live="polite">
-  <template x-if="savingStates[{{ pk }}] === 'saving'">
-  <svg class="animate-spin w-3 h-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
-  </template>
-  <template x-if="savingStates[{{ pk }}] === 'saved'"><i data-lucide="check-circle-2" class="w-3 h-3 animate-check-pop"></i></template>
-  <template x-if="savingStates[{{ pk }}] === 'error'"><i data-lucide="alert-circle" class="w-3 h-3"></i></template>
-  <span x-text="{'saving': 'Saving...','saved': 'Saved','error': 'Failed'}[savingStates[{{ pk }}]] || ''"></span>
-  </div>
-  </div>
+   <!-- Save indicator -->
+   <div x-show="savingStates[{{ pk }}]" x-cloak
+   class="flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1.5 rounded-lg shrink-0 transition-all"
+   :class="{
+   'text-amber-700 bg-amber-100': savingStates[{{ pk }}] === 'saving',
+   'text-emerald-700 bg-emerald-100': savingStates[{{ pk }}] === 'saved',
+   'text-red-700 bg-red-100': savingStates[{{ pk }}] === 'error'
+   }"
+   role="status" aria-live="polite">
+   <template x-if="savingStates[{{ pk }}] === 'saving'">
+   <svg class="animate-spin w-3 h-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+   </template>
+   <template x-if="savingStates[{{ pk }}] === 'saved'"><i data-lucide="check-circle-2" class="w-3 h-3 animate-check-pop"></i></template>
+   <template x-if="savingStates[{{ pk }}] === 'error'"><i data-lucide="alert-circle" class="w-3 h-3"></i></template>
+   <span x-text="{'saving': 'Saving...','saved': 'Saved','error': 'Failed'}[savingStates[{{ pk }}]] || ''"></span>
+   </div>
+   </div>
 
-  <!-- Pass / Fail / NA Toggle — 44px min touch targets -->
-  <div class="flex flex-wrap items-center gap-2 mb-3">
-  <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mr-1">Result:</span>
+   <!-- N/A Banner — visible when question is marked Not Applicable -->
+   <div x-show="isNA" x-cloak
+   x-transition:enter="transition ease-out duration-200"
+   x-transition:enter-start="opacity-0 -translate-y-2"
+   x-transition:enter-end="opacity-100 translate-y-0"
+   class="mb-3 p-3 rounded-xl bg-slate-100 border border-slate-200">
+   <div class="flex items-center gap-2.5">
+   <div class="w-8 h-8 rounded-lg bg-slate-200 flex items-center justify-center shrink-0">
+   <i data-lucide="minus-circle" class="w-4 h-4 text-slate-600"></i>
+   </div>
+   <div class="flex-1 min-w-0">
+   <p class="text-xs font-bold text-slate-700">Marked as Not Applicable</p>
+   <p class="text-[11px] text-slate-500">This question is skipped and excluded from scoring.</p>
+   </div>
+   <button type="button" @click="isNA = false; pfpState = ''; setPassFail({{ pk }}, 'none')"
+   class="text-xs font-bold text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 transition-all shrink-0">
+   Undo
+   </button>
+   </div>
+   </div>
 
-  <button type="button" @click="setPassFail({{ pk }}, 'pass'); pfpState = 'pass'"
-  class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold border-2 transition-all duration-150 min-h-[44px] min-w-[80px] justify-center focus:outline-none focus:ring-2 focus:ring-emerald-400"
-  :class="pfpState === 'pass'
-  ? 'border-emerald-500 bg-emerald-500 text-white shadow-md shadow-emerald-500/30'
-  : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-300 hover:text-emerald-600 hover:bg-emerald-50'"
-  :disabled="isNA">
-  <i data-lucide="check-circle-2" class="w-4 h-4 shrink-0"></i>
-  <span>Pass</span>
-  </button>
+   <!-- Pass / Fail / NA Toggle — 44px min touch targets -->
+   <div class="flex flex-wrap items-center gap-2 mb-3">
+   <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mr-1">Result:</span>
 
-  <button type="button" @click="setPassFail({{ pk }}, 'fail'); pfpState = 'fail'"
-  class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold border-2 transition-all duration-150 min-h-[44px] min-w-[80px] justify-center focus:outline-none focus:ring-2 focus:ring-red-400"
-  :class="pfpState === 'fail'
-  ? 'border-red-500 bg-red-500 text-white shadow-md shadow-red-500/30'
-  : 'border-slate-200 bg-white text-slate-600 hover:border-red-300 hover:text-red-600 hover:bg-red-50'"
-  :disabled="isNA">
-  <i data-lucide="x-circle" class="w-4 h-4 shrink-0"></i>
-  <span>Fail</span>
-  </button>
+   <button type="button"
+   @click="
+   isNA = false;
+   if (pfpState === 'pass') {
+   setPassFail({{ pk }}, 'none');
+   pfpState = '';
+   } else {
+   setPassFail({{ pk }}, 'pass');
+   pfpState = 'pass';
+   }"
+   class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold border-2 transition-all duration-150 min-h-[44px] min-w-[80px] justify-center focus:outline-none focus:ring-2 focus:ring-emerald-400"
+   :class="pfpState === 'pass'
+   ? 'border-emerald-500 bg-emerald-500 text-white shadow-md shadow-emerald-500/30 ring-1 ring-emerald-300'
+   : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-300 hover:text-emerald-600 hover:bg-emerald-50'"
+   :disabled="isNA">
+   <i data-lucide="check-circle-2" class="w-4 h-4 shrink-0"></i>
+   <span x-text="pfpState === 'pass' ? 'Passed' : 'Pass'"></span>
+   </button>
 
-  <button type="button" @click="setPassFail({{ pk }}, 'na'); pfpState = 'na'"
-  class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold border-2 transition-all duration-150 min-h-[44px] min-w-[80px] justify-center focus:outline-none focus:ring-2 focus:ring-slate-400"
-  :class="pfpState === 'na'
-  ? 'border-slate-500 bg-slate-500 text-white shadow-md'
-  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-400 hover:text-slate-700 hover:bg-slate-100'">
-  <i data-lucide="minus-circle" class="w-4 h-4 shrink-0"></i>
-  <span>N/A</span>
-  </button>
-  </div>
+   <button type="button"
+   @click="
+   isNA = false;
+   if (pfpState === 'fail') {
+   setPassFail({{ pk }}, 'none');
+   pfpState = '';
+   } else {
+   setPassFail({{ pk }}, 'fail');
+   pfpState = 'fail';
+   }"
+   class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold border-2 transition-all duration-150 min-h-[44px] min-w-[80px] justify-center focus:outline-none focus:ring-2 focus:ring-red-400"
+   :class="pfpState === 'fail'
+   ? 'border-red-500 bg-red-500 text-white shadow-md shadow-red-500/30 ring-1 ring-red-300'
+   : 'border-slate-200 bg-white text-slate-600 hover:border-red-300 hover:text-red-600 hover:bg-red-50'"
+   :disabled="isNA">
+   <i data-lucide="x-circle" class="w-4 h-4 shrink-0"></i>
+   <span x-text="pfpState === 'fail' ? 'Failed' : 'Fail'"></span>
+   </button>
 
-  <!-- Score Row: Numeric input + Slider -->
-  <div class="flex items-center gap-3 mb-3">
-  <div class="flex items-center gap-1.5">
-  <input type="number" name="scored_points"
-  class="w-20 px-3 py-2.5 rounded-xl border-2 text-center text-sm font-extrabold text-slate-900 bg-white transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-40 disabled:bg-slate-100 disabled:cursor-not-allowed"
-  :class="{
-  'border-amber-300 bg-amber-50': savingStates[{{ pk }}] === 'saving',
-  'border-red-300 bg-red-50': savingStates[{{ pk }}] === 'error',
-  'border-emerald-200': !isNA && pfpState === 'pass',
-  'border-red-200': !isNA && pfpState === 'fail',
-  'border-slate-200': isNA
-  }"
-  min="0" :max="getResponse({{ pk }}).max" step="0.5"
-  :disabled="isNA || pfpState === 'pass' || pfpState === 'fail'"
-  placeholder="0"
-  @input="scheduleSave({{ pk }})"
-  x-model.number="getResponse({{ pk }}).scored"
-  :id="'score-' + {{ pk }}">
-  <span class="text-sm font-bold text-slate-400">/&thinsp;<span x-text="getResponse({{ pk }}).max"></span></span>
-  </div>
-  <div class="flex-1 hidden sm:block">
-  <input type="range"
-  min="0" :max="getResponse({{ pk }}).max" step="0.5"
-  :disabled="isNA || pfpState === 'pass' || pfpState === 'fail'"
-  @input="scheduleSave({{ pk }})"
-  x-model.number="getResponse({{ pk }}).scored"
-  aria-label="Score slider">
-  </div>
-  </div>
+   <button type="button"
+   @click="
+   if (pfpState === 'na') {
+   isNA = false;
+   pfpState = '';
+   setPassFail({{ pk }}, 'none');
+   } else {
+   isNA = true;
+   pfpState = 'na';
+   setPassFail({{ pk }}, 'na');
+   }"
+   class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold border-2 transition-all duration-150 min-h-[44px] min-w-[80px] justify-center focus:outline-none focus:ring-2 focus:ring-slate-400"
+   :class="pfpState === 'na'
+   ? 'border-slate-500 bg-slate-500 text-white shadow-md ring-1 ring-slate-300'
+   : 'border-slate-200 bg-white text-slate-600 hover:border-slate-400 hover:text-slate-700 hover:bg-slate-100'">
+   <i data-lucide="minus-circle" class="w-4 h-4 shrink-0"></i>
+   <span x-text="pfpState === 'na' ? 'N/A ✓' : 'N/A'"></span>
+   </button>
+   </div>
+
+   <!-- Score Row: Numeric input + Slider -->
+   <div class="flex items-center gap-3 mb-3">
+   <div class="flex items-center gap-1.5">
+   <input type="number" name="scored_points"
+   class="w-20 px-3 py-2.5 rounded-xl border-2 text-center text-sm font-extrabold text-slate-900 bg-white transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-40 disabled:bg-slate-100 disabled:cursor-not-allowed"
+   :class="{
+   'border-amber-300 bg-amber-50': savingStates[{{ pk }}] === 'saving',
+   'border-red-300 bg-red-50': savingStates[{{ pk }}] === 'error',
+   'border-emerald-200': !isNA && pfpState === 'pass',
+   'border-red-200': !isNA && pfpState === 'fail',
+   'border-slate-200': isNA
+   }"
+   min="0" :max="getResponse({{ pk }}).max" step="0.5"
+   :disabled="isNA || pfpState === 'pass' || pfpState === 'fail'"
+   placeholder="0"
+   @input="scheduleSave({{ pk }})"
+   x-model.number="getResponse({{ pk }}).scored"
+   :id="'score-' + {{ pk }}">
+   <span class="text-sm font-bold text-slate-400">/&thinsp;<span x-text="getResponse({{ pk }}).max"></span></span>
+   </div>
+   <div class="flex-1 hidden sm:block">
+   <input type="range"
+   min="0" :max="getResponse({{ pk }}).max" step="0.5"
+   :disabled="isNA || pfpState === 'pass' || pfpState === 'fail'"
+   @input="scheduleSave({{ pk }})"
+   x-model.number="getResponse({{ pk }}).scored"
+   aria-label="Score slider">
+   </div>
+   </div>
 
   <!-- Conditional Remarks — slides down on Fail -->
   <div x-show="pfpState === 'fail'" x-cloak
@@ -217,16 +266,25 @@
    </template>
   </div>
 
-  <!-- N/A Toggle — bottom of card -->
-  <div class="flex items-center gap-3 pt-2" x-show="pfpState !== 'na'">
-  <label class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-all cursor-pointer min-h-[44px]">
-  <input type="checkbox" name="is_na"
-  x-model="isNA"
-  @change="onNaToggle({{ pk }}, $event.target.checked); if($event.target.checked) { pfpState = 'na'; getResponse({{ pk }}).scored = 0; } scheduleSave({{ pk }})"
-  class="w-4 h-4 rounded accent-slate-500 cursor-pointer">
-  <span>Not Applicable</span>
-  </label>
-  </div>
+   <!-- N/A Toggle — bottom of card, always visible -->
+   <div class="flex items-center gap-3 pt-2">
+   <label class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer min-h-[44px]"
+   :class="isNA ? 'bg-slate-200/70 text-slate-700' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'">
+   <input type="checkbox" name="is_na"
+   x-model="isNA"
+   @change="
+   if ($event.target.checked) {
+   pfpState = 'na';
+   setPassFail({{ pk }}, 'na');
+   } else {
+   pfpState = '';
+   setPassFail({{ pk }}, 'none');
+   }"
+   class="w-4 h-4 rounded cursor-pointer"
+   :class="isNA ? 'accent-slate-600' : 'accent-slate-500'">
+   <span>Not Applicable</span>
+   </label>
+   </div>
  </div>
 </div>
 {% endwith %}
