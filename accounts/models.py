@@ -69,6 +69,9 @@ class Department(BaseModel):
 class User(AbstractUser):
     history = HistoricalRecords()
 
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username']
+
     class Roles(models.TextChoices):
         ADMIN = "admin", "Admin"
         AUDITOR = "auditor", "Auditor"
@@ -138,7 +141,7 @@ class User(AbstractUser):
 
     class Meta:
         db_table = "accounts_user"
-        ordering = ["username"]
+        ordering = ["email"]
 
     # -----------------------------
     # VALIDATION (FIELDS + RELATIONS)

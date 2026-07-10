@@ -7,16 +7,25 @@ from crispy_forms.layout import Layout, Field, HTML, Div
 
 
 class LoginForm(AuthenticationForm):
+    username = forms.EmailField(
+        label='Email',
+        widget=forms.EmailInput(attrs={'autofocus': True}),
+    )
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.error_messages['invalid_login'] = (
+            'Please enter a correct email and password. '
+            'Note that both fields may be case-sensitive.'
+        )
         self.helper = FormHelper()
         self.helper.form_tag = False
         self.helper.attrs = {'novalidate': ''}
         self.helper.label_class = 'sr-only'
         self.helper.layout = Layout(
             Div(
-                HTML('<i data-lucide="user" class="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-primary transition-colors pointer-events-none"></i>'),
-                Field('username', placeholder='Enter your username',
+                HTML('<i data-lucide="mail" class="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-primary transition-colors pointer-events-none"></i>'),
+                Field('username', placeholder='Enter your email address',
                       css_class='w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary outline-none transition-all text-sm bg-white/50',
                       wrapper_class='!mb-0'),
                 css_class='relative group'

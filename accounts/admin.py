@@ -12,11 +12,11 @@ class UserResource(resources.ModelResource):
     class Meta:
         model = User
         fields = [
-            'id', 'username', 'email', 'first_name', 'last_name',
+            'id', 'email', 'username', 'first_name', 'last_name',
             'role', 'designation', 'department', 'mobile_number',
             'email_notifications', 'is_active', 'is_staff', 'is_superuser'
         ]
-        import_id_fields = ['username']
+        import_id_fields = ['email']
         skip_unchanged = True
 
 
@@ -58,13 +58,13 @@ class DepartmentAdmin(ImportExportModelAdmin, SimpleHistoryAdmin):
 class UserAdmin(ImportExportModelAdmin, SimpleHistoryAdmin, BaseUserAdmin):
     resource_classes = [UserResource]
     list_display = [
-        'username', 'email', 'get_full_name', 'role',
+        'email', 'username', 'get_full_name', 'role',
         'designation', 'department', 'email_notifications', 'is_active', 'is_admin'
     ]
     list_filter = ['role', 'is_active', 'is_staff', 'is_superuser', 'department', 'designation', 'email_notifications']
-    list_display_links = ['username', 'email']
-    search_fields = ['username', 'email', 'first_name', 'last_name', 'mobile_number']
-    ordering = ['username']
+    list_display_links = ['email']
+    search_fields = ['email', 'username', 'first_name', 'last_name', 'mobile_number']
+    ordering = ['email']
     filter_horizontal = ['groups', 'user_permissions', 'restaurants']
     actions = ['enable_email_notifications', 'disable_email_notifications']
 
@@ -73,11 +73,11 @@ class UserAdmin(ImportExportModelAdmin, SimpleHistoryAdmin, BaseUserAdmin):
     fieldsets = [
         (
             'Login Credentials',
-            {'fields': ['username', 'password']}
+            {'fields': ['email', 'password']}
         ),
         (
             'Personal Info',
-            {'fields': [('first_name', 'last_name'), 'email', 'mobile_number']}
+            {'fields': [('first_name', 'last_name'), 'username', 'mobile_number']}
         ),
         (
             'Role & Organization',
@@ -113,7 +113,7 @@ class UserAdmin(ImportExportModelAdmin, SimpleHistoryAdmin, BaseUserAdmin):
             {
                 'classes': ['wide'],
                 'fields': [
-                    'username', 'email', 'password1', 'password2',
+                    'email', 'username', 'password1', 'password2',
                     'role', 'designation', 'department', 'manager',
                 ],
             },

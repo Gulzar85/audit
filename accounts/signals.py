@@ -77,7 +77,7 @@ def log_failed_login(sender, credentials, request, **kwargs):
     log_security_event(
         'FAILED_LOGIN_ATTEMPT',
         None,
-        f"IP: {ip}, Username: {username}",
+        f"IP: {ip}, Email: {username}",
         severity='WARNING'
     )
 
