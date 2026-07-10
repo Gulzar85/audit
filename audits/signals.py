@@ -116,7 +116,9 @@ def ca_created_notification(sender, instance, created, **kwargs):
         'audit_date': instance.audit.audit_date if instance.audit else None,
         'ca_url': link,
     }
+    extra_recipients = [instance.audit.auditor.manager] if instance.audit.auditor and instance.audit.auditor.manager else None
     notify_restaurant_users(
         Notification.Type.CA_CREATED, title, message, link, restaurant,
         email_context=email_context,
+        extra_recipients=extra_recipients,
     )

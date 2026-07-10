@@ -91,8 +91,7 @@ def auto_generate_corrective_actions(audit):
 
 def notify_restaurant_users(notification_type, title, message, link, restaurant, email_context=None, extra_recipients=None):
     restaurant_users = restaurant.users.filter(is_active=True)
-    managers = User.objects.filter(role=User.Roles.MANAGER, is_active=True)
-    recipients = set(restaurant_users) | set(managers)
+    recipients = set(restaurant_users)
     if extra_recipients:
         recipients |= {u for u in extra_recipients if u}
     notifications = [

@@ -268,6 +268,7 @@ class AuditScoreView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
                 'auditor_name': audit.auditor.get_full_name() or audit.auditor.username if audit.auditor else 'N/A',
                 'result_url': request.build_absolute_uri(reverse('audits:result', args=[audit.pk])),
             }
+            extra_recipients = [audit.auditor, audit.auditor.manager] if audit.auditor and audit.auditor.manager else [audit.auditor] if audit.auditor else None
             notify_restaurant_users(
                 Notification.Type.AUDIT_SUBMITTED,
                 f'Audit Completed: {audit.restaurant.name}',
@@ -275,7 +276,7 @@ class AuditScoreView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
                 reverse('audits:result', args=[audit.pk]),
                 audit.restaurant,
                 email_context=email_context,
-                extra_recipients=[audit.auditor],
+                extra_recipients=extra_recipients,
             )
             messages.success(request, 'Audit scores saved and submitted successfully.')
             return redirect('audits:result', pk=audit.pk)
@@ -909,7 +910,9 @@ class CorrectiveActionVerifyView(LoginRequiredMixin, PermissionRequiredMixin, Vi
             'deadline': action.deadline,
             'ca_url': request.build_absolute_uri(link),
         }
-        # Notify restaurant users that the fix is verified
+        extra_recipients = [action.assigned_to] if action.assigned_to else []
+        if action.audit.auditor and action.audit.auditor.manager:
+            extra_recipients.append(action.audit.auditor.manager)
         notify_restaurant_users(
             Notification.Type.CA_VERIFIED,
             f'Corrective Action Verified: {action.restaurant.name}',
@@ -917,7 +920,7 @@ class CorrectiveActionVerifyView(LoginRequiredMixin, PermissionRequiredMixin, Vi
             link,
             action.restaurant,
             email_context=email_context,
-            extra_recipients=[action.assigned_to] if action.assigned_to else None,
+            extra_recipients=extra_recipients or None,
         )
 
         messages.success(request, 'Corrective action verified successfully.')
@@ -964,7 +967,9 @@ class CorrectiveActionCloseView(LoginRequiredMixin, PermissionRequiredMixin, Vie
             'deadline': action.deadline,
             'ca_url': request.build_absolute_uri(link),
         }
-        # Notify all stakeholders
+        extra_recipients = [action.assigned_to] if action.assigned_to else []
+        if action.audit.auditor and action.audit.auditor.manager:
+            extra_recipients.append(action.audit.auditor.manager)
         notify_restaurant_users(
             Notification.Type.CA_CLOSED,
             f'Corrective Action Closed: {action.restaurant.name}',
@@ -972,7 +977,7 @@ class CorrectiveActionCloseView(LoginRequiredMixin, PermissionRequiredMixin, Vie
             link,
             action.restaurant,
             email_context=email_context,
-            extra_recipients=[action.assigned_to] if action.assigned_to else None,
+            extra_recipients=extra_recipients or None,
         )
         if action.audit and action.audit.auditor:
             notify_auditor_and_manager(
@@ -1437,6 +1442,7 @@ class AuditSubmitJSONView(LoginRequiredMixin, PermissionRequiredMixin, View):
             'auditor_name': audit.auditor.get_full_name() or audit.auditor.username if audit.auditor else 'N/A',
             'result_url': request.build_absolute_uri(reverse('audits:result', args=[audit.pk])),
         }
+        extra_recipients = [audit.auditor, audit.auditor.manager] if audit.auditor and audit.auditor.manager else [audit.auditor] if audit.auditor else None
         notify_restaurant_users(
             Notification.Type.AUDIT_SUBMITTED,
             f'Audit Completed: {audit.restaurant.name}',
@@ -1444,7 +1450,7 @@ class AuditSubmitJSONView(LoginRequiredMixin, PermissionRequiredMixin, View):
             reverse('audits:result', args=[audit.pk]),
             audit.restaurant,
             email_context=email_context,
-            extra_recipients=[audit.auditor],
+            extra_recipients=extra_recipients,
         )
 
         return JsonResponse({
