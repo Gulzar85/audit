@@ -6,624 +6,764 @@
 
 {% block content %}
 <div x-data="scoreApp({{ sections_json }}, {{ audit.id }})"
- x-init="init()"
- @keydown.alt.arrow-left.window="navigateSection('prev')"
- @keydown.alt.arrow-right.window="navigateSection('next')">
+     x-init="init()"
+     @keydown.alt.arrow-left.window="navigateSection('prev')"
+     @keydown.alt.arrow-right.window="navigateSection('next')"
+     @keydown.ctrl.enter.window="confirmSubmit()"
+     class="h-screen flex flex-col">
 
- <meta name="csrf-token" content="{{ csrf_token }}">
+  <meta name="csrf-token" content="{{ csrf_token }}">
 
- <div class="max-w-7xl mx-auto">
- <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-7 pb-20 lg:pb-0">
+  <!-- ══════ STICKY TOP BAR ══════ -->
+  <div class="shrink-0 glass-strong border-b border-slate-200/60 shadow-sm z-30">
+    <div class="max-w-full mx-auto px-3 sm:px-5 py-2.5">
+      <div class="flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="p-1.5 bg-gradient-primary rounded-lg shrink-0 shadow-sm shadow-primary/20">
+            <i data-lucide="clipboard-check" class="w-4 h-4 text-white"></i>
+          </div>
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <h1 class="text-sm font-extrabold text-slate-900 truncate max-w-[200px]">{{ audit.restaurant.name }}</h1>
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-white/80"
+                    :class="gradeColorClass"
+                    x-text="totalPercentage.toFixed(1) + '%'"></span>
+              <span class="text-[10px] font-bold text-slate-400 hidden sm:inline tabular-nums"
+                    x-text="totalScored.toFixed(1) + '/' + totalPossible.toFixed(1) + ' pts'"></span>
+            </div>
+            <p class="text-[11px] text-slate-500 truncate">{{ audit.template.name }} <span class="text-slate-400">v{{ audit.template.version }}</span></p>
+          </div>
+        </div>
 
-  <!-- ══════ SIDEBAR — Audit Progress Panel ══════ -->
-  <aside class="lg:col-span-3 order-2 lg:order-1">
-  <div class="sticky top-20 glass-premium rounded-2xl overflow-hidden border border-slate-200/40 shadow-drop">
+        <div x-show="criticalCount > 0"
+             class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-100 text-red-700 text-[10px] font-bold">
+          <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
+          <span x-text="criticalCount + ' critical'"></span>
+        </div>
 
-  <!-- Header -->
-  <div class="px-5 py-4 bg-gradient-primary-h">
-  <div class="flex items-center gap-3">
-   <div class="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-   <i data-lucide="chart-bars" class="w-5 h-5 text-white"></i>
-   </div>
-   <div>
-   <h2 class="text-sm font-bold text-white">Audit Progress</h2>
-   <p class="text-xs text-white/70" x-text="completedSections + '/' + sections.length + ' sections'"></p>
-   </div>
-  </div>
-  </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <button type="button" @click="fillAllAJAX()"
+                  class="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors min-h-[36px]">
+            <i data-lucide="zap" class="w-3.5 h-3.5"></i> Fill All
+          </button>
+          <button type="button" @click="confirmSubmit()"
+                  class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-success text-white text-xs font-bold transition-all shadow-lg shadow-emerald-600/20 hover:shadow-xl hover:shadow-emerald-600/30 active:scale-[0.97] min-h-[36px]">
+            <i data-lucide="check-circle-2" class="w-4 h-4"></i> Submit
+            <kbd class="hidden sm:inline text-[9px] text-white/60 bg-white/15 px-1 py-0.5 rounded">Ctrl+Enter</kbd>
+          </button>
+        </div>
+      </div>
 
-  <div class="p-5 space-y-5">
-
-  <!-- Audit Info -->
-  <div class="space-y-2.5">
-  <div class="flex justify-between items-start gap-2">
-   <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest shrink-0">Restaurant</span>
-   <span class="text-xs font-bold text-slate-900 text-right max-w-[140px] truncate-2">{{ audit.restaurant.name }}</span>
-  </div>
-  <div class="flex justify-between items-start gap-2">
-   <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest shrink-0">Date</span>
-   <span class="text-xs font-bold text-slate-700">{{ audit.audit_date|date:"M d, Y" }}</span>
-  </div>
-  <div class="flex justify-between items-start gap-2">
-   <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest shrink-0">Auditor</span>
-   <span class="text-xs font-bold text-slate-700 text-right truncate">{{ audit.auditor.get_full_name|default:audit.auditor.username }}</span>
-  </div>
-  <div class="flex justify-between items-start gap-2">
-   <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest shrink-0">Checklist</span>
-   <span class="text-xs font-bold text-slate-700 text-right truncate">{{ audit.template.name }} <span class="text-slate-400">v{{ audit.template.version }}</span></span>
-  </div>
-  </div>
-
-  <div class="h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
-
-  <!-- Section Jump -->
-  <div>
-  <label for="jump-section" class="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Jump to Section</label>
-  <select id="jump-section"
-  :value="isNaN(currentSection) ? '' : currentSection"
-  @change="handleSectionSelect($event)"
-  class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
-  <option value="">Select...</option>
-  {% for group in section_formsets %}
-  <option :value="{{ forloop.counter0 }}" x-text="sectionLabel({{ forloop.counter0 }})"></option>
-  {% endfor %}
-  </select>
-  </div>
-
-  <!-- Progress Bar -->
-  <div class="space-y-2.5">
-  <div class="flex items-center justify-between">
-   <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Progress</span>
-   <span class="text-xs font-bold text-slate-500" x-text="completedSections + '/' + sections.length + ' done'"></span>
-  </div>
-  <div class="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden shadow-inner">
-   <div class="h-full rounded-full transition-all duration-700 ease-out"
-   :style="'width: ' + (sections.length > 0 ? (completedSections / sections.length * 100) : 0) + '%'"
-   :class="completedSections === sections.length ? 'bg-gradient-to-r from-emerald-500 to-emerald-600' : 'bg-gradient-to-r from-amber-500 to-amber-600'">
-   </div>
-  </div>
-  <div class="flex items-center justify-between">
-   <span class="text-sm font-extrabold" :class="gradeColorClass" x-text="totalPercentage.toFixed(1) + '%'"></span>
-   <span class="text-xs text-slate-500 font-bold" x-text="totalScored.toFixed(1) + '/' + totalPossible.toFixed(1) + ' pts'"></span>
-  </div>
+      <!-- Section tabs (mobile, hidden on lg) -->
+      <div class="flex lg:hidden gap-1.5 mt-2 overflow-x-auto scrollbar-hide -mx-1 px-1 pb-0.5">
+        <template x-for="(sec, idx) in sections" :key="idx">
+          <button type="button"
+                  @click="currentSection = idx; window.scrollTo({top: 0, behavior: 'smooth'})"
+                  class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold whitespace-nowrap border transition-all shrink-0 min-h-[32px]"
+                  :class="currentSection === idx ? 'bg-primary text-white border-primary shadow-sm shadow-primary/20' : 'bg-white/80 text-slate-600 border-slate-200/60 hover:border-primary/40 hover:text-primary'">
+            <span class="w-2 h-2 rounded-full shrink-0"
+                  :class="sectionScore(idx).answered === sectionScore(idx).total && sectionScore(idx).total > 0 ? 'bg-emerald-500' : sectionScore(idx).answered > 0 ? 'bg-amber-500' : 'bg-slate-300'"></span>
+            <span class="truncate max-w-[80px]" x-text="sec.name"></span>
+            <span class="text-[10px] opacity-70 ml-0.5 tabular-nums" x-text="sectionScore(idx).answered + '/' + sectionScore(idx).total"></span>
+          </button>
+        </template>
+      </div>
+    </div>
   </div>
 
-  <div class="h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
+  <!-- ══════ TWO-COLUMN BODY ══════ -->
+  <div class="flex-1 flex overflow-hidden">
+    <!-- MAIN: Sections & Questions -->
+    <main class="flex-1 overflow-y-auto">
+      <div class="max-w-4xl mx-auto px-3 sm:px-5 py-4 space-y-5 lg:pb-4 pb-24">
+        {% for group in section_formsets %}
+        <section x-show="currentSection === {{ forloop.counter0 }}" x-cloak
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0 translate-y-4"
+                 x-transition:enter-end="opacity-100 translate-y-0">
 
-  <!-- Grade -->
-  <div class="text-center py-2">
-  <div class="text-3xl font-extrabold" :class="gradeColorClass" x-text="gradeLabel.split(' ')[0]"></div>
-  <div class="text-xs font-bold text-slate-500 mt-1" x-text="gradeLabel"></div>
+          <div class="glass-premium rounded-2xl overflow-hidden border border-slate-200/40">
+            <!-- Section Header -->
+            <div class="px-5 sm:px-7 py-4 bg-gradient-primary-h flex items-center justify-between gap-4">
+              <div class="flex-1 min-w-0">
+                <h3 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                  <i data-lucide="folder-open" class="w-5 h-5 shrink-0"></i>
+                  <span class="truncate">{{ forloop.counter }}. {{ group.section.section.name }}</span>
+                  <span class="text-sm font-bold text-white/70 whitespace-nowrap" x-text="'(' + sectionAnswered({{ forloop.counter0 }}) + '/' + sectionTotal({{ forloop.counter0 }}) + ')'"></span>
+                </h3>
+                {% if group.section.section.description %}
+                <p class="text-xs text-red-100/80 mt-0.5 truncate">{{ group.section.section.description }}</p>
+                {% endif %}
+              </div>
+              <div class="flex items-center gap-3 shrink-0">
+                <button type="button" @click="fillSectionAJAX({{ forloop.counter0 }})"
+                        class="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-bold transition-colors min-h-[36px]"
+                        title="Auto-fill unanswered">
+                  <i data-lucide="zap" class="w-4 h-4"></i>
+                  <span class="hidden sm:inline">Fill</span>
+                </button>
+                <span class="px-2.5 py-1 rounded-full bg-white/20 text-white text-xs font-bold tabular-nums">
+                  {{ forloop.counter }}/{{ section_formsets|length }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Section progress bar -->
+            <div class="px-5 sm:px-7 pb-3">
+              <div class="flex items-center gap-3">
+                <div class="flex-1 h-1.5 bg-slate-200/70 rounded-full overflow-hidden">
+                  <div class="h-full rounded-full transition-all duration-500 ease-out"
+                       x-text="''"
+                       :style="'width: ' + (sectionTotal({{ forloop.counter0 }}) > 0 ? (sectionAnswered({{ forloop.counter0 }}) / sectionTotal({{ forloop.counter0 }}) * 100) : 0) + '%'"
+                       :class="sectionAnswered({{ forloop.counter0 }}) === sectionTotal({{ forloop.counter0 }}) && sectionTotal({{ forloop.counter0 }}) > 0 ? 'bg-emerald-500' : 'bg-primary'">
+                  </div>
+                </div>
+                <span class="text-[10px] font-bold text-slate-500 shrink-0 tabular-nums"
+                      x-text="sectionAnswered({{ forloop.counter0 }}) + '/' + sectionTotal({{ forloop.counter0 }}) + ' answered'"></span>
+              </div>
+            </div>
+
+            <!-- Questions: 2-column grid -->
+            <div class="p-4 sm:p-5 grid grid-cols-1 gap-3">
+              {% for form in group.formset %}
+                {% include 'components/audit_question_card.html' with form=form counter=forloop.counter %}
+              {% empty %}
+              <div class="col-span-full text-center py-12">
+                <div class="flex justify-center mb-3">
+                  <div class="p-3 rounded-full bg-blue-100">
+                    <i data-lucide="info" class="w-6 h-6 text-blue-500"></i>
+                  </div>
+                </div>
+                <p class="text-sm text-slate-500">No questions available for this section.</p>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </section>
+        {% endfor %}
+      </div>
+    </main>
+
+    <!-- RIGHT RESULTS PANEL (lg+) -->
+    <aside class="hidden lg:flex lg:flex-col w-80 shrink-0 border-l border-slate-200/60 bg-white/50 overflow-y-auto">
+      <div class="p-4 space-y-4">
+        <!-- Score Summary -->
+        <div class="glass-premium rounded-xl p-4 border border-slate-200/40">
+          <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Score Summary</h4>
+          <div class="space-y-2.5">
+            <div class="flex justify-between items-center">
+              <span class="text-xs text-slate-600 font-bold">Score</span>
+              <span class="text-lg font-extrabold" :class="gradeColorClass" x-text="totalPercentage.toFixed(1) + '%'"></span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-xs text-slate-600 font-bold">Points</span>
+              <span class="text-sm font-extrabold text-slate-900" x-text="totalScored.toFixed(1) + '/' + totalPossible.toFixed(1)"></span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-xs text-slate-600 font-bold">Grade</span>
+              <span class="text-sm font-extrabold" :class="gradeColorClass" x-text="gradeLabel"></span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-xs text-slate-600 font-bold">Sections</span>
+              <span class="text-sm font-extrabold text-slate-900" x-text="completedSections + '/' + sections.length + ' done'"></span>
+            </div>
+            <div x-show="criticalCount > 0" class="flex justify-between items-center">
+              <span class="text-xs text-slate-600 font-bold">Critical</span>
+              <span class="text-sm font-extrabold text-red-600" x-text="criticalCount + ' unanswered'"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section Breakdown -->
+        <div class="glass-premium rounded-xl p-4 border border-slate-200/40">
+          <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Section Breakdown</h4>
+          <div class="space-y-2">
+            <template x-for="(sec, idx) in sections" :key="idx">
+              <div class="flex items-center gap-2.5">
+                <span class="w-2 h-2 rounded-full shrink-0"
+                      :class="sectionScore(idx).answered === sectionScore(idx).total && sectionScore(idx).total > 0 ? 'bg-emerald-500' : sectionScore(idx).answered > 0 ? 'bg-amber-500' : 'bg-slate-300'">
+                </span>
+                <div class="flex-1 min-w-0">
+                  <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-slate-700 truncate" x-text="sec.name"></span>
+                    <span class="text-[10px] font-bold tabular-nums"
+                          :class="sectionScore(idx).pct >= 90 ? 'text-emerald-600' : sectionScore(idx).pct >= 80 ? 'text-amber-600' : sectionScore(idx).answered > 0 ? 'text-red-600' : 'text-slate-400'"
+                          x-text="sectionScore(idx).pct.toFixed(0) + '%'"></span>
+                  </div>
+                  <div class="mt-0.5 w-full bg-slate-200 rounded-full h-1 overflow-hidden">
+                    <div class="h-full rounded-full transition-all duration-500"
+                         :style="'width: ' + sectionScore(idx).pct + '%'"
+                         :class="sectionScore(idx).pct >= 90 ? 'bg-emerald-500' : sectionScore(idx).pct >= 80 ? 'bg-amber-500' : sectionScore(idx).answered > 0 ? 'bg-red-500' : 'bg-slate-300'">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- Corrective Actions -->
+        <div class="glass-premium rounded-xl p-4 border border-slate-200/40">
+          <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+            <i data-lucide="message-square" class="w-3 h-3"></i>
+            Corrective Actions
+            <span x-show="correctiveActions.length > 0"
+                  class="px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[9px] font-bold ml-auto"
+                  x-text="correctiveActions.length"></span>
+          </h4>
+          <div x-show="correctiveActions.length === 0" class="text-center py-6">
+            <div class="p-2 rounded-full bg-slate-100 inline-flex mb-2">
+              <i data-lucide="check-circle-2" class="w-4 h-4 text-slate-400"></i>
+            </div>
+            <p class="text-xs text-slate-400 font-bold">No corrective actions needed</p>
+          </div>
+          <div class="space-y-2">
+            <template x-for="(ca, idx) in correctiveActions" :key="idx">
+              <div class="p-3 rounded-xl bg-amber-50 border border-amber-200/60">
+                <div class="flex items-start gap-2">
+                  <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-amber-600 mt-0.5 shrink-0"></i>
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <span class="text-[10px] font-bold text-amber-800" x-text="ca.section"></span>
+                      <span class="text-[9px] font-bold text-amber-600">Q<x-text x-text="ca.question_idx + 1"></x-text></span>
+                    </div>
+                    <p class="text-[11px] text-amber-900 mt-0.5 line-clamp-2" x-text="ca.comment"></p>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- Evidence Gallery -->
+        <div class="glass-premium rounded-xl p-4 border border-slate-200/40">
+          <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+            <i data-lucide="camera" class="w-3 h-3"></i>
+            Evidence Photos
+            <span x-show="evidenceList.length > 0"
+                  class="px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[9px] font-bold ml-auto"
+                  x-text="evidenceList.length"></span>
+          </h4>
+          <div x-show="evidenceList.length === 0" class="text-center py-6">
+            <div class="p-2 rounded-full bg-slate-100 inline-flex mb-2">
+              <i data-lucide="image" class="w-4 h-4 text-slate-400"></i>
+            </div>
+            <p class="text-xs text-slate-400 font-bold">No photos uploaded</p>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <template x-for="(ev, idx) in evidenceList" :key="idx">
+              <div class="relative rounded-lg overflow-hidden border border-slate-200 group cursor-pointer"
+                   @click="previewEvidence = ev">
+                <img :src="ev.url" :alt="'Evidence ' + idx" class="w-full h-20 object-cover">
+                <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span class="text-[9px] font-bold text-white truncate block" x-text="ev.section"></span>
+                </div>
+              </div>
+            </template>
+          </div>
+
+          <!-- Evidence preview modal -->
+          <div x-show="previewEvidence"
+               x-cloak
+               @click.away="previewEvidence = null"
+               @keydown.escape.window="previewEvidence = null"
+               class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+            <div class="max-w-lg w-full bg-white rounded-2xl overflow-hidden shadow-2xl border border-slate-200/60">
+              <img :src="previewEvidence?.url" alt="Evidence preview" class="w-full h-auto max-h-[60vh] object-contain bg-slate-100">
+              <div class="px-4 py-3 flex items-center justify-between border-t border-slate-100">
+                <span class="text-xs font-bold text-slate-600" x-text="previewEvidence?.section"></span>
+                <button type="button" @click="previewEvidence = null"
+                        class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-xs font-bold hover:bg-slate-200 transition-colors">
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
   </div>
 
-  <!-- Navigation (desktop) -->
-  <div class="grid grid-cols-2 gap-2">
-  <button type="button" @click="navigateSection('prev')" :disabled="currentSection === 0"
-  class="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all min-h-[44px]">
-  <i data-lucide="chevron-left" class="w-4 h-4"></i> Prev
-  </button>
-  <button type="button" @click="navigateSection('next')" :disabled="currentSection === sections.length - 1"
-  class="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all min-h-[44px]">
-  Next <i data-lucide="chevron-right" class="w-4 h-4"></i>
-  </button>
+  <!-- ══════ STATUS BAR (lg+) ══════ -->
+  <div class="hidden lg:flex shrink-0 items-center justify-between px-5 py-2 border-t border-slate-200/60 bg-white/80 text-[11px] font-bold text-slate-500">
+    <div class="flex items-center gap-4">
+      <span class="flex items-center gap-1.5">
+        <i data-lucide="folder-open" class="w-3 h-3"></i>
+        <span x-text="sections.length > currentSection ? sections[currentSection].name : ''"></span>
+        <span class="text-slate-400">· Section <span x-text="currentSection + 1"></span>/<span x-text="sections.length"></span></span>
+      </span>
+      <span class="text-slate-300">|</span>
+      <span class="flex items-center gap-1.5">
+        <i data-lucide="check-circle-2" class="w-3 h-3 text-emerald-500"></i>
+        Auto-save
+        <span x-show="lastSavedAt" class="text-slate-400" x-text="'· ' + lastSavedAt"></span>
+      </span>
+    </div>
+    <div class="flex items-center gap-4">
+      <span x-show="unsavedCount > 0" class="flex items-center gap-1.5 text-amber-600">
+        <i data-lucide="clock" class="w-3 h-3"></i>
+        <span x-text="unsavedCount + ' unsaved'"></span>
+      </span>
+      <div class="flex items-center gap-2">
+        <button type="button" @click="navigateSection('prev')" :disabled="currentSection === 0"
+                class="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all text-[10px] font-bold">
+          <i data-lucide="chevron-left" class="w-3 h-3"></i> Prev
+        </button>
+        <button type="button" @click="navigateSection('next')" :disabled="currentSection === sections.length - 1"
+                class="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all text-[10px] font-bold">
+          Next <i data-lucide="chevron-right" class="w-3 h-3"></i>
+        </button>
+      </div>
+    </div>
   </div>
 
-  <!-- Submit (desktop) -->
-  <button type="button" @click="confirmSubmit()"
-  class="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-success text-white text-sm font-bold transition-all shadow-lg shadow-emerald-600/20 hover:shadow-xl hover:shadow-emerald-600/30 active:scale-[0.97] min-h-[44px]">
-  <i data-lucide="check-circle-2" class="w-5 h-5"></i> Save &amp; Submit
-  </button>
-
-  <!-- Utility -->
-  <div class="grid grid-cols-2 gap-2">
-  <a href="{% url 'audits:dashboard' %}"
-  class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 text-xs font-semibold transition-colors min-h-[44px]">
-  <i data-lucide="home" class="w-3.5 h-3.5"></i> Dashboard
-  </a>
-  <a href="{% url 'audits:list' %}"
-  class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 text-xs font-semibold transition-colors min-h-[44px]">
-  <i data-lucide="list" class="w-3.5 h-3.5"></i> Audits
-  </a>
-  </div>
-  </div>
-  </div>
-  </aside>
-
-  <!-- ══════ MAIN — Sections & Questions ══════ -->
-  <div class="lg:col-span-9 order-1 lg:order-2 space-y-5">
-
-  <!-- Header Card -->
-  <div class="glass-premium rounded-2xl overflow-hidden border border-slate-200/40">
-  <div class="px-5 sm:px-7 py-5 border-b border-slate-100 bg-gradient-to-r from-slate-50/80 to-white/80">
-  <div class="flex items-center justify-between gap-4 flex-wrap">
-   <div class="flex items-center gap-3 flex-1 min-w-0">
-   <div class="p-2.5 bg-gradient-primary rounded-lg shrink-0 shadow-lg shadow-primary/25">
-   <i data-lucide="clipboard-check" class="w-5 h-5 text-white"></i>
-   </div>
-   <div class="min-w-0">
-   <h1 class="text-lg font-extrabold text-slate-900">{{ audit.restaurant.name }}</h1>
-   <p class="text-sm text-slate-500">{{ audit.template.name }} <span class="text-slate-400">v{{ audit.template.version }}</span></p>
-   </div>
-   </div>
-   <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm">
-   <i data-lucide="save" class="w-3.5 h-3.5"></i>
-   <span>Auto-save</span>
-   </span>
-  </div>
-  </div>
+  <!-- ══════ STICKY BOTTOM ACTION BAR (mobile) ══════ -->
+  <div class="fixed bottom-0 left-0 right-0 z-30 glass-strong border-t border-slate-200/60 px-3 sm:px-5 py-3 lg:hidden block">
+    <div class="flex items-center justify-between gap-2 max-w-7xl mx-auto">
+      <div class="flex gap-2">
+        <button type="button" @click="navigateSection('prev')" :disabled="currentSection === 0"
+                class="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-xs hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all min-h-[44px] shadow-sm"
+                title="Alt+Left Arrow">
+          <i data-lucide="chevron-left" class="w-4 h-4"></i>
+          <kbd class="hidden sm:inline text-[9px] text-slate-400 bg-slate-100 px-1 py-0.5 rounded">Alt+←</kbd>
+        </button>
+        <button type="button" @click="navigateSection('next')" :disabled="currentSection === sections.length - 1"
+                class="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-xs hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all min-h-[44px] shadow-sm"
+                title="Alt+Right Arrow">
+          <i data-lucide="chevron-right" class="w-4 h-4"></i>
+          <kbd class="hidden sm:inline text-[9px] text-slate-400 bg-slate-100 px-1 py-0.5 rounded">Alt+→</kbd>
+        </button>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="text-center hidden sm:block px-1">
+          <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate max-w-[80px]"
+               x-text="sections.length > currentSection ? sections[currentSection].name : ''"></div>
+          <span class="font-extrabold text-sm" :class="gradeColorClass" x-text="totalPercentage.toFixed(1) + '%'"></span>
+        </div>
+        <button type="button" @click="confirmSubmit()"
+                class="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-gradient-success text-white font-bold text-sm transition-all shadow-lg shadow-emerald-600/20 active:scale-[0.97] min-h-[44px]">
+          <i data-lucide="check-circle-2" class="w-4 h-4"></i> Submit
+        </button>
+      </div>
+    </div>
   </div>
 
-  <!-- Sections -->
-  {% for group in section_formsets %}
-  <section x-show="currentSection === {{ forloop.counter0 }}" x-cloak
-  x-transition:enter="transition ease-out duration-300"
-  x-transition:enter-start="opacity-0 translate-y-4"
-  x-transition:enter-end="opacity-100 translate-y-0">
+  <!-- ══════ SUBMIT CONFIRMATION MODAL ══════ -->
+  <template x-teleport="body">
+    <div x-show="modal.type" x-cloak
+         @keydown.escape.prevent="closeModal()"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         role="dialog" aria-modal="true" aria-labelledby="modal-title"
+         class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
 
-  <div class="glass-premium rounded-2xl overflow-hidden border border-slate-200/40">
-  <!-- Section Header -->
-  <div class="px-5 sm:px-7 py-4 bg-gradient-primary-h flex items-center justify-between gap-4">
-  <div class="flex-1 min-w-0">
-   <h3 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-   <i data-lucide="folder-open" class="w-5 h-5 shrink-0"></i>
-   <span class="truncate">{{ forloop.counter }}. {{ group.section.section.name }}</span>
-   <span class="text-sm font-bold text-white/70 whitespace-nowrap" x-text="'(' + sectionAnswered({{ forloop.counter0 }}) + '/' + sectionTotal({{ forloop.counter0 }}) + ')'"></span>
-   </h3>
-   {% if group.section.section.description %}
-   <p class="text-xs text-red-100/80 mt-0.5 truncate">{{ group.section.section.description }}</p>
-   {% endif %}
-  </div>
-  <div class="flex items-center gap-3 shrink-0">
-   <button type="button" @click="fillSectionAJAX({{ forloop.counter0 }})"
-   class="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-bold transition-colors min-h-[36px]"
-   title="Auto-fill unanswered">
-   <i data-lucide="zap" class="w-4 h-4"></i>
-   <span class="hidden sm:inline">Fill</span>
-   </button>
-   <span class="px-2.5 py-1 rounded-full bg-white/20 text-white text-xs font-bold tabular-nums">
-   {{ forloop.counter }}/{{ section_formsets|length }}
-   </span>
-  </div>
-  </div>
+      <div @click.away="modal.type && modal.type !== 'confirm' ? modal.type = '' : null"
+           x-transition:enter="transition ease-out duration-300"
+           x-transition:enter-start="opacity-0 scale-90"
+           x-transition:enter-end="opacity-100 scale-100"
+           class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200/60">
 
-  <!-- Questions -->
-  <div class="p-4 sm:p-5 space-y-3">
-  {% for form in group.formset %}
-  {% include 'components/audit_question_card.html' with form=form counter=forloop.counter %}
-  {% empty %}
-  <div class="text-center py-12">
-   <div class="flex justify-center mb-3">
-   <div class="p-3 rounded-full bg-blue-100">
-   <i data-lucide="info" class="w-6 h-6 text-blue-500"></i>
-   </div>
-   </div>
-   <p class="text-sm text-slate-500">No questions available for this section.</p>
-  </div>
-  {% endfor %}
-  </div>
-  </div>
-  </section>
-  {% endfor %}
-  </div>
- </div>
- </div>
+        <div class="px-6 py-5 flex items-center gap-3"
+             :class="{'bg-gradient-gold text-accent': modal.type === 'confirm', 'bg-emerald-600 text-white': modal.type === 'success', 'bg-red-600 text-white': modal.type === 'error'}">
+          <template x-if="modal.type === 'confirm'"><i data-lucide="alert-circle" class="w-6 h-6 text-accent shrink-0"></i></template>
+          <template x-if="modal.type === 'success'"><i data-lucide="check-circle-2" class="w-6 h-6 text-white shrink-0"></i></template>
+          <template x-if="modal.type === 'error'"><i data-lucide="x-circle" class="w-6 h-6 text-white shrink-0"></i></template>
+          <h3 id="modal-title" class="text-lg font-bold" :class="modal.type === 'confirm' ? 'text-accent' : 'text-white'" x-text="modal.title"></h3>
+        </div>
 
- <!-- ══════ STICKY BOTTOM ACTION BAR (mobile-first) ══════ -->
- <div class="fixed bottom-0 left-0 right-0 z-30 glass-strong border-t border-slate-200/60 px-3 sm:px-5 py-3 lg:hidden block">
- <div class="flex items-center justify-between gap-2 max-w-7xl mx-auto">
-  <div class="flex gap-2">
-  <button type="button" @click="navigateSection('prev')" :disabled="currentSection === 0"
-  class="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-xs hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all min-h-[44px] shadow-sm">
-  <i data-lucide="chevron-left" class="w-4 h-4"></i>
-  </button>
-  <button type="button" @click="navigateSection('next')" :disabled="currentSection === sections.length - 1"
-  class="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-xs hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all min-h-[44px] shadow-sm">
-  <i data-lucide="chevron-right" class="w-4 h-4"></i>
-  </button>
-  </div>
-  <div class="flex items-center gap-2">
-  <div class="text-center px-2">
-   <span class="font-extrabold text-sm" :class="gradeColorClass" x-text="totalPercentage.toFixed(1) + '%'"></span>
-  </div>
-  <button type="button" @click="confirmSubmit()"
-  class="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-gradient-success text-white font-bold text-sm transition-all shadow-lg shadow-emerald-600/20 active:scale-[0.97] min-h-[44px]">
-  <i data-lucide="check-circle-2" class="w-4 h-4"></i> Submit
-  </button>
-  </div>
- </div>
- </div>
+        <div class="px-6 py-6">
+          <p class="text-slate-700 text-base leading-relaxed" x-text="modal.body"></p>
+          <p x-show="modal.note" class="text-sm text-slate-500 mt-3 italic" x-text="modal.note"></p>
 
- <!-- ══════ SUBMIT CONFIRMATION MODAL ══════ -->
- <template x-teleport="body">
- <div x-show="modal.type" x-cloak
- @keydown.escape.prevent="closeModal()"
- x-transition:enter="transition ease-out duration-300"
- x-transition:enter-start="opacity-0"
- x-transition:enter-end="opacity-100"
- x-transition:leave="transition ease-in duration-200"
- x-transition:leave-start="opacity-100"
- x-transition:leave-end="opacity-0"
- role="dialog" aria-modal="true" aria-labelledby="modal-title"
- class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+          <div x-show="modal.type === 'confirm' && modal.showScoreSummary"
+               class="mt-5 space-y-2.5 bg-slate-50 rounded-xl p-4 border border-slate-100">
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-slate-600 font-bold">Score</span>
+              <span class="text-lg font-extrabold" :class="gradeColorClass" x-text="totalPercentage.toFixed(1) + '%'"></span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-slate-600 font-bold">Points</span>
+              <span class="text-base font-extrabold text-slate-900" x-text="totalScored.toFixed(1) + '/' + totalPossible.toFixed(1)"></span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-slate-600 font-bold">Grade</span>
+              <span class="text-base font-extrabold" :class="gradeColorClass" x-text="gradeLabel"></span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-slate-600 font-bold">Sections</span>
+              <span class="text-base font-extrabold text-slate-900" x-text="completedSections + '/' + sections.length + ' complete'"></span>
+            </div>
+          </div>
+        </div>
 
- <div @click.away="modal.type && modal.type !== 'confirm' ? modal.type = '' : null"
- x-transition:enter="transition ease-out duration-300"
- x-transition:enter-start="opacity-0 scale-90"
- x-transition:enter-end="opacity-100 scale-100"
- class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200/60">
-
-  <!-- Header -->
-  <div class="px-6 py-5 flex items-center gap-3"
-  :class="{'bg-gradient-gold text-accent': modal.type === 'confirm', 'bg-emerald-600 text-white': modal.type === 'success', 'bg-red-600 text-white': modal.type === 'error'}">
-  <template x-if="modal.type === 'confirm'"><i data-lucide="alert-circle" class="w-6 h-6 text-accent shrink-0"></i></template>
-  <template x-if="modal.type === 'success'"><i data-lucide="check-circle-2" class="w-6 h-6 text-white shrink-0"></i></template>
-  <template x-if="modal.type === 'error'"><i data-lucide="x-circle" class="w-6 h-6 text-white shrink-0"></i></template>
-  <h3 id="modal-title" class="text-lg font-bold" :class="modal.type === 'confirm' ? 'text-accent' : 'text-white'" x-text="modal.title"></h3>
-  </div>
-
-  <!-- Body -->
-  <div class="px-6 py-6">
-  <p class="text-slate-700 text-base leading-relaxed" x-text="modal.body"></p>
-  <p x-show="modal.note" class="text-sm text-slate-500 mt-3 italic" x-text="modal.note"></p>
-
-  <!-- Score Summary -->
-  <div x-show="modal.type === 'confirm' && modal.showScoreSummary"
-  class="mt-5 space-y-2.5 bg-slate-50 rounded-xl p-4 border border-slate-100">
-  <div class="flex justify-between items-center">
-   <span class="text-sm text-slate-600 font-bold">Score</span>
-   <span class="text-lg font-extrabold" :class="gradeColorClass" x-text="totalPercentage.toFixed(1) + '%'"></span>
-  </div>
-  <div class="flex justify-between items-center">
-   <span class="text-sm text-slate-600 font-bold">Points</span>
-   <span class="text-base font-extrabold text-slate-900" x-text="totalScored.toFixed(1) + '/' + totalPossible.toFixed(1)"></span>
-  </div>
-  <div class="flex justify-between items-center">
-   <span class="text-sm text-slate-600 font-bold">Grade</span>
-   <span class="text-base font-extrabold" :class="gradeColorClass" x-text="gradeLabel"></span>
-  </div>
-  <div class="flex justify-between items-center">
-   <span class="text-sm text-slate-600 font-bold">Sections</span>
-   <span class="text-base font-extrabold text-slate-900" x-text="completedSections + '/' + sections.length + ' complete'"></span>
-  </div>
-  </div>
-  </div>
-
-  <!-- Footer -->
-  <div class="px-6 py-5 border-t border-slate-100 flex justify-end gap-3">
-  <button x-show="modal.type === 'confirm'"
-  @click="modal.type = ''"
-  class="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-sm hover:bg-slate-50 transition-colors">
-  Cancel
-  </button>
-  <button @click="modal.onConfirm()" :disabled="modal.loading"
-  class="px-5 py-2.5 rounded-xl text-white font-bold text-sm transition-all disabled:opacity-50 flex items-center gap-2 min-h-[44px]"
-  :class="{'bg-gradient-gold text-accent': modal.type === 'confirm', 'bg-emerald-600': modal.type === 'success', 'bg-red-600': modal.type === 'error'}">
-  <template x-if="modal.loading">
-  <svg class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+        <div class="px-6 py-5 border-t border-slate-100 flex justify-end gap-3">
+          <button x-show="modal.type === 'confirm'"
+                  @click="modal.type = ''"
+                  class="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-sm hover:bg-slate-50 transition-colors">
+            Cancel
+          </button>
+          <button @click="modal.onConfirm()" :disabled="modal.loading"
+                  class="px-5 py-2.5 rounded-xl text-white font-bold text-sm transition-all disabled:opacity-50 flex items-center gap-2 min-h-[44px]"
+                  :class="{'bg-gradient-gold text-accent': modal.type === 'confirm', 'bg-emerald-600': modal.type === 'success', 'bg-red-600': modal.type === 'error'}">
+            <template x-if="modal.loading">
+              <svg class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+            </template>
+            <span x-text="modal.actionText"></span>
+          </button>
+        </div>
+      </div>
+    </div>
   </template>
-  <span x-text="modal.actionText"></span>
-  </button>
-  </div>
- </div>
- </div>
- </template>
 </div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
 function scoreApp(sectionsData, auditId) {
- return {
- sections: [],
- currentSection: 0,
- auditId: auditId,
- savingStates: {},
- saveTimeouts: {},
- modal: { type: '', title: '', body: '', note: '', actionText: '', loading: false, showScoreSummary: false, onConfirm: () => {} },
+  return {
+  sections: [],
+  currentSection: 0,
+  auditId: auditId,
+  savingStates: {},
+  saveTimeouts: {},
+  modal: { type: '', title: '', body: '', note: '', actionText: '', loading: false, showScoreSummary: false, onConfirm: () => {} },
+  lastSavedAt: null,
+  unsavedCount: 0,
+  previewEvidence: null,
 
- init() {
- this.sections = sectionsData.map(sec => ({
- ...sec,
- responses: sec.responses.map(r => ({
- ...r,
- comments: r.comments || ''
- }))
- }));
- if (typeof lucide !== 'undefined') setTimeout(() => lucide.createIcons(), 0);
- },
-
- csrf() {
- const m = document.querySelector('meta[name="csrf-token"]');
- return m ? m.getAttribute('content') : '';
- },
-
- getPassFailState(responseId) {
- const r = this.getResponse(responseId);
- if (!r) return null;
- if (r.is_na) return 'na';
- if (r.scored >= r.max && r.is_answered) return 'pass';
- if (r.scored === 0 && r.is_answered) return 'fail';
- if (r.scored > 0 && r.scored < r.max && r.is_answered) return 'partial';
- return null;
- },
-
-  setPassFail(responseId, state) {
-  const r = this.getResponse(responseId);
-  if (!r) return;
-  if (state === 'none') {
-  r.is_na = false;
-  r.is_answered = false;
-  } else if (state === 'pass') {
-  r.is_na = false;
-  r.scored = r.max;
-  r.is_answered = true;
-  r.comments = '';
-  r.needs_ca = false;
-  } else if (state === 'fail') {
-  r.is_na = false;
-  r.scored = 0;
-  r.is_answered = true;
-  } else if (state === 'na') {
-  r.is_na = true;
-  r.scored = 0;
-  r.is_answered = false;
-  r.comments = '';
-  r.needs_ca = false;
-  }
-  this.scheduleSave(responseId);
+  init() {
+  this.sections = sectionsData.map(sec => ({
+  ...sec,
+  responses: sec.responses.map(r => ({
+  ...r,
+  comments: r.comments || '',
+  photo_url: r.photo_url || null
+  }))
+  }));
+  if (typeof lucide !== 'undefined') setTimeout(() => lucide.createIcons(), 0);
   },
 
- scheduleSave(responseId) {
- clearTimeout(this.saveTimeouts[responseId]);
- this.saveTimeouts[responseId] = setTimeout(() => this.saveResponse(responseId), 1500);
- },
-
-  saveResponse(responseId) {
-  const r = this.getResponse(responseId);
-  this.savingStates[responseId] = 'saving';
-  const fd = new FormData();
-  fd.append('response_id', responseId);
-  fd.append('scored_points', r.scored || 0);
-  fd.append('comments', r.comments || '');
-  fd.append('is_na', r.is_na ? 'true' : 'false');
-  fd.append('needs_ca', r.needs_ca ? 'true' : 'false');
-  const fileInput = document.getElementById('photo-upload-' + responseId);
-  if (fileInput && fileInput.files.length > 0) {
-    fd.append('image', fileInput.files[0]);
+  get correctiveActions() {
+  const actions = [];
+  for (const [sIdx, sec] of this.sections.entries()) {
+  for (const [rIdx, r] of sec.responses.entries()) {
+  if (r.needs_ca && r.comments && r.comments.trim()) {
+  actions.push({
+  section: sec.name,
+  comment: r.comments,
+  question_idx: rIdx
+  });
   }
-  fetch("{% url 'audits:save_response' %}", {
- method: 'POST',
- headers: { 'X-CSRFToken': this.csrf() },
- body: fd
- })
- .then(resp => resp.json())
+  }
+  }
+  return actions;
+  },
+
+  get evidenceList() {
+  const list = [];
+  for (const sec of this.sections) {
+  for (const r of sec.responses) {
+  if (r.photo_url) {
+  list.push({ url: r.photo_url, section: sec.name });
+  }
+  }
+  }
+  return list;
+  },
+
+  csrf() {
+  const m = document.querySelector('meta[name="csrf-token"]');
+  return m ? m.getAttribute('content') : '';
+  },
+
+  getPassFailState(responseId) {
+  const r = this.getResponse(responseId);
+  if (!r) return null;
+  if (r.is_na) return 'na';
+  if (r.scored >= r.max && r.is_answered) return 'pass';
+  if (r.scored === 0 && r.is_answered) return 'fail';
+  if (r.scored > 0 && r.scored < r.max && r.is_answered) return 'partial';
+  return null;
+  },
+
+   setPassFail(responseId, state) {
+   const r = this.getResponse(responseId);
+   if (!r) return;
+   if (state === 'none') {
+   r.is_na = false;
+   r.is_answered = false;
+   } else if (state === 'pass') {
+   r.is_na = false;
+   r.scored = r.max;
+   r.is_answered = true;
+   r.comments = '';
+   r.needs_ca = false;
+   } else if (state === 'fail') {
+   r.is_na = false;
+   r.scored = 0;
+   r.is_answered = true;
+   } else if (state === 'na') {
+   r.is_na = true;
+   r.scored = 0;
+   r.is_answered = false;
+   r.comments = '';
+   r.needs_ca = false;
+   }
+   this.scheduleSave(responseId);
+   },
+
+  scheduleSave(responseId) {
+  clearTimeout(this.saveTimeouts[responseId]);
+  this.unsavedCount = Object.keys(this.saveTimeouts).length + 1;
+  this.saveTimeouts[responseId] = setTimeout(() => this.saveResponse(responseId), 1500);
+  },
+
+   saveResponse(responseId) {
+   const r = this.getResponse(responseId);
+   this.savingStates[responseId] = 'saving';
+   const fd = new FormData();
+   fd.append('response_id', responseId);
+   fd.append('scored_points', r.scored || 0);
+   fd.append('comments', r.comments || '');
+   fd.append('is_na', r.is_na ? 'true' : 'false');
+   fd.append('needs_ca', r.needs_ca ? 'true' : 'false');
+   const fileInput = document.getElementById('photo-upload-' + responseId);
+   if (fileInput && fileInput.files.length > 0) {
+     fd.append('image', fileInput.files[0]);
+   }
+   fetch("{% url 'audits:save_response' %}", {
+  method: 'POST',
+  headers: { 'X-CSRFToken': this.csrf() },
+  body: fd
+  })
+  .then(resp => resp.json())
+   .then(d => {
+   if (d.success) {
+   this.savingStates[responseId] = 'saved';
+   if (d.photo_url) r.photo_url = d.photo_url;
+   const fi = document.getElementById('photo-upload-' + responseId);
+   if (fi) { fi.value = ''; }
+   window.dispatchEvent(new CustomEvent('photo-cleared-' + responseId));
+   setTimeout(() => {
+   if (this.savingStates[responseId] === 'saved') delete this.savingStates[responseId];
+   }, 2000);
+   const now = new Date();
+   this.lastSavedAt = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0') + ':' + now.getSeconds().toString().padStart(2, '0');
+   this.unsavedCount = Object.keys(this.saveTimeouts).length;
+   } else {
+   this.savingStates[responseId] = 'error';
+   }
+   })
+  .catch(() => { this.savingStates[responseId] = 'error'; });
+  },
+
+  flushAllSaves() {
+  for (const id of Object.keys(this.saveTimeouts)) {
+  clearTimeout(this.saveTimeouts[id]);
+  this.saveResponse(parseInt(id));
+  }
+  },
+
+  getResponse(id) {
+  for (const sec of this.sections) {
+  const found = sec.responses.find(r => r.id === id);
+  if (found) return found;
+  }
+  return { scored: 0, max: 0, is_na: false, is_critical: false, comments: '', needs_ca: false, is_answered: false, photo_url: null };
+  },
+
+   fillSectionAJAX(sIdx) {
+  const sec = this.sections[sIdx];
+  if (!sec) return;
+  this.flushAllSaves();
+  this.modal.loading = true;
+  const fd = new FormData();
+  fd.append('audit_id', this.auditId);
+  fd.append('section_id', sec.id);
+  fetch("{% url 'audits:fill_remaining' %}", {
+  method: 'POST',
+  headers: { 'X-CSRFToken': this.csrf() },
+  body: fd
+  })
+  .then(r => r.json())
   .then(d => {
+  this.modal.loading = false;
   if (d.success) {
-  this.savingStates[responseId] = 'saved';
-  const fi = document.getElementById('photo-upload-' + responseId);
-  if (fi) { fi.value = ''; }
-  window.dispatchEvent(new CustomEvent('photo-cleared-' + responseId));
-  setTimeout(() => {
-  if (this.savingStates[responseId] === 'saved') delete this.savingStates[responseId];
-  }, 2000);
+   if (d.filled_responses) {
+   for (const [respId, score] of Object.entries(d.filled_responses)) {
+   const r = this.getResponse(parseInt(respId));
+   if (r) { r.scored = score; r.is_answered = true; }
+   }
+   }
+   if (d.filled_count > 0) {
+     this.openModal('success', 'Filled!', d.message, 'OK', () => this.closeModal());
+     setTimeout(() => { if (typeof lucide !== 'undefined') lucide.createIcons(); }, 50);
+   }
+   }
+   })
+   .catch(() => { this.modal.loading = false; });
+   },
+
+   fillAllAJAX() {
+   this.flushAllSaves();
+   this.modal.loading = true;
+   const fd = new FormData();
+   fd.append('audit_id', this.auditId);
+   fetch("{% url 'audits:fill_remaining' %}", {
+   method: 'POST',
+   headers: { 'X-CSRFToken': this.csrf() },
+   body: fd
+   })
+   .then(r => r.json())
+   .then(d => {
+   this.modal.loading = false;
+   if (d.success) {
+   if (d.filled_responses) {
+   for (const [respId, score] of Object.entries(d.filled_responses)) {
+   const r = this.getResponse(parseInt(respId));
+   if (r) { r.scored = score; r.is_answered = true; }
+   }
+   }
+   if (d.filled_count > 0) {
+     this.openModal('success', 'Filled!', d.message, 'OK', () => this.closeModal());
+     setTimeout(() => { if (typeof lucide !== 'undefined') lucide.createIcons(); }, 50);
+   }
+   else this.openModal('success', 'All Done', 'No unanswered questions to fill.', 'OK', () => this.closeModal());
+   }
+   })
+  .catch(() => { this.modal.loading = false; });
+  },
+
+  get isFirstSection() { return this.currentSection === 0; },
+  get isLastSection() { return this.currentSection === this.sections.length - 1; },
+
+  navigateSection(dir) {
+  const next = dir === 'next' ? this.currentSection + 1 : this.currentSection - 1;
+  if (next >= 0 && next < this.sections.length) {
+  this.currentSection = next;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  },
+
+  sectionAnswered(sIdx) {
+  const sec = this.sections[sIdx];
+  return sec ? sec.responses.filter(r => r.is_answered && !r.is_na).length : 0;
+  },
+
+  sectionTotal(sIdx) {
+  const sec = this.sections[sIdx];
+  return sec ? sec.responses.filter(r => !r.is_na).length : 0;
+  },
+
+  sectionScore(sIdx) {
+  const sec = this.sections[sIdx];
+  if (!sec) return { scored: 0, possible: 0, pct: 0, answered: 0, total: 0 };
+  let scored = 0, possible = 0, answered = 0;
+  for (const r of sec.responses) {
+  if (!r.is_na && r.is_answered) {
+  scored += Math.min(r.scored || 0, r.max);
+  possible += r.max;
+  answered++;
+  }
+  }
+  const pct = possible > 0 ? (scored / possible) * 100 : 0;
+  return { scored, possible, pct, answered, total: sec.responses.filter(r => !r.is_na).length };
+  },
+
+  get totalScored() { return this.sections.reduce((sum, _, i) => sum + this.sectionScore(i).scored, 0); },
+  get totalPossible() { return this.sections.reduce((sum, _, i) => sum + this.sectionScore(i).possible, 0); },
+  get totalPercentage() { return this.totalPossible > 0 ? (this.totalScored / this.totalPossible) * 100 : 0; },
+
+  get criticalCount() {
+  let count = 0;
+  for (const sec of this.sections) {
+  for (const r of sec.responses) {
+  if (r.is_critical && r.scored === 0 && !r.is_na) count++;
+  }
+  }
+  return count;
+  },
+
+  get completedSections() {
+  return this.sections.filter(sec => {
+  const active = sec.responses.filter(r => !r.is_na);
+  return active.length > 0 && active.every(r => r.is_answered);
+  }).length;
+  },
+
+  get gradeLabel() {
+  const p = this.totalPercentage;
+  if (p === 0 && this.totalPossible === 0) return 'Not started';
+  if (this.criticalCount > 0) return 'F (Critical failure)';
+  if (p >= 96) return 'A (96.0 - 100)';
+  if (p >= 90) return 'B (90.0 - 95.9)';
+  if (p >= 80) return 'C (80.0 - 89.9)';
+  return 'F (Less than 80)';
+  },
+
+  get gradeColorClass() {
+  const p = this.totalPercentage;
+  if (p === 0 && this.totalPossible === 0) return 'text-slate-400';
+  if (this.criticalCount > 0) return 'text-red-600';
+  if (p >= 90) return 'text-emerald-600';
+  if (p >= 80) return 'text-amber-600';
+  return 'text-red-600';
+  },
+
+  openModal(type, title, body, actionText, onConfirm) {
+  this.modal.type = type;
+  this.modal.title = title;
+  this.modal.body = body;
+  this.modal.note = type === 'confirm' ? 'This action cannot be undone.' : '';
+  this.modal.actionText = actionText;
+  this.modal.loading = false;
+  this.modal.showScoreSummary = false;
+  this.modal.onConfirm = onConfirm;
+  setTimeout(() => { if (typeof lucide !== 'undefined') lucide.createIcons(); }, 50);
+  },
+
+  closeModal() { this.modal.type = ''; },
+
+  confirmSubmit() {
+  this.openModal('confirm', 'Submit Audit', 'Are you sure you want to submit this audit? All changes will be locked and results will be finalized.', 'Yes, Submit', () => this.flushAndSubmit());
+  this.modal.showScoreSummary = true;
+  },
+
+  flushAndSubmit() {
+  const pendingIds = Object.keys(this.saveTimeouts);
+  if (pendingIds.length === 0) { this.submitForm(); return; }
+  for (const id of pendingIds) { clearTimeout(this.saveTimeouts[id]); this.saveResponse(parseInt(id)); }
+  setTimeout(() => this.submitForm(), 300);
+  },
+
+  submitForm() {
+  this.modal.loading = true;
+  fetch("{% url 'audits:submit_json' audit.pk %}", {
+  method: 'POST',
+  headers: { 'X-CSRFToken': this.csrf() }
+  })
+  .then(r => r.json())
+  .then(d => {
+  this.modal.loading = false;
+  if (d.success) {
+  this.closeModal();
+  window.location.href = d.redirect_url;
   } else {
-  this.savingStates[responseId] = 'error';
+  this.closeModal();
+  this.openModal('error', 'Submission Failed', d.message || 'Could not submit audit.', 'Close', () => this.closeModal());
   }
   })
- .catch(() => { this.savingStates[responseId] = 'error'; });
- },
-
- flushAllSaves() {
- for (const id of Object.keys(this.saveTimeouts)) {
- clearTimeout(this.saveTimeouts[id]);
- this.saveResponse(parseInt(id));
- }
- },
-
- getResponse(id) {
- for (const sec of this.sections) {
- const found = sec.responses.find(r => r.id === id);
- if (found) return found;
- }
- return { scored: 0, max: 0, is_na: false, is_critical: false, comments: '', needs_ca: false, is_answered: false };
- },
-
-  fillSectionAJAX(sIdx) {
- const sec = this.sections[sIdx];
- if (!sec) return;
- this.flushAllSaves();
- this.modal.loading = true;
- const fd = new FormData();
- fd.append('audit_id', this.auditId);
- fd.append('section_id', sec.id);
- fetch("{% url 'audits:fill_remaining' %}", {
- method: 'POST',
- headers: { 'X-CSRFToken': this.csrf() },
- body: fd
- })
- .then(r => r.json())
- .then(d => {
- this.modal.loading = false;
- if (d.success) {
- if (d.filled_responses) {
- for (const [respId, score] of Object.entries(d.filled_responses)) {
- const r = this.getResponse(parseInt(respId));
- if (r) { r.scored = score; r.is_answered = true; }
- }
- }
- if (d.filled_count > 0) this.openModal('success', 'Filled!', d.message, 'OK', () => this.closeModal());
- }
- })
- .catch(() => { this.modal.loading = false; });
- },
-
- fillAllAJAX() {
- this.flushAllSaves();
- this.modal.loading = true;
- const fd = new FormData();
- fd.append('audit_id', this.auditId);
- fetch("{% url 'audits:fill_remaining' %}", {
- method: 'POST',
- headers: { 'X-CSRFToken': this.csrf() },
- body: fd
- })
- .then(r => r.json())
- .then(d => {
- this.modal.loading = false;
- if (d.success) {
- if (d.filled_responses) {
- for (const [respId, score] of Object.entries(d.filled_responses)) {
- const r = this.getResponse(parseInt(respId));
- if (r) { r.scored = score; r.is_answered = true; }
- }
- }
- if (d.filled_count > 0) this.openModal('success', 'Filled!', d.message, 'OK', () => this.closeModal());
- else this.openModal('success', 'All Done', 'No unanswered questions to fill.', 'OK', () => this.closeModal());
- }
- })
- .catch(() => { this.modal.loading = false; });
- },
-
- get isFirstSection() { return this.currentSection === 0; },
- get isLastSection() { return this.currentSection === this.sections.length - 1; },
-
- navigateSection(dir) {
- const next = dir === 'next' ? this.currentSection + 1 : this.currentSection - 1;
- if (next >= 0 && next < this.sections.length) {
- this.currentSection = next;
- window.scrollTo({ top: 0, behavior: 'smooth' });
- }
- },
-
- handleSectionSelect(e) {
- const val = parseInt(e.target.value);
- if (!isNaN(val) && val >= 0 && val < this.sections.length) {
- this.currentSection = val;
- window.scrollTo({ top: 0, behavior: 'smooth' });
- }
- },
-
- sectionAnswered(sIdx) {
- const sec = this.sections[sIdx];
- return sec ? sec.responses.filter(r => r.is_answered && !r.is_na).length : 0;
- },
-
- sectionTotal(sIdx) {
- const sec = this.sections[sIdx];
- return sec ? sec.responses.filter(r => !r.is_na).length : 0;
- },
-
- sectionLabel(sIdx) {
- const sec = this.sections[sIdx];
- if (!sec) return '';
- return sec.name + ' (' + this.sectionAnswered(sIdx) + '/' + this.sectionTotal(sIdx) + ')';
- },
-
- sectionScore(sIdx) {
- const sec = this.sections[sIdx];
- if (!sec) return { scored: 0, possible: 0, pct: 0, answered: 0, total: 0 };
- let scored = 0, possible = 0, answered = 0;
- for (const r of sec.responses) {
- if (!r.is_na && r.is_answered) {
- scored += Math.min(r.scored || 0, r.max);
- possible += r.max;
- answered++;
- }
- }
- const pct = possible > 0 ? (scored / possible) * 100 : 0;
- return { scored, possible, pct, answered, total: sec.responses.filter(r => !r.is_na).length };
- },
-
- get totalScored() { return this.sections.reduce((sum, _, i) => sum + this.sectionScore(i).scored, 0); },
- get totalPossible() { return this.sections.reduce((sum, _, i) => sum + this.sectionScore(i).possible, 0); },
- get totalPercentage() { return this.totalPossible > 0 ? (this.totalScored / this.totalPossible) * 100 : 0; },
-
- get criticalCount() {
- let count = 0;
- for (const sec of this.sections) {
- for (const r of sec.responses) {
- if (r.is_critical && r.scored === 0 && !r.is_na) count++;
- }
- }
- return count;
- },
-
- get completedSections() {
- return this.sections.filter(sec => {
- const active = sec.responses.filter(r => !r.is_na);
- return active.length > 0 && active.every(r => r.is_answered);
- }).length;
- },
-
- get gradeLabel() {
- const p = this.totalPercentage;
- if (p === 0 && this.totalPossible === 0) return 'Not started';
- if (this.criticalCount > 0) return 'F (Critical failure)';
- if (p >= 96) return 'A (96.0 - 100)';
- if (p >= 90) return 'B (90.0 - 95.9)';
- if (p >= 80) return 'C (80.0 - 89.9)';
- return 'F (Less than 80)';
- },
-
- get gradeColorClass() {
- const p = this.totalPercentage;
- if (p === 0 && this.totalPossible === 0) return 'text-slate-400';
- if (this.criticalCount > 0) return 'text-red-600';
- if (p >= 90) return 'text-emerald-600';
- if (p >= 80) return 'text-amber-600';
- return 'text-red-600';
- },
-
- openModal(type, title, body, actionText, onConfirm) {
- this.modal.type = type;
- this.modal.title = title;
- this.modal.body = body;
- this.modal.note = type === 'confirm' ? 'This action cannot be undone.' : '';
- this.modal.actionText = actionText;
- this.modal.loading = false;
- this.modal.showScoreSummary = false;
- this.modal.onConfirm = onConfirm;
- setTimeout(() => { if (typeof lucide !== 'undefined') lucide.createIcons(); }, 50);
- },
-
- closeModal() { this.modal.type = ''; },
-
- confirmSubmit() {
- this.openModal('confirm', 'Submit Audit', 'Are you sure you want to submit this audit? All changes will be locked and results will be finalized.', 'Yes, Submit', () => this.flushAndSubmit());
- this.modal.showScoreSummary = true;
- },
-
- flushAndSubmit() {
- const pendingIds = Object.keys(this.saveTimeouts);
- if (pendingIds.length === 0) { this.submitForm(); return; }
- for (const id of pendingIds) { clearTimeout(this.saveTimeouts[id]); this.saveResponse(parseInt(id)); }
- setTimeout(() => this.submitForm(), 300);
- },
-
- submitForm() {
- this.modal.loading = true;
- fetch("{% url 'audits:submit_json' audit.pk %}", {
- method: 'POST',
- headers: { 'X-CSRFToken': this.csrf() }
- })
- .then(r => r.json())
- .then(d => {
- this.modal.loading = false;
- if (d.success) {
- this.closeModal();
- window.location.href = d.redirect_url;
- } else {
- this.closeModal();
- this.openModal('error', 'Submission Failed', d.message || 'Could not submit audit.', 'Close', () => this.closeModal());
- }
- })
- .catch(() => {
- this.modal.loading = false;
- this.closeModal();
- this.openModal('error', 'Connection Error', 'Error submitting audit. Please try again.', 'Close', () => this.closeModal());
- });
- }
- };
+  .catch(() => {
+  this.modal.loading = false;
+  this.closeModal();
+  this.openModal('error', 'Connection Error', 'Error submitting audit. Please try again.', 'Close', () => this.closeModal());
+  });
+  }
+  };
 }
 </script>
 {% endblock %}

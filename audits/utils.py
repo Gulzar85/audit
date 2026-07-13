@@ -1,9 +1,9 @@
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
-from django.db.models import Q
 from django.template.loader import render_to_string
 from django.utils import timezone
+from django.utils.html import strip_tags
 
 from core.email_utils import send_notification_email
 from core.models import BusinessInfo, Notification
@@ -25,22 +25,33 @@ def _send_email_notifications(recipients, notification_type, email_context):
 
     Checks both the global master toggle (BusinessInfo.email_notifications_enabled)
     and each user's personal preference (user.email_notifications).
+    Uses send_mass_mail for a single SMTP connection.
     """
     from core.models import BusinessInfo
+    from django.core.mail import send_mass_mail
     info = BusinessInfo.load()
     if not info.email_notifications_enabled:
         return
     template = EMAIL_TEMPLATES.get(notification_type)
     if not template:
         return
-    for user in recipients:
-        if user.email_notifications and user.email:
-            send_notification_email(
-                recipient_email=user.email,
-                subject=email_context.get('subject', 'Notification'),
-                template_name=template,
-                context=email_context,
-            )
+    recipients_to_send = [u for u in recipients if u.email_notifications and u.email]
+    if not recipients_to_send:
+        return
+
+    subject = email_context.get('subject', 'Notification')
+    html_message = render_to_string(template, email_context)
+    plain_message = strip_tags(html_message)
+    datatuple = [
+        (subject, plain_message, None, [u.email], html_message)
+        for u in recipients_to_send
+    ]
+    try:
+        send_mass_mail(datatuple, fail_silently=False)
+    except Exception:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.exception('Failed to send batch email notifications')
 
 
 def auto_generate_corrective_actions(audit):
@@ -57,7 +68,7 @@ def auto_generate_corrective_actions(audit):
         audit_section__audit=audit,
         needs_corrective_action=True,
     ).exclude(
-        corrective_actions__isnull=False
+        corrective_actions__status__in=[CorrectiveAction.Status.OPEN, CorrectiveAction.Status.IN_PROGRESS]
     ).select_related('question', 'audit_section__section')
 
     # Assign to first active restaurant user of the restaurant, fallback to auditor
@@ -66,8 +77,19 @@ def auto_generate_corrective_actions(audit):
 
     created = 0
     for resp in responses_needing_ca:
-        is_critical = getattr(resp.question, 'is_critical', False)
-        risk_level = CorrectiveAction.RiskLevel.CRITICAL if is_critical else CorrectiveAction.RiskLevel.HIGH
+        is_critical = resp.question.is_critical
+        if is_critical:
+            risk_level = CorrectiveAction.RiskLevel.CRITICAL
+        else:
+            possible = resp.question.possible_points or 1
+            scored = resp.scored_points or 0
+            ratio = scored / possible
+            if ratio <= 0.25:
+                risk_level = CorrectiveAction.RiskLevel.HIGH
+            elif ratio <= 0.50:
+                risk_level = CorrectiveAction.RiskLevel.MEDIUM
+            else:
+                risk_level = CorrectiveAction.RiskLevel.LOW
         description = f'{resp.audit_section.section.name}: {resp.question.question_text}'
         CorrectiveAction.objects.create(
             audit=audit,
@@ -89,19 +111,9 @@ def auto_generate_corrective_actions(audit):
     return created
 
 
-def notify_restaurant_users(notification_type, title, message, link, restaurant, email_context=None, extra_recipients=None):
-    restaurant_users = restaurant.users.filter(is_active=True)
-    recipients = set(restaurant_users)
-    if extra_recipients:
-        recipients |= {u for u in extra_recipients if u}
+def _create_notifications(notification_type, title, message, link, recipients, email_context=None):
     notifications = [
-        Notification(
-            recipient=user,
-            notification_type=notification_type,
-            title=title,
-            message=message,
-            link=link,
-        )
+        Notification(recipient=user, notification_type=notification_type, title=title, message=message, link=link)
         for user in recipients
     ]
     Notification.objects.bulk_create(notifications)
@@ -109,20 +121,15 @@ def notify_restaurant_users(notification_type, title, message, link, restaurant,
         _send_email_notifications(recipients, notification_type, email_context)
 
 
+def notify_restaurant_users(notification_type, title, message, link, restaurant, email_context=None, extra_recipients=None):
+    recipients = set(restaurant.users.filter(is_active=True))
+    if extra_recipients:
+        recipients |= {u for u in extra_recipients if u}
+    _create_notifications(notification_type, title, message, link, recipients, email_context)
+
+
 def notify_auditor_and_manager(notification_type, title, message, link, auditor, email_context=None):
-    recipients = [auditor]
+    recipients = {auditor}
     if auditor.manager and auditor.manager.is_active:
-        recipients.append(auditor.manager)
-    notifications = [
-        Notification(
-            recipient=user,
-            notification_type=notification_type,
-            title=title,
-            message=message,
-            link=link,
-        )
-        for user in set(recipients)
-    ]
-    Notification.objects.bulk_create(notifications)
-    if email_context:
-        _send_email_notifications(set(recipients), notification_type, email_context)
+        recipients.add(auditor.manager)
+    _create_notifications(notification_type, title, message, link, recipients, email_context)

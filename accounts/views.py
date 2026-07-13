@@ -15,11 +15,7 @@ class ProfileView(LoginRequiredMixin, TemplateView):
         user = self.request.user
 
         if user.role == User.Roles.MANAGER:
-            audit_qs = Audit.objects.filter(
-                Q(auditor=user) |
-                Q(auditor__manager=user),
-                is_archived=False
-            )
+            audit_qs = Audit.objects.visible_to(user)
         else:
             audit_qs = Audit.objects.filter(auditor=user, is_archived=False)
         ctx['audit_count'] = audit_qs.count()
@@ -27,19 +23,23 @@ class ProfileView(LoginRequiredMixin, TemplateView):
         avg = audit_qs.filter(is_submitted=True).aggregate(avg=Avg('total_percentage'))['avg']
         ctx['avg_score'] = round(avg, 1) if avg else None
 
-        ctx['latest_audit'] = audit_qs.select_related(
+        ctx['recent_audits'] = audit_qs.select_related(
             'restaurant', 'template'
-        ).order_by('-audit_date').first()
+        ).order_by('-audit_date')[:5]
 
         ctx['restaurant_count'] = user.restaurants.count()
-        ca_qs = CorrectiveAction.objects.all()
         if user.role == User.Roles.MANAGER:
-            ca_qs = ca_qs.filter(
-                Q(restaurant__in=user.restaurants.all()) |
-                Q(audit__auditor__manager=user)
+            ca_qs = CorrectiveAction.objects.filter(
+                audit__auditor__manager=user
+            ).distinct()
+        elif user.role == User.Roles.AUDITOR:
+            ca_qs = CorrectiveAction.objects.filter(
+                restaurant__in=user.restaurants.all()
             )
         else:
-            ca_qs = ca_qs.filter(restaurant__in=user.restaurants.all())
+            ca_qs = CorrectiveAction.objects.filter(
+                restaurant__in=user.restaurants.all()
+            )
         ctx['open_ca_count'] = ca_qs.exclude(status__in=['COMPLETED', 'VERIFIED', 'CLOSED']).count()
 
         ctx['designation_name'] = user.designation.name if user.designation else None
@@ -59,7 +59,19 @@ class UserListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
     permission_required = 'accounts.view_user'
 
     def get_queryset(self):
-        qs = User.objects.select_related('designation', 'department').all()
+        user = self.request.user
+        if user.is_superuser or user.role == User.Roles.ADMIN:
+            qs = User.objects.all()
+        elif user.role == User.Roles.MANAGER:
+            qs = User.objects.filter(manager=user)
+        elif user.role == User.Roles.AUDITOR:
+            qs = User.objects.filter(
+                Q(role=User.Roles.AUDITOR) | Q(role=User.Roles.RESTAURANT_USER),
+                restaurants__in=user.restaurants.all()
+            ).distinct()
+        else:
+            qs = User.objects.filter(pk=user.pk)
+        qs = qs.select_related('designation', 'department')
         search = self.request.GET.get('q', '').strip()
         if search:
             qs = qs.filter(

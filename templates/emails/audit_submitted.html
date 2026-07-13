@@ -1,64 +1,125 @@
 <!DOCTYPE html>
 <html>
-<head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#f4f4f5;font-family:'Inter',Arial,sans-serif;">
- <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
- <tr><td align="center" style="padding:40px 16px;">
- <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,0.06);">
- <tr>
- <td style="background:linear-gradient(135deg,#DA291C 0%,#8B0000 100%);border-radius:16px 16px 0 0;padding:32px 40px;text-align:center;">
- <h1 style="margin:0;font-size:22px;font-weight:800;color:#ffffff;">Audit Submitted</h1>
- <p style="margin:8px 0 0;font-size:14px;color:rgba(255,255,255,0.8);">{{ restaurant_name }}</p>
- </td>
- </tr>
- <tr>
- <td style="padding:32px 40px;">
- <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
- <tr>
- <td align="center" style="padding-bottom:24px;">
- <span style="font-size:48px;font-weight:800;{% if grade == 'A' %}color:#059669{% elif grade == 'B' %}color:#2563eb{% elif grade == 'C' %}color:#d97706{% else %}color:#dc2626{% endif %};">{{ score|floatformat:1 }}%</span>
- <span style="display:inline-block;margin-left:8px;padding:4px 12px;border-radius:999px;font-size:13px;font-weight:700;{% if grade == 'A' %}background:#d1fae5;color:#065f46{% elif grade == 'B' %}background:#dbeafe;color:#1e40af{% elif grade == 'C' %}background:#fef3c7;color:#92400e{% else %}background:#fee2e2;color:#991b1b{% endif %};">Grade {{ grade }}</span>
- </td>
- </tr>
- <tr><td style="height:1px;background:#e5e7eb;"></td></tr>
- <tr>
- <td style="padding:16px 0;">
- <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
- <tr>
- <td style="padding:6px 0;font-size:14px;color:#6b7280;">Restaurant</td>
- <td style="padding:6px 0;font-size:14px;font-weight:600;color:#111827;text-align:right;">{{ restaurant_name }}</td>
- </tr>
- <tr>
- <td style="padding:6px 0;font-size:14px;color:#6b7280;">Audit Date</td>
- <td style="padding:6px 0;font-size:14px;font-weight:600;color:#111827;text-align:right;">{{ audit_date|date:"F d, Y" }}</td>
- </tr>
- <tr>
- <td style="padding:6px 0;font-size:14px;color:#6b7280;">Template</td>
- <td style="padding:6px 0;font-size:14px;font-weight:600;color:#111827;text-align:right;">{{ template_name }} v{{ template_version }}</td>
- </tr>
- <tr>
- <td style="padding:6px 0;font-size:14px;color:#6b7280;">Auditor</td>
- <td style="padding:6px 0;font-size:14px;font-weight:600;color:#111827;text-align:right;">{{ auditor_name }}</td>
- </tr>
- </table>
- </td>
- </tr>
- <tr><td style="height:1px;background:#e5e7eb;"></td></tr>
- <tr>
- <td align="center" style="padding:24px 0 0;">
- <a href="{{ result_url }}" style="display:inline-block;padding:14px 32px;background:linear-gradient(135deg,#DA291C 0%,#8B0000 100%);color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;border-radius:12px;">View Full Report</a>
- </td>
- </tr>
- </table>
- </td>
- </tr>
- <tr>
- <td style="padding:20px 40px;text-align:center;font-size:12px;color:#9ca3af;border-top:1px solid #e5e7eb;">
- &copy; {% now "Y" %} McDonald's Pakistan &mdash; Audit Management System
- </td>
- </tr>
- </table>
- </td></tr>
- </table>
-</body>
+    <head>
+        <meta charset="utf-8">
+    </head>
+    <body style="margin:0;
+                 padding:0;
+                 background:#f4f4f5;
+                 font-family:'Inter',Arial,sans-serif">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+                <td align="center" style="padding:40px 16px;">
+                    <table role="presentation"
+                           width="560"
+                           cellpadding="0"
+                           cellspacing="0"
+                           style="max-width:560px;
+                                  background:#ffffff;
+                                  border-radius:16px;
+                                  box-shadow:0 4px 24px rgba(0,0,0,0.06)">
+                        <tr>
+                            <td style="background:linear-gradient(135deg,#DA291C 0%,#8B0000 100%);
+                                       border-radius:16px 16px 0 0;
+                                       padding:32px 40px;
+                                       text-align:center">
+                                <h1 style="margin:0;font-size:22px;font-weight:800;color:#ffffff;">Audit Submitted</h1>
+                                <p style="margin:8px 0 0;font-size:14px;color:rgba(255,255,255,0.8);">{{ restaurant_name }}</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding:32px 40px;">
+                                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                    <tr>
+                                        <td align="center" style="padding-bottom:24px;">
+                                            <span style="font-size:48px;
+                                                         font-weight:800;
+                                                         {% if grade == 'A' %}color:#059669{% elif grade == 'B' %}color:#2563eb{% elif grade == 'C' %}color:#d97706{% else %}color:#dc2626{% endif %}">{{ score|floatformat:1 }}%</span>
+                                            <span style="display:inline-block;
+                                                         margin-left:8px;
+                                                         padding:4px 12px;
+                                                         border-radius:999px;
+                                                         font-size:13px;
+                                                         font-weight:700;
+                                                         {% if grade == 'A' %}background:#d1fae5;
+                                                         color:#065f46{% elif grade == 'B' %}background:#dbeafe;
+                                                         color:#1e40af{% elif grade == 'C' %}background:#fef3c7;
+                                                         color:#92400e{% else %}background:#fee2e2;
+                                                         color:#991b1b{% endif %}">Grade {{ grade }}</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="height:1px;background:#e5e7eb;"></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:16px 0;">
+                                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                                <tr>
+                                                    <td style="padding:6px 0;font-size:14px;color:#6b7280;">Restaurant</td>
+                                                    <td style="padding:6px 0;
+                                                               font-size:14px;
+                                                               font-weight:600;
+                                                               color:#111827;
+                                                               text-align:right">{{ restaurant_name }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td style="padding:6px 0;font-size:14px;color:#6b7280;">Audit Date</td>
+                                                    <td style="padding:6px 0;
+                                                               font-size:14px;
+                                                               font-weight:600;
+                                                               color:#111827;
+                                                               text-align:right">{{ audit_date|date:"F d, Y" }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td style="padding:6px 0;font-size:14px;color:#6b7280;">Template</td>
+                                                    <td style="padding:6px 0;
+                                                               font-size:14px;
+                                                               font-weight:600;
+                                                               color:#111827;
+                                                               text-align:right">{{ template_name }} v{{ template_version }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td style="padding:6px 0;font-size:14px;color:#6b7280;">Auditor</td>
+                                                    <td style="padding:6px 0;
+                                                               font-size:14px;
+                                                               font-weight:600;
+                                                               color:#111827;
+                                                               text-align:right">{{ auditor_name }}</td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="height:1px;background:#e5e7eb;"></td>
+                                    </tr>
+                                    <tr>
+                                        <td align="center" style="padding:24px 0 0;">
+                                            <a href="{{ result_url }}"
+                                               style="display:inline-block;
+                                                      padding:14px 32px;
+                                                      background:linear-gradient(135deg,#DA291C 0%,#8B0000 100%);
+                                                      color:#ffffff;
+                                                      font-size:14px;
+                                                      font-weight:700;
+                                                      text-decoration:none;
+                                                      border-radius:12px">View Full Report</a>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding:20px 40px;
+                                       text-align:center;
+                                       font-size:12px;
+                                       color:#9ca3af;
+                                       border-top:1px solid #e5e7eb">
+                                &copy; {% now "Y" %} McDonald's Pakistan &mdash; Audit Management System
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
 </html>

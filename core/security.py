@@ -153,6 +153,12 @@ class SecurityHeadersMiddleware:
         # Referrer policy
         response['Referrer-Policy'] = 'same-origin'
 
+        # Prevent caching of authenticated pages
+        if request.user.is_authenticated:
+            response['Cache-Control'] = 'no-store, no-cache, must-revalidate, private'
+            response['Pragma'] = 'no-cache'
+            response['Expires'] = '0'
+
         # Content Security Policy (from settings)
         from django.conf import settings
         csp = getattr(settings, 'SECURE_CONTENT_SECURITY_POLICY', None)

@@ -113,3 +113,13 @@ if not DEBUG:
     for var in REQUIRED_ENV_VARS:
         if not os.getenv(var):
             raise ValueError(f"Environment variable {var} is not set in production!")
+    if len(os.getenv('SECRET_KEY', '')) < 50:
+        raise ValueError("SECRET_KEY must be at least 50 characters long")
+
+# Shared cache backend required for rate limiting across multiple workers
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': os.getenv('REDIS_URL', 'redis://127.0.0.1:6379/1'),
+    }
+}

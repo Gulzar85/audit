@@ -124,8 +124,6 @@ class Question(BaseModel):
         constraints = [
             UniqueConstraint(fields=["section", "order"],
                              name="unique_section_question_order"),
-            CheckConstraint(condition=Q(is_critical=False) | ~Q(
-                critical_failure_condition=""), name="critical_failure_condition_required"),
         ]
         indexes = [models.Index(fields=["section", "order"])]
 
@@ -138,7 +136,20 @@ class Question(BaseModel):
 # -----------------------------
 # Audit Execution
 # -----------------------------
+class AuditQuerySet(models.QuerySet):
+    def visible_to(self, user):
+        if user.is_superuser:
+            return self.filter(is_archived=False)
+        return self.filter(
+            Q(auditor=user) |
+            Q(restaurant__in=user.restaurants.all()) |
+            Q(auditor__manager=user),
+            is_archived=False,
+        )
+
+
 class Audit(BaseModel):
+    objects = AuditQuerySet.as_manager()
     history = HistoricalRecords()
 
     class Grade(models.TextChoices):
@@ -195,7 +206,9 @@ class Audit(BaseModel):
             models.Index(fields=["restaurant", "audit_date"]),
         ]
         constraints = [UniqueConstraint(
-            fields=["template", "restaurant", "audit_date"], name="unique_template_restaurant_auditdate")]
+            fields=["template", "restaurant", "audit_date"],
+            condition=Q(is_archived=False),
+            name="unique_template_restaurant_auditdate_active")]
 
     def __str__(self) -> str:
         return f"{self.restaurant.name} - {self.audit_date}"
@@ -276,7 +289,7 @@ class AuditSection(BaseModel):
             )
             total_scored = sum(
                 (Decimal(r.scored_points or 0)
-                 for r in responses if not r.is_na and r.scored_points and r.scored_points > 0),
+                 for r in responses if not r.is_na and r.scored_points is not None),
                 Decimal('0.00')
             )
 
@@ -341,7 +354,18 @@ class AuditQuestionResponse(BaseModel):
         return f"{self.audit_section} - {self.question.question_text[:30]}"
 
 
+class CorrectiveActionQuerySet(models.QuerySet):
+    def visible_to(self, user):
+        if user.is_superuser:
+            return self
+        return self.filter(
+            Q(restaurant__in=user.restaurants.all()) |
+            Q(audit__auditor__manager=user)
+        )
+
+
 class CorrectiveAction(BaseModel):
+    objects = CorrectiveActionQuerySet.as_manager()
     history = HistoricalRecords()
 
     class RiskLevel(models.TextChoices):
@@ -391,15 +415,6 @@ class CorrectiveAction(BaseModel):
     @property
     def completed(self) -> bool:
         return self.status in (self.Status.COMPLETED, self.Status.VERIFIED, self.Status.CLOSED)
-
-    @completed.setter
-    def completed(self, value):
-        if value:
-            if self.status in (self.Status.OPEN, self.Status.IN_PROGRESS):
-                self.status = self.Status.COMPLETED
-        else:
-            if self.status in (self.Status.COMPLETED, self.Status.VERIFIED, self.Status.CLOSED):
-                self.status = self.Status.OPEN
 
     @property
     def is_overdue(self) -> bool:

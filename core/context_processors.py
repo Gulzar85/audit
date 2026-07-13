@@ -1,4 +1,3 @@
-from django.db.models import Q
 from django.utils import timezone
 
 from .models import BusinessInfo, Notification
@@ -13,22 +12,11 @@ def sidebar_badges(request):
     if request.user.is_authenticated:
         from audits.models import Audit, CorrectiveAction
         user = request.user
-        qs = Audit.objects.filter(is_archived=False)
-        if not user.is_superuser:
-            qs = qs.filter(
-                Q(auditor=user) |
-                Q(restaurant__in=user.restaurants.all()) |
-                Q(auditor__manager=user)
-            )
+        qs = Audit.objects.visible_to(user)
         ctx['sidebar_badges'] = {
             'draft_count': qs.filter(is_submitted=False).count(),
         }
-        ca_qs = CorrectiveAction.objects.all()
-        if not user.is_superuser:
-            ca_qs = ca_qs.filter(
-                Q(restaurant__in=user.restaurants.all()) |
-                Q(audit__auditor__manager=user)
-            )
+        ca_qs = CorrectiveAction.objects.visible_to(user)
         ctx['sidebar_badges']['overdue_ca'] = ca_qs.filter(
             deadline__lt=timezone.now().date()
         ).exclude(status__in=['COMPLETED', 'VERIFIED', 'CLOSED']).count()

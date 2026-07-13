@@ -15,6 +15,14 @@ login_view = rate_limit('login', max_requests=10, window=300)(
     )
 )
 
+# Apply rate limiting to password change (max 5 attempts per 5 minutes)
+password_change_view = rate_limit('password_change', max_requests=5, window=300)(
+    auth_views.PasswordChangeView.as_view(
+        form_class=CustomPasswordChangeForm,
+        template_name='registration/password_change_form.html',
+    )
+)
+
 # Apply rate limiting to password reset (max 3 attempts per 1 hour)
 password_reset_view = rate_limit('password_reset', max_requests=3, window=3600)(
     auth_views.PasswordResetView.as_view(
@@ -29,10 +37,7 @@ urlpatterns = [
     path('<int:pk>/', views.UserDetailView.as_view(), name='user_detail'),
     path('login/', login_view, name='login'),
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
-    path('password_change/', auth_views.PasswordChangeView.as_view(
-        form_class=CustomPasswordChangeForm,
-        template_name='registration/password_change_form.html',
-    ), name='password_change'),
+    path('password_change/', password_change_view, name='password_change'),
     path('password_change/done/', auth_views.PasswordChangeDoneView.as_view(
         template_name='registration/password_change_done.html',
     ), name='password_change_done'),

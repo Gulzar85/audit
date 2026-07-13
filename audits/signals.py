@@ -57,18 +57,21 @@ def link_previous_audit_on_submission(sender, instance, created, **kwargs):
     """
     if instance.is_submitted and not instance.previous_audit_id:
         try:
-            last_audit = Audit.objects.filter(
-                restaurant=instance.restaurant,
-                audit_date__lt=instance.audit_date,
-                is_submitted=True
-            ).order_by('-audit_date').first()
-
-            if last_audit:
-                # Update without triggering save() again to prevent recursion
-                Audit.objects.filter(pk=instance.pk).update(
-                    previous_audit=last_audit)
-                logger.info(
-                    f"Successfully linked previous audit {last_audit.pk} to {instance.pk}")
+            from django.db import transaction
+            with transaction.atomic():
+                locked = type(instance).objects.select_for_update().get(pk=instance.pk)
+                if locked.previous_audit_id:
+                    return
+                last_audit = Audit.objects.filter(
+                    restaurant=instance.restaurant,
+                    audit_date__lt=instance.audit_date,
+                    is_submitted=True
+                ).order_by('-audit_date').first()
+                if last_audit:
+                    Audit.objects.filter(pk=instance.pk).update(
+                        previous_audit=last_audit)
+                    logger.info(
+                        f"Linked previous audit {last_audit.pk} to {instance.pk}")
         except Exception:
             logger.exception(
                 f"Signal failure: Could not link previous audit for Audit {instance.pk}")

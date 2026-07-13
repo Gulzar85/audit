@@ -24,10 +24,13 @@ class AuditForm(forms.ModelForm):
         self.helper = FormHelper()
         self.helper.form_tag = False
         self.helper.attrs = {'novalidate': ''}
+        self.helper.form_show_labels = False
 
         for field_name in self.fields:
             self.fields[field_name].help_text = ''
-            self.fields[field_name].label = ''
+
+        label_css = 'block text-xs font-bold uppercase tracking-widest text-slate-500 mb-1.5'
+        input_css = 'w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-sm text-slate-900 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder:text-slate-400'
 
         self.fields['template'].empty_label = 'Select a template'
         self.fields['restaurant'].empty_label = 'Select a restaurant'
@@ -40,33 +43,54 @@ class AuditForm(forms.ModelForm):
         if user:
             self.fields['auditor'].initial = user
 
-        css = 'w-full rounded-xl border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none'
         self.helper.layout = Layout(
             HTML(
-                '<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">'
+                '<div class="grid grid-cols-1 lg:grid-cols-2 gap-5">'
             ),
             Div(
                 HTML(
-                    '<div class="flex items-center gap-2 mb-4">'
-                    '<i data-lucide="file-text" class="h-5 w-5 text-primary"></i>'
-                    '<h3 class="font-semibold text-gray-800">Restaurant &amp; Template</h3>'
-                    '</div>'
+                    '<div class="flex items-center gap-2.5 mb-5 pb-3 border-b border-slate-100">'
+                    '<div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">'
+                    '<i data-lucide="store" class="w-4 h-4 text-primary"></i></div>'
+                    '<div><h3 class="text-sm font-bold text-slate-800">Restaurant &amp; Template</h3>'
+                    '<p class="text-[11px] text-slate-400">Select the location and checklist</p></div></div>'
                 ),
-                Div(Field('template', css_class=css), css_class='mb-4'),
-                Div(Field('restaurant', css_class=css), css_class='mb-4'),
-                css_class='bg-white rounded-xl border border-gray-200 p-5'
+                Div(
+                    HTML('<label class="' + label_css + '">Template <span class="text-danger">*</span></label>'),
+                    Field('template', css_class=input_css),
+                    css_class='mb-4'
+                ),
+                Div(
+                    HTML('<label class="' + label_css + '">Restaurant <span class="text-danger">*</span></label>'),
+                    Field('restaurant', css_class=input_css),
+                    css_class='mb-4'
+                ),
+                css_class='bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm'
             ),
             Div(
                 HTML(
-                    '<div class="flex items-center gap-2 mb-4">'
-                    '<i data-lucide="calendar-check" class="h-5 w-5 text-primary"></i>'
-                    '<h3 class="font-semibold text-gray-800">Audit Details</h3>'
-                    '</div>'
+                    '<div class="flex items-center gap-2.5 mb-5 pb-3 border-b border-slate-100">'
+                    '<div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">'
+                    '<i data-lucide="clipboard-check" class="w-4 h-4 text-primary"></i></div>'
+                    '<div><h3 class="text-sm font-bold text-slate-800">Audit Details</h3>'
+                    '<p class="text-[11px] text-slate-400">Date, personnel and signatures</p></div></div>'
                 ),
-                Div(Field('audit_date', css_class=css), css_class='mb-4'),
-                Div(Field('manager_on_duty', css_class=css), css_class='mb-4'),
-                Div(Field('auditor', css_class=css), css_class='mb-4'),
-                css_class='bg-white rounded-xl border border-gray-200 p-5'
+                Div(
+                    HTML('<label class="' + label_css + '">Audit Date <span class="text-danger">*</span></label>'),
+                    Field('audit_date', css_class=input_css),
+                    css_class='mb-4'
+                ),
+                Div(
+                    HTML('<label class="' + label_css + '">Manager on Duty <span class="text-danger">*</span></label>'),
+                    Field('manager_on_duty', css_class=input_css, placeholder='e.g. John Smith'),
+                    css_class='mb-4'
+                ),
+                Div(
+                    HTML('<label class="' + label_css + '">Auditor</label>'),
+                    Field('auditor', css_class=input_css),
+                    css_class='mb-4'
+                ),
+                css_class='bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm'
             ),
             HTML('</div>'),
         )

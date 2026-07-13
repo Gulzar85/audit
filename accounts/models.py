@@ -155,6 +155,10 @@ class User(AbstractUser):
         if not self.role:
             raise ValidationError({"role": "Role is required."})
 
+        if self.pk and self.assigned_by_id == self.pk:
+            raise ValidationError(
+                {"assigned_by": "A user cannot be assigned by themselves."})
+
         # safe role check
         role = self.role
 

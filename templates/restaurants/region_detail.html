@@ -1,89 +1,95 @@
 {% extends 'base.html' %}
-
 {% block title %}{{ business_info.company_name }} — {{ region.name }}{% endblock %}
 {% block page_title %}Region: {{ region.name }}{% endblock %}
-
 {% block content %}
-{% if perms.restaurants.view_restaurant %}
-<div class="max-w-5xl mx-auto space-y-6 animate-fade-in">
-
- <section class="relative overflow-hidden rounded-2xl bg-gradient-dark">
- <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50"></div>
- <div class="absolute top-0 right-0 w-96 h-96 rounded-full bg-gradient-gold opacity-[0.04] blur-3xl -translate-y-1/2 translate-x-1/2"></div>
- <div class="px-6 sm:px-8 py-6 sm:py-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 relative">
- <div class="text-white">
- <nav aria-label="breadcrumb" class="flex items-center gap-2 text-white/70 text-sm font-semibold mb-2">
- <a href="{% url 'restaurants:restaurant_list' %}" class="hover:text-white transition-colors">Restaurants</a>
- <i data-lucide="chevron-right" class="w-3.5 h-3.5" aria-hidden="true"></i>
- <span aria-current="page">{{ region.name }}</span>
- </nav>
- <h2 class="text-3xl font-extrabold">{{ region.name }}</h2>
- <p class="text-sm text-white/70 mt-1">{{ region.restaurant_count }} restaurant{{ region.restaurant_count|pluralize }}</p>
- </div>
- <a href="{% url 'restaurants:restaurant_list' %}?region={{ region.pk }}" class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white/15 text-white hover:bg-white/25 font-bold transition-all border-2 border-white/30">
- <i data-lucide="arrow-left" class="w-4 h-4" aria-hidden="true"></i > All in {{ region.name }}
- </a>
- </div>
- </section>
-
- <section aria-label="Restaurants in {{ region.name }}">
- <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden gold-card">
- <header class="px-6 py-4 bg-gradient-primary-h">
- <h3 class="text-white font-bold flex items-center gap-2">
- <i data-lucide="store" class="w-4 h-4" aria-hidden="true"></i>
- Restaurants in {{ region.name }}
- <span class="ml-auto text-xs font-bold bg-white/20 text-white px-2.5 py-0.5 rounded-full">{{ region.restaurant_count }}</span>
- </h3>
- </header>
- {% if region.restaurants.all %}
- <div class="divide-y divide-gray-100 ">
- {% for r in region.restaurants.all %}
- <article>
- <a href="{% url 'restaurants:restaurant_detail' r.pk %}" class="px-6 py-4 flex items-center justify-between gap-4 hover:bg-gray-50 :bg-gray-700/50 transition-colors group">
- <div class="flex items-center gap-4 min-w-0">
- <div class="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
- <i data-lucide="store" class="w-5 h-5 text-primary" aria-hidden="true"></i>
- </div>
- <div class="min-w-0">
- <p class="text-sm font-bold text-gray-900 truncate group-hover:text-primary transition-colors">{{ r.name }}</p>
- <p class="text-xs text-gray-500 ">{{ r.code }} &middot; {{ r.city|default:'N/A' }}</p>
- </div>
- </div>
- <div class="flex items-center gap-3 shrink-0">
- {% if r.status == 'active' %}
- <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-700 ">
- <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span > Active
- </span>
- {% elif r.status == 'inactive' %}
- <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-extrabold bg-gray-100 text-gray-600 ">
- <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span > Inactive
- </span>
- {% elif r.status == 'renovation' %}
- <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-extrabold bg-amber-100 text-amber-700 ">
- <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span > Renovation
- </span>
- {% else %}
- <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-extrabold bg-red-100 text-red-700 ">
- <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span > Closed
- </span>
- {% endif %}
- <i data-lucide="chevron-right" class="w-4 h-4 text-gray-400 group-hover:text-gray-600 :text-gray-300 transition-colors" aria-hidden="true"></i>
- </div>
- </a>
- </article>
- {% endfor %}
- </div>
- {% else %}
- <div class="p-12 text-center">
- <i data-lucide="store" class="w-12 h-12 text-gray-300 mx-auto mb-3" aria-hidden="true"></i>
- <p class="text-lg font-bold text-gray-700 ">No restaurants in this region</p>
- <p class="text-sm text-gray-400 mt-1">Restaurants will appear here once assigned to this region.</p>
- </div>
- {% endif %}
- </div>
- </section>
-</div>
-{% else %}
-{% include 'includes/no_access.html' %}
-{% endif %}
+    {% if perms.restaurants.view_restaurant %}
+        <div class="max-w-5xl mx-auto space-y-6 animate-fade-in">
+            <section class="relative overflow-hidden rounded-2xl bg-gradient-dark">
+                <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50">
+                </div>
+                <div class="absolute top-0 right-0 w-96 h-96 rounded-full bg-gradient-gold opacity-[0.04] blur-3xl -translate-y-1/2 translate-x-1/2">
+                </div>
+                <div class="px-6 sm:px-8 py-6 sm:py-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 relative">
+                    <div class="text-white">
+                        <nav aria-label="breadcrumb"
+                             class="flex items-center gap-2 text-white/70 text-sm font-semibold mb-2">
+                            <a href="{% url 'restaurants:restaurant_list' %}"
+                               class="hover:text-white transition-colors">Restaurants</a>
+                            <i data-lucide="chevron-right" class="w-3.5 h-3.5" aria-hidden="true"></i>
+                            <span aria-current="page">{{ region.name }}</span>
+                        </nav>
+                        <h2 class="text-3xl font-extrabold">{{ region.name }}</h2>
+                        <p class="text-sm text-white/70 mt-1">{{ region.restaurant_count }} restaurant{{ region.restaurant_count|pluralize }}</p>
+                    </div>
+                    <a href="{% url 'restaurants:restaurant_list' %}?region={{ region.pk }}"
+                       class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white/15 text-white hover:bg-white/25 font-bold transition-all border-2 border-white/30">
+                        <i data-lucide="arrow-left" class="w-4 h-4" aria-hidden="true"></i> All in {{ region.name }}
+                    </a>
+                </div>
+            </section>
+            <section aria-label="Restaurants in {{ region.name }}">
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden gold-card">
+                    <header class="px-6 py-4 bg-gradient-primary-h">
+                        <h3 class="text-white font-bold flex items-center gap-2">
+                            <i data-lucide="store" class="w-4 h-4" aria-hidden="true"></i>
+                            Restaurants in {{ region.name }}
+                            <span class="ml-auto text-xs font-bold bg-white/20 text-white px-2.5 py-0.5 rounded-full">{{ region.restaurant_count }}</span>
+                        </h3>
+                    </header>
+                    {% if region.restaurants.all %}
+                        <div class="divide-y divide-gray-100 ">
+                            {% for r in region.restaurants.all %}
+                                <article>
+                                    <a href="{% url 'restaurants:restaurant_detail' r.pk %}"
+                                       class="px-6 py-4 flex items-center justify-between gap-4 hover:bg-gray-50 :bg-gray-700/50 transition-colors group">
+                                        <div class="flex items-center gap-4 min-w-0">
+                                            <div class="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                                                <i data-lucide="store" class="w-5 h-5 text-primary" aria-hidden="true"></i>
+                                            </div>
+                                            <div class="min-w-0">
+                                                <p class="text-sm font-bold text-gray-900 truncate group-hover:text-primary transition-colors">{{ r.name }}</p>
+                                                <p class="text-xs text-gray-500 ">{{ r.code }} &middot; {{ r.city|default:'N/A' }}</p>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-3 shrink-0">
+                                            {% if r.status == 'active' %}
+                                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-700 ">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Active
+                                                </span>
+                                            {% elif r.status == 'inactive' %}
+                                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-extrabold bg-gray-100 text-gray-600 ">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span> Inactive
+                                                </span>
+                                            {% elif r.status == 'renovation' %}
+                                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-extrabold bg-amber-100 text-amber-700 ">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Renovation
+                                                </span>
+                                            {% else %}
+                                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-extrabold bg-red-100 text-red-700 ">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> Closed
+                                                </span>
+                                            {% endif %}
+                                            <i data-lucide="chevron-right"
+                                               class="w-4 h-4 text-gray-400 group-hover:text-gray-600 :text-gray-300 transition-colors"
+                                               aria-hidden="true"></i>
+                                        </div>
+                                    </a>
+                                </article>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="p-12 text-center">
+                            <i data-lucide="store"
+                               class="w-12 h-12 text-gray-300 mx-auto mb-3"
+                               aria-hidden="true"></i>
+                            <p class="text-lg font-bold text-gray-700 ">No restaurants in this region</p>
+                            <p class="text-sm text-gray-400 mt-1">Restaurants will appear here once assigned to this region.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </section>
+        </div>
+    {% else %}
+        {% include 'includes/no_access.html' %}
+    {% endif %}
 {% endblock %}
