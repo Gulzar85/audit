@@ -3,6 +3,7 @@ from import_export.admin import ImportExportModelAdmin
 from import_export import resources
 from simple_history.admin import SimpleHistoryAdmin
 
+from accounts.models import User
 from .models import Region, Restaurant
 
 
@@ -35,8 +36,26 @@ class RegionAdmin(ImportExportModelAdmin, SimpleHistoryAdmin):
     readonly_fields = ['created_at', 'updated_at']
 
 
+class RestaurantUserInline(admin.TabularInline):
+    model = User.restaurants.through
+    extra = 1
+    verbose_name = "Assigned User"
+    verbose_name_plural = "Assigned Users"
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        field = super().formfield_for_foreignkey(db_field, request, **kwargs)
+        if db_field.name == 'user':
+            field.queryset = User.objects.filter(role='restaurant_user').select_related('designation')
+            field.label_from_instance = lambda u: f"{u.get_full_name() or u.username} ({u.email})"
+        return field
+
+    def has_delete_permission(self, request, obj=None):
+        return True
+
+
 @admin.register(Restaurant)
 class RestaurantAdmin(ImportExportModelAdmin, SimpleHistoryAdmin):
+    inlines = [RestaurantUserInline]
     resource_classes = [RestaurantResource]
     list_display = [
         'code', 'name', 'city', 'region', 'status',

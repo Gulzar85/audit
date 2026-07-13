@@ -43,15 +43,17 @@ def rate_limit(key_prefix, max_requests=5, window=300):
             cache_key = f"{key_prefix}:{ip}:{user_identifier}"
             
             # Atomically increment counter with a fixed window
-            if cache.add(cache_key, 1, window):
-                attempts = 1
-            else:
-                try:
-                    attempts = cache.incr(cache_key)
-                except ValueError:
-                    # Fallback in case of race condition or cache backend differences
-                    cache.set(cache_key, 1, window)
+            try:
+                if cache.add(cache_key, 1, window):
                     attempts = 1
+                else:
+                    try:
+                        attempts = cache.incr(cache_key)
+                    except ValueError:
+                        cache.set(cache_key, 1, window)
+                        attempts = 1
+            except Exception:
+                attempts = 0
             
             if attempts > max_requests:
                 log_security_event(
@@ -105,14 +107,17 @@ def check_suspicious_activity(request, action_type, threshold=10):
     cache_key = f"suspicious:{action_type}:{ip}"
     
     # Atomic fixed-window counter (same pattern as rate_limit)
-    if cache.add(cache_key, 1, 3600):
-        attempts = 1
-    else:
-        try:
-            attempts = cache.incr(cache_key)
-        except ValueError:
-            cache.set(cache_key, 1, 3600)
+    try:
+        if cache.add(cache_key, 1, 3600):
             attempts = 1
+        else:
+            try:
+                attempts = cache.incr(cache_key)
+            except ValueError:
+                cache.set(cache_key, 1, 3600)
+                attempts = 1
+    except Exception:
+        return False
     
     if attempts >= threshold:
         log_security_event(
