@@ -25,10 +25,11 @@ def _send_email_notifications(recipients, notification_type, email_context):
 
     Checks both the global master toggle (BusinessInfo.email_notifications_enabled)
     and each user's personal preference (user.email_notifications).
-    Uses send_mass_mail for a single SMTP connection.
+    Uses EmailMultiAlternatives with get_connection for a single SMTP connection.
     """
     from core.models import BusinessInfo
-    from django.core.mail import send_mass_mail
+    from django.conf import settings
+    from django.core.mail import EmailMultiAlternatives, get_connection
     info = BusinessInfo.load()
     if not info.email_notifications_enabled:
         return
@@ -42,12 +43,19 @@ def _send_email_notifications(recipients, notification_type, email_context):
     subject = email_context.get('subject', 'Notification')
     html_message = render_to_string(template, email_context)
     plain_message = strip_tags(html_message)
-    datatuple = [
-        (subject, plain_message, None, [u.email], html_message)
-        for u in recipients_to_send
-    ]
+    messages = []
+    for u in recipients_to_send:
+        msg = EmailMultiAlternatives(
+            subject=subject,
+            body=plain_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[u.email],
+        )
+        msg.attach_alternative(html_message, 'text/html')
+        messages.append(msg)
     try:
-        send_mass_mail(datatuple, fail_silently=False)
+        connection = get_connection()
+        connection.send_messages(messages)
     except Exception:
         import logging
         logger = logging.getLogger(__name__)
@@ -122,7 +130,7 @@ def _create_notifications(notification_type, title, message, link, recipients, e
 
 
 def notify_restaurant_users(notification_type, title, message, link, restaurant, email_context=None, extra_recipients=None):
-    recipients = set(restaurant.users.filter(is_active=True))
+    recipients = set(restaurant.users.filter(is_active=True, role=User.Roles.RESTAURANT_USER))
     if extra_recipients:
         recipients |= {u for u in extra_recipients if u}
     _create_notifications(notification_type, title, message, link, recipients, email_context)
