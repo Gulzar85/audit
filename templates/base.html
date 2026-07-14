@@ -287,7 +287,34 @@
  if (typeof lucide !== 'undefined') lucide.createIcons();
  });
  </script>
- {% block extra_scripts %}{% endblock %}
+  <script>
+  document.addEventListener('alpine:init', () => {
+    Alpine.store('notifPoll', {
+      unread: {{ sidebar_badges.unread_notifications|default:0 }},
+      init() {
+        this.updateTitle();
+        setInterval(() => this.poll(), 30000);
+      },
+      poll() {
+        fetch('/core/notifications/count/')
+          .then(r => r.json())
+          .then(d => {
+            if (d.count !== this.unread) {
+              this.unread = d.count;
+              this.updateTitle();
+              if (typeof lucide !== 'undefined') lucide.createIcons();
+            }
+          });
+      },
+      updateTitle() {
+        const base = '{{ business_info.company_name }}';
+        document.title = this.unread ? `(${this.unread}) ${base}` : base;
+      }
+    });
+    Alpine.store('notifPoll').init();
+  });
+  </script>
+  {% block extra_scripts %}{% endblock %}
 
  <!-- Global Confirm Modal -->
  <template x-teleport="body">

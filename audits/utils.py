@@ -40,6 +40,18 @@ def _send_email_notifications(recipients, notification_type, email_context):
     if not recipients_to_send:
         return
 
+    from core.models import NotificationPreference
+    opted_out = set(
+        NotificationPreference.objects.filter(
+            user__in=recipients_to_send,
+            notification_type=notification_type,
+            email_enabled=False,
+        ).values_list('user_id', flat=True)
+    )
+    recipients_to_send = [u for u in recipients_to_send if u.pk not in opted_out]
+    if not recipients_to_send:
+        return
+
     subject = email_context.get('subject', 'Notification')
     html_message = render_to_string(template, email_context)
     plain_message = strip_tags(html_message)

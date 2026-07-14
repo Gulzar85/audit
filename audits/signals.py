@@ -2,10 +2,11 @@ import logging
 from django.db.models.signals import post_save, post_delete, pre_save
 from django.dispatch import receiver
 from django.urls import reverse
+from django.utils import timezone
 
 from core.models import Notification
 from .models import AuditQuestionResponse, AuditSection, Audit, CorrectiveAction
-from .utils import notify_restaurant_users
+from .utils import notify_restaurant_users, _create_notifications
 
 logger = logging.getLogger(__name__)
 
@@ -124,4 +125,64 @@ def ca_created_notification(sender, instance, created, **kwargs):
         Notification.Type.CA_CREATED, title, message, link, restaurant,
         email_context=email_context,
         extra_recipients=extra_recipients,
+    )
+
+
+@receiver(pre_save, sender=CorrectiveAction)
+def track_previous_assignment(sender, instance, **kwargs):
+    if instance.pk:
+        try:
+            instance._prev_assigned_to_id = CorrectiveAction.objects.get(
+                pk=instance.pk).assigned_to_id
+        except CorrectiveAction.DoesNotExist:
+            instance._prev_assigned_to_id = None
+    else:
+        instance._prev_assigned_to_id = None
+
+
+@receiver(post_save, sender=CorrectiveAction)
+def ca_reassignment_notification(sender, instance, created, **kwargs):
+    prev_id = getattr(instance, '_prev_assigned_to_id', None)
+    if created or prev_id == instance.assigned_to_id:
+        return
+    if not instance.assigned_to:
+        return
+    link = reverse('audits:corrective_action_edit', args=[instance.pk])
+    title = f'CA Reassigned: {instance.restaurant.name}'
+    message = (
+        f'A {instance.get_risk_level_display()} corrective action has been reassigned to you.'
+    )
+    _create_notifications(
+        Notification.Type.CA_CREATED, title, message, link,
+        {instance.assigned_to},
+        email_context={
+            'subject': title,
+            'restaurant_name': instance.restaurant.name,
+            'risk_level': instance.get_risk_level_display(),
+            'description': instance.description,
+            'ca_url': link,
+        },
+    )
+
+
+@receiver(post_save, sender=Audit)
+def audit_assignment_notification(sender, instance, created, **kwargs):
+    if not created or not instance.auditor:
+        return
+    link = reverse('audits:detail', args=[instance.pk])
+    title = f'New Audit Assigned: {instance.restaurant.name}'
+    message = (
+        f'You have been assigned to conduct an audit at {instance.restaurant.name} '
+        f'on {instance.audit_date}.'
+    )
+    _create_notifications(
+        Notification.Type.AUDIT_SUBMITTED, title, message, link,
+        {instance.auditor},
+        email_context={
+            'subject': title,
+            'restaurant_name': instance.restaurant.name,
+            'audit_date': instance.audit_date,
+            'template_name': instance.template.name,
+            'result_url': link,
+        },
     )

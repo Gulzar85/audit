@@ -113,3 +113,27 @@ class Notification(BaseModel):
 
     def __str__(self):
         return f"[{self.get_notification_type_display()}] {self.title}"
+
+
+class NotificationPreference(BaseModel):
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='notification_preferences')
+    notification_type = models.CharField(
+        max_length=30, choices=Notification.Type.choices)
+    email_enabled = models.BooleanField(
+        default=True,
+        verbose_name='Receive email for this type',
+    )
+
+    class Meta:
+        verbose_name = "Notification Preference"
+        verbose_name_plural = "Notification Preferences"
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'notification_type'],
+                name='unique_user_notification_type'
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.user} - {self.get_notification_type_display()} ({'email' if self.email_enabled else 'in-app'})"

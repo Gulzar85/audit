@@ -29,12 +29,10 @@
                     aria-haspopup="true"
                     :aria-expanded="notifOpen">
                 <i data-lucide="bell" class="w-5 h-5" aria-hidden="true"></i>
-                {% if sidebar_badges.unread_notifications %}
-                    <span class="absolute -top-0.5 -right-0.5 h-4.5 w-4.5 min-w-[18px] rounded-full bg-gradient-gold text-accent text-[10px] font-extrabold flex items-center justify-center shadow-md px-1"
-                          aria-label="{{ sidebar_badges.unread_notifications }} unread">
-                        {{ sidebar_badges.unread_notifications }}
-                    </span>
-                {% endif %}
+                <span x-show="$store.notifPoll.unread > 0"
+                      x-cloak
+                      x-text="$store.notifPoll.unread"
+                      class="absolute -top-0.5 -right-0.5 h-4.5 w-4.5 min-w-[18px] rounded-full bg-gradient-gold text-accent text-[10px] font-extrabold flex items-center justify-center shadow-md px-1"></span>
             </button>
             <!-- Notification Dropdown -->
             <div x-show="notifOpen"
@@ -125,6 +123,11 @@
                    class="flex items-center gap-3 px-5 py-2.5 text-sm text-slate-700 hover:bg-slate-50 font-medium transition-colors">
                     <i data-lucide="user" class="h-4 w-4 text-slate-400" aria-hidden="true"></i>
                     Profile
+                </a>
+                <a href="{% url 'core:notification_settings' %}"
+                   class="flex items-center gap-3 px-5 py-2.5 text-sm text-slate-700 hover:bg-slate-50 font-medium transition-colors">
+                    <i data-lucide="bell" class="h-4 w-4 text-slate-400" aria-hidden="true"></i>
+                    Notification Settings
                 </a>
                 {% if user.is_staff %}
                     <a href="{% url 'admin:index' %}"

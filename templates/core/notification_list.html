@@ -20,6 +20,8 @@
                     <p class="text-white/60 text-sm mt-0.5">Stay updated on audits and corrective actions</p>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
+                    <a href="{% url 'core:notification_settings' %}"
+                       class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 text-white text-sm font-bold hover:bg-white/20 transition-all duration-200 border border-white/10"><i data-lucide="settings" class="w-4 h-4"></i> Settings</a>
                     {% if unread_count %}
                         <form method="post" action="{% url 'core:notification_read_all' %}">{% csrf_token %}<button type="submit"
         class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 text-white text-sm font-bold hover:bg-white/20 transition-all duration-200 border border-white/10"><i data-lucide="check-check" class="w-4 h-4"></i> Mark all read</button></form>

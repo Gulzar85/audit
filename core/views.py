@@ -1,10 +1,11 @@
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
-from django.views.generic import ListView, View
+from django.views.generic import ListView, View, TemplateView
 
-from .models import Notification
+from .models import Notification, NotificationPreference
 
 
 class NotificationListView(LoginRequiredMixin, ListView):
@@ -46,3 +47,37 @@ class NotificationCountView(LoginRequiredMixin, View):
     def get(self, request):
         count = Notification.objects.filter(recipient=request.user, is_read=False).count()
         return JsonResponse({'count': count})
+
+
+class NotificationSettingsView(LoginRequiredMixin, TemplateView):
+    template_name = 'core/notification_settings.html'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        user = self.request.user
+        for choice in Notification.Type.choices:
+            NotificationPreference.objects.get_or_create(
+                user=user, notification_type=choice[0],
+                defaults={'email_enabled': True},
+            )
+        prefs = NotificationPreference.objects.filter(user=user)
+        pref_map = {p.notification_type: p for p in prefs}
+        ctx['type_prefs'] = [
+            (type_key, type_label, pref_map.get(type_key))
+            for type_key, type_label in Notification.Type.choices
+        ]
+        ctx['title'] = 'Notification Settings'
+        return ctx
+
+    def post(self, request):
+        user = request.user
+        for choice in Notification.Type.choices:
+            key = f'email_{choice[0]}'
+            enabled = request.POST.get(key) == 'on'
+            pref, _ = NotificationPreference.objects.get_or_create(
+                user=user, notification_type=choice[0],
+            )
+            pref.email_enabled = enabled
+            pref.save(update_fields=['email_enabled'])
+        messages.success(request, 'Notification preferences updated.')
+        return redirect('core:notification_settings')
