@@ -68,10 +68,9 @@ class RestaurantAdmin(ImportExportModelAdmin, SimpleHistoryAdmin):
     list_select_related = ['region']
 
     def assigned_users(self, obj):
-        users = obj.users.filter(is_active=True).select_related('designation')
+        users = obj.users.filter(is_active=True, role=User.Roles.RESTAURANT_USER).select_related('designation')
         return ', '.join(
             f"{u.get_full_name() or u.username}"
-            f" ({u.get_role_display() or u.role})"
             for u in users
         ) or '—'
     assigned_users.short_description = 'Assigned Users'
