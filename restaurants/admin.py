@@ -59,13 +59,23 @@ class RestaurantAdmin(ImportExportModelAdmin, SimpleHistoryAdmin):
     resource_classes = [RestaurantResource]
     list_display = [
         'code', 'name', 'city', 'region', 'status',
-        'phone', 'opening_date', 'created_at'
+        'assigned_users', 'phone', 'opening_date', 'created_at'
     ]
     list_filter = ['status', 'city', 'region', 'opening_date']
     search_fields = ['code', 'name', 'city', 'phone', 'manager_email']
     ordering = ['city', 'name']
     readonly_fields = ['created_at', 'updated_at']
     list_select_related = ['region']
+
+    def assigned_users(self, obj):
+        users = obj.users.filter(is_active=True).select_related('designation')
+        return ', '.join(
+            f"{u.get_full_name() or u.username}"
+            f" ({u.get_role_display() or u.role})"
+            for u in users
+        ) or '—'
+    assigned_users.short_description = 'Assigned Users'
+
     fieldsets = [
         (
             'Identifiers',
