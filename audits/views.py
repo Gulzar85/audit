@@ -1162,9 +1162,11 @@ class AuditDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View):
     def post(self, request, pk):
         qs = self.get_queryset()
         audit = get_object_or_404(qs, pk=pk)
-        # Acquire the row-level lock BEFORE the is_submitted guard to close
-        # the TOCTOU window where a concurrent request could submit the audit
-        # between the check and the actual archive.
+        if request.user.is_superuser:
+            audit.delete()
+            logger.info('Audit %s hard-deleted by superuser %s', pk, request.user)
+            messages.success(request, 'Audit deleted permanently.')
+            return redirect('audits:list')
         audit = type(audit).objects.select_for_update().get(pk=audit.pk)
         if audit.is_submitted:
             messages.warning(request, 'Submitted audits cannot be deleted. Archive them instead.')
