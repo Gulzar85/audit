@@ -291,6 +291,7 @@
   document.addEventListener('alpine:init', () => {
     Alpine.store('notifPoll', {
       unread: {{ sidebar_badges.unread_notifications|default:0 }},
+      originalTitle: document.title,
       init() {
         this.updateTitle();
         setInterval(() => this.poll(), 30000);
@@ -307,7 +308,7 @@
           });
       },
       updateTitle() {
-        const base = '{{ business_info.company_name }}';
+        const base = this.originalTitle;
         document.title = this.unread ? `(${this.unread}) ${base}` : base;
       }
     });
