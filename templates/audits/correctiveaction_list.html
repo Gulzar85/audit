@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
-{% block title %}{{ business_info.company_name }} — Corrective Actions{% endblock %}
-{% block page_title %}Corrective Actions{% endblock %}
+{% block title %}{{ business_info.company_name }} — {{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
 {% block content %}
     {% if perms.audits.view_correctiveaction %}
         <div class="max-w-6xl mx-auto space-y-5">

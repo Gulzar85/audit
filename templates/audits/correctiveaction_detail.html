@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load tz %}
-{% block title %}{{ business_info.company_name }} — CA: {{ action.restaurant.name }}{% endblock %}
-{% block page_title %}Corrective Action Details{% endblock %}
+{% block title %}{{ business_info.company_name }} — {{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
 {% block content %}
     {% if perms.audits.view_correctiveaction %}
         <div class="max-w-5xl mx-auto space-y-6">

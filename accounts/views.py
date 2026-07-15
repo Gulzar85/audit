@@ -87,6 +87,7 @@ class UserListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        ctx['title'] = 'Users'
         ctx['role_choices'] = User.Roles.choices
         ctx['current_filters'] = {k: v for k, v in self.request.GET.items() if v}
         return ctx
@@ -101,6 +102,7 @@ class UserDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         user_obj = self.object
+        ctx['title'] = user_obj.get_full_name() or user_obj.username
         audits = Audit.objects.filter(auditor=user_obj, is_archived=False)
         ctx['audit_count'] = audits.count()
         ctx['submitted_audit_count'] = audits.filter(is_submitted=True).count()

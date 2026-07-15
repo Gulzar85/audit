@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load audit_filters %}
-{% block title %}{{ business_info.company_name }} — Audit Results: {{ audit.restaurant.name }}{% endblock %}
-{% block page_title %}{{ audit.restaurant.name }} — Results{% endblock %}
+{% block title %}{{ business_info.company_name }} — {{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
 {% block content %}
     {% if perms.audits.view_audit %}
         <div class="max-w-7xl mx-auto space-y-8">

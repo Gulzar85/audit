@@ -404,6 +404,7 @@ class AuditTemplateListView(LoginRequiredMixin, PermissionRequiredMixin, ListVie
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        ctx['title'] = 'Audit Templates'
         ctx['current_filters'] = {k: v for k, v in self.request.GET.items() if v}
         return ctx
 
@@ -422,6 +423,7 @@ class AuditTemplateDetailView(LoginRequiredMixin, PermissionRequiredMixin, Detai
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         sections = self.object.sections.all()
+        ctx['title'] = self.object.name
         ctx['sections'] = sections
         ctx['total_questions'] = sum(len(list(s.questions.all())) for s in sections)
         ctx['total_points'] = sum(

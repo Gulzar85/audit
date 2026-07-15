@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
-{% block title %}{{ business_info.company_name }} — Users{% endblock %}
-{% block page_title %}Users{% endblock %}
+{% block title %}{{ business_info.company_name }} — {{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
 {% block content %}
     {% if perms.accounts.view_user %}
         <div class="max-w-6xl mx-auto space-y-5">

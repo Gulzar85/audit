@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
-{% block title %}{{ business_info.company_name }} — {{ audit.restaurant.name }}{% endblock %}
-{% block page_title %}{{ audit.restaurant.name }} — Audit{% endblock %}
+{% block title %}{{ business_info.company_name }} — {{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
 {% block content %}
     {% if perms.audits.view_audit %}
         <div class="max-w-5xl mx-auto space-y-6">

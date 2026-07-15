@@ -19,6 +19,7 @@ class NotificationListView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        ctx['title'] = 'Notifications'
         ctx['unread_count'] = Notification.objects.filter(
             recipient=self.request.user, is_read=False
         ).count()

@@ -43,6 +43,7 @@ class RestaurantListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        ctx['title'] = 'Restaurants'
         ctx['status_choices'] = Restaurant.Status.choices
         ctx['current_filters'] = {
             k: v for k, v in self.request.GET.items() if v
@@ -70,6 +71,7 @@ class RestaurantDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailVi
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         restaurant = self.object
+        ctx['title'] = f'Restaurant: {restaurant.name}'
         audits = restaurant.audits.select_related('template', 'auditor').filter(is_submitted=True, is_archived=False).order_by('-audit_date')[:10]
         ctx['recent_audits'] = audits
         ctx['audit_count'] = restaurant.submitted_audit_count
@@ -88,3 +90,8 @@ class RegionDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
         return Region.objects.prefetch_related('restaurants').annotate(
             restaurant_count=Count('restaurants', filter=Q(restaurants__is_archived=False))
         )
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['title'] = f'Region: {self.object.name}'
+        return ctx
