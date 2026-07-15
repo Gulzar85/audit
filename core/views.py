@@ -1,11 +1,11 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import HttpResponse, JsonResponse
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic import ListView, View, TemplateView
 
-from .models import BusinessInfo, Notification, NotificationPreference
+from .models import Notification, NotificationPreference
 
 
 class NotificationListView(LoginRequiredMixin, ListView):
@@ -82,9 +82,3 @@ class NotificationSettingsView(LoginRequiredMixin, TemplateView):
         messages.success(request, 'Notification preferences updated.')
         return redirect('core:notification_settings')
 
-
-def favicon_view(request):
-    biz = BusinessInfo.load()
-    if biz.favicon:
-        return redirect(biz.favicon.url)
-    return HttpResponse(status=204)

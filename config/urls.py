@@ -4,8 +4,6 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import RedirectView
 
-from core.views import favicon_view
-
 # Determine admin URL - use custom path in production, default in development
 if settings.DEBUG or getattr(settings, 'ENVIRONMENT', 'production') == 'development':
     admin_url = getattr(settings, 'ADMIN_URL', 'admin/')
@@ -17,7 +15,6 @@ else:
         raise ValueError("ADMIN_URL must be configured in production environment")
 
 urlpatterns = [
-    path('favicon.ico', favicon_view),
     path('', RedirectView.as_view(pattern_name='audits:dashboard', permanent=False)),
     path(admin_url, admin.site.urls),
     path('accounts/', include('accounts.urls')),
