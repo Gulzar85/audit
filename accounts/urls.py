@@ -7,8 +7,8 @@ from core.security import rate_limit
 
 app_name = 'accounts'
 
-# Apply rate limiting to login view (max 10 attempts per 5 minutes)
-login_view = rate_limit('login', max_requests=10, window=300)(
+# Apply rate limiting to login view (max 15 attempts per 5 minutes)
+login_view = rate_limit('login', max_requests=15, window=300)(
     auth_views.LoginView.as_view(
         authentication_form=LoginForm,
         template_name='registration/login.html',
