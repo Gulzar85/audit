@@ -26,7 +26,7 @@
             {% endif %}
             <div x-show="$store.app.sidebarOpen" x-cloak class="flex flex-col min-w-0">
                 <span class="text-sm font-bold text-white/90 truncate leading-tight">{{ business_info.company_name|default:"McDonald's Pakistan" }}</span>
-                <span class="text-[10px] font-medium text-yellow-400/70 truncate tracking-wider uppercase">Audit System</span>
+                <span class="text-[10px] font-medium text-yellow-400/70 truncate tracking-wider uppercase">{{ business_info.tagline|default:"Audit System" }}</span>
             </div>
         </a>
         <button @click="$store.app.mobileSidebarOpen = false; $store.app.sidebarOpen = false"

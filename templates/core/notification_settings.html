@@ -20,26 +20,17 @@
     <form method="post" class="space-y-4">
         {% csrf_token %}
         {% for type_key, type_label, pref in type_prefs %}
-        <div class="bg-white rounded-2xl border border-gray-200 p-4 gold-card hover:shadow-md transition-shadow duration-200">
+        {% with checked=pref.email_enabled|default:True %}
+        <div x-data="{ on: {{ checked|yesno:'true,false' }} }"
+             class="bg-white rounded-2xl border border-gray-200 p-4 gold-card hover:shadow-md transition-all duration-200"
+             :class="on ? 'border-l-4 border-l-emerald-500 shadow-emerald-100' : 'border-l-4 border-l-gray-300 opacity-80'">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl flex items-center justify-center
-                        {% if type_key == 'audit_submitted' %}bg-red-100
-                        {% elif type_key == 'ca_created' %}bg-amber-100
-                        {% elif type_key == 'ca_completed' %}bg-emerald-100
-                        {% elif type_key == 'ca_verified' %}bg-blue-100
-                        {% elif type_key == 'ca_closed' %}bg-gray-100
-                        {% elif type_key == 'ca_escalated' %}bg-red-100
-                        {% endif %}">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center transition-colors duration-200"
+                         :class="on ? 'bg-emerald-100' : 'bg-gray-100'">
                         <i data-lucide="{% if type_key == 'audit_submitted' %}clipboard-check{% elif type_key == 'ca_created' %}plus-circle{% elif type_key == 'ca_completed' %}check-circle{% elif type_key == 'ca_verified' %}shield{% elif type_key == 'ca_closed' %}archive{% elif type_key == 'ca_escalated' %}alert-triangle{% endif %}"
-                           class="w-5 h-5
-                            {% if type_key == 'audit_submitted' %}text-red-600
-                            {% elif type_key == 'ca_created' %}text-amber-600
-                            {% elif type_key == 'ca_completed' %}text-emerald-600
-                            {% elif type_key == 'ca_verified' %}text-blue-600
-                            {% elif type_key == 'ca_closed' %}text-gray-600
-                            {% elif type_key == 'ca_escalated' %}text-red-600
-                            {% endif %}"></i>
+                           class="w-5 h-5 transition-colors duration-200"
+                           :class="on ? 'text-emerald-600' : 'text-gray-400'"></i>
                     </div>
                     <div>
                         <p class="text-sm font-bold text-gray-800">{{ type_label }}</p>
@@ -54,17 +45,28 @@
                         </p>
                     </div>
                 </div>
-                <label class="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" name="email_{{ type_key }}" class="sr-only peer"
-                           {% if pref and pref.email_enabled %}checked{% endif %}>
-                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                </label>
+                <div class="flex items-center gap-3">
+                    <span class="text-xs font-bold transition-colors duration-200"
+                          :class="on ? 'text-emerald-600' : 'text-gray-400'"
+                          x-text="on ? 'ON' : 'OFF'"></span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="email_{{ type_key }}" class="sr-only peer"
+                               x-model="on"
+                               {% if checked %}checked{% endif %}>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"
+                             :class="on ? 'bg-primary' : 'bg-gray-300'"></div>
+                    </label>
+                </div>
             </div>
         </div>
+        {% endwith %}
         {% endfor %}
-        <div class="flex items-center justify-end gap-3 pt-2">
-            <a href="{% url 'core:notifications' %}" class="px-5 py-2.5 rounded-xl border border-gray-300 text-gray-700 text-sm font-bold hover:bg-gray-50 transition-colors">Cancel</a>
-            <button type="submit" class="px-6 py-2.5 rounded-xl bg-gradient-primary text-white text-sm font-bold hover:shadow-xl transition-all duration-300 active:scale-[0.97]">Save Preferences</button>
+        <div class="flex items-center justify-between gap-3 pt-2">
+            <p class="text-xs text-gray-400">Toggle each type to control email notifications</p>
+            <div class="flex items-center gap-3">
+                <a href="{% url 'core:notifications' %}" class="px-5 py-2.5 rounded-xl border border-gray-300 text-gray-700 text-sm font-bold hover:bg-gray-50 transition-colors">Cancel</a>
+                <button type="submit" class="px-6 py-2.5 rounded-xl bg-gradient-primary text-white text-sm font-bold hover:shadow-xl transition-all duration-300 active:scale-[0.97]">Save Preferences</button>
+            </div>
         </div>
     </form>
 </div>
