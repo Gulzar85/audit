@@ -33,7 +33,7 @@
                             <form method="post"
                                   action="{% url 'audits:submit' audit.pk %}"
                                   class="inline"
-                                   @submit.prevent="(() => { const f = $event.currentTarget; $store.confirm.open('Submit Audit', 'Submit this audit? This action cannot be undone.', () => f.submit()) })()">{% csrf_token %}<button type="submit"
+                                   @submit.prevent="$store.confirm.open('Submit Audit', 'Submit this audit? This action cannot be undone.', () => $el.submit())">{% csrf_token %}<button type="submit"
         class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:shadow-xl hover:shadow-emerald-500/30 font-bold transition-all duration-200"><i data-lucide="check-circle-2" class="w-4 h-4"></i> Submit</button></form>
                         {% endif %}
                         {% if audit.is_submitted %}
@@ -44,7 +44,7 @@
                             <form method="post"
                                   action="{% url 'audits:delete' audit.pk %}"
                                   class="inline"
-                                   @submit.prevent="(() => { const f = $event.currentTarget; $store.confirm.open('Delete Audit', 'Delete this audit? This cannot be undone.', () => f.submit()) })()">{% csrf_token %}<button type="submit"
+                                   @submit.prevent="$store.confirm.open('Delete Audit', 'Delete this audit? This cannot be undone.', () => $el.submit())">{% csrf_token %}<button type="submit"
         class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white/10 text-white/70 hover:bg-red-500/30 hover:text-red-200 font-semibold transition-all border-2 border-white/20 hover:border-red-400/50"><i data-lucide="trash-2" class="w-4 h-4"></i> Delete</button></form>
                         {% endif %}
                         <a href="{% url 'audits:list' %}"

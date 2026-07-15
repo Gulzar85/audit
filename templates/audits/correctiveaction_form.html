@@ -39,7 +39,7 @@
                             {% if editing and perms.audits.delete_correctiveaction %}
                                 <form method="post"
                                       action="{% url 'audits:corrective_action_delete' action.pk %}"
-                                      @submit.prevent="(() => { const f = $event.currentTarget; $store.confirm.open('Delete Action', 'Delete this corrective action? This cannot be undone.', () => f.submit()) })()">{% csrf_token %}<button type="submit"
+                                      @submit.prevent="$store.confirm.open('Delete Action', 'Delete this corrective action? This cannot be undone.', () => $el.submit())">{% csrf_token %}<button type="submit"
         class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl border-2 border-red-200 text-red-600 font-bold hover:bg-red-50 hover:border-red-300 transition-all min-h-[44px]"><i data-lucide="trash-2" class="w-4 h-4 shrink-0"></i>Delete</button></form>
                             {% endif %}
                         </div>
