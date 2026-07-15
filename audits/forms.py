@@ -36,11 +36,11 @@ class AuditForm(forms.ModelForm):
         self.fields['restaurant'].empty_label = 'Select a restaurant'
         self.fields['auditor'].empty_label = 'Select an auditor'
 
-        if user and not user.is_superuser:
-            self.fields['restaurant'].queryset = user.restaurants.all()
-            self.fields['auditor'].queryset = self.fields['auditor'].queryset.filter(pk=user.pk)
-
         if user:
+            if not user.is_superuser:
+                self.fields['restaurant'].queryset = user.restaurants.all()
+                self.fields['auditor'].queryset = self.fields['auditor'].queryset.filter(pk=user.pk)
+                self.fields['auditor'].disabled = True
             self.fields['auditor'].initial = user
 
         self.helper.layout = Layout(
