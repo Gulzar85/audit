@@ -168,21 +168,6 @@ class SecurityHeadersMiddleware:
     def __call__(self, request):
         response = self.get_response(request)
 
-        # Remove server identification
-        response['Server'] = 'SecurityServer'
-
-        # Prevent MIME type sniffing
-        response['X-Content-Type-Options'] = 'nosniff'
-
-        # Prevent clickjacking
-        response['X-Frame-Options'] = 'DENY'
-
-        # Enable XSS protection
-        response['X-XSS-Protection'] = '1; mode=block'
-
-        # Referrer policy
-        response['Referrer-Policy'] = 'same-origin'
-
         # Prevent caching of authenticated pages
         if request.user.is_authenticated:
             response['Cache-Control'] = 'no-store, no-cache, must-revalidate, private'

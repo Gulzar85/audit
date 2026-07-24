@@ -103,29 +103,32 @@ def validate_response_points(sender, instance, **kwargs):
 def ca_created_notification(sender, instance, created, **kwargs):
     if not created:
         return
-    restaurant = instance.restaurant
-    link = reverse('audits:corrective_action_edit', args=[instance.pk])
-    title = f'New Corrective Action: {restaurant.name}'
-    message = (
-        f'A {instance.get_risk_level_display()} corrective action has been created '
-        f'for {restaurant.name}.'
-    )
-    email_context = {
-        'subject': title,
-        'restaurant_name': restaurant.name,
-        'risk_level': instance.get_risk_level_display(),
-        'description': instance.description,
-        'assigned_to': instance.assigned_to.get_full_name() or instance.assigned_to.username if instance.assigned_to else 'Unassigned',
-        'deadline': instance.deadline,
-        'audit_date': instance.audit.audit_date if instance.audit else None,
-        'ca_url': link,
-    }
-    extra_recipients = [instance.audit.auditor.manager] if instance.audit.auditor and instance.audit.auditor.manager else None
-    notify_restaurant_users(
-        Notification.Type.CA_CREATED, title, message, link, restaurant,
-        email_context=email_context,
-        extra_recipients=extra_recipients,
-    )
+    try:
+        restaurant = instance.restaurant
+        link = reverse('audits:corrective_action_edit', args=[instance.pk])
+        title = f'New Corrective Action: {restaurant.name}'
+        message = (
+            f'A {instance.get_risk_level_display()} corrective action has been created '
+            f'for {restaurant.name}.'
+        )
+        email_context = {
+            'subject': title,
+            'restaurant_name': restaurant.name,
+            'risk_level': instance.get_risk_level_display(),
+            'description': instance.description,
+            'assigned_to': instance.assigned_to.get_full_name() or instance.assigned_to.username if instance.assigned_to else 'Unassigned',
+            'deadline': instance.deadline,
+            'audit_date': instance.audit.audit_date if instance.audit else None,
+            'ca_url': link,
+        }
+        extra_recipients = [instance.audit.auditor.manager] if instance.audit.auditor and instance.audit.auditor.manager else None
+        notify_restaurant_users(
+            Notification.Type.CA_CREATED, title, message, link, restaurant,
+            email_context=email_context,
+            extra_recipients=extra_recipients,
+        )
+    except Exception:
+        logger.exception("Failed to send CA created notification for CA %s", instance.pk)
 
 
 @receiver(pre_save, sender=CorrectiveAction)
@@ -147,35 +150,41 @@ def ca_reassignment_notification(sender, instance, created, **kwargs):
         return
     if not instance.assigned_to:
         return
-    link = reverse('audits:corrective_action_edit', args=[instance.pk])
-    title = f'CA Reassigned: {instance.restaurant.name}'
-    message = (
-        f'A {instance.get_risk_level_display()} corrective action has been reassigned to you.'
-    )
-    _create_notifications(
-        Notification.Type.CA_CREATED, title, message, link,
-        {instance.assigned_to},
-        email_context={
-            'subject': title,
-            'restaurant_name': instance.restaurant.name,
-            'risk_level': instance.get_risk_level_display(),
-            'description': instance.description,
-            'ca_url': link,
-        },
-    )
+    try:
+        link = reverse('audits:corrective_action_edit', args=[instance.pk])
+        title = f'CA Reassigned: {instance.restaurant.name}'
+        message = (
+            f'A {instance.get_risk_level_display()} corrective action has been reassigned to you.'
+        )
+        _create_notifications(
+            Notification.Type.CA_CREATED, title, message, link,
+            {instance.assigned_to},
+            email_context={
+                'subject': title,
+                'restaurant_name': instance.restaurant.name,
+                'risk_level': instance.get_risk_level_display(),
+                'description': instance.description,
+                'ca_url': link,
+            },
+        )
+    except Exception:
+        logger.exception("Failed to send CA reassignment notification for CA %s", instance.pk)
 
 
 @receiver(post_save, sender=Audit)
 def audit_assignment_notification(sender, instance, created, **kwargs):
     if not created or not instance.auditor:
         return
-    link = reverse('audits:detail', args=[instance.pk])
-    title = f'New Audit Assigned: {instance.restaurant.name}'
-    message = (
-        f'You have been assigned to conduct an audit at {instance.restaurant.name} '
-        f'on {instance.audit_date}.'
-    )
-    _create_notifications(
-        Notification.Type.AUDIT_SUBMITTED, title, message, link,
-        {instance.auditor},
-    )
+    try:
+        link = reverse('audits:detail', args=[instance.pk])
+        title = f'New Audit Assigned: {instance.restaurant.name}'
+        message = (
+            f'You have been assigned to conduct an audit at {instance.restaurant.name} '
+            f'on {instance.audit_date}.'
+        )
+        _create_notifications(
+            Notification.Type.AUDIT_SUBMITTED, title, message, link,
+            {instance.auditor},
+        )
+    except Exception:
+        logger.exception("Failed to send audit assignment notification for Audit %s", instance.pk)

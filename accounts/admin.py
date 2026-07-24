@@ -75,6 +75,12 @@ class UserAdmin(ImportExportModelAdmin, SimpleHistoryAdmin, BaseUserAdmin):
 
     readonly_fields = ['last_login', 'date_joined']
 
+    def get_readonly_fields(self, request, obj=None):
+        base = list(self.readonly_fields)
+        if not request.user.is_superuser:
+            base.extend(['is_staff', 'is_superuser', 'groups', 'user_permissions'])
+        return base
+
     fieldsets = [
         (
             'Login Credentials',
