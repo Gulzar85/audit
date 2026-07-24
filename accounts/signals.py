@@ -6,6 +6,8 @@ from django.core.exceptions import ValidationError
 from django.db.models.signals import m2m_changed, post_save
 from django.dispatch import receiver
 
+from accounts.models import User
+
 logger = logging.getLogger(__name__)
 
 # Guard flag to prevent infinite recursion in sync_role_to_group
@@ -49,7 +51,7 @@ def sync_role_to_group(sender, instance, created, **kwargs):
 # -----------------------------
 
 
-@receiver(m2m_changed, sender='accounts.User.restaurants.through')
+@receiver(m2m_changed, sender=User.restaurants.through)
 def validate_user_restaurants(sender, instance, action, **kwargs):
     if action not in ('pre_add', 'pre_remove', 'pre_clear'):
         return
