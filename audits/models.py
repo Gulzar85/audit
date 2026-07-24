@@ -156,7 +156,8 @@ class Audit(BaseModel):
         A = 'A', _('A (96.0 - 100)')
         B = 'B', _('B (90.0 - 95.9)')
         C = 'C', _('C (80.0 - 89.9)')
-        F = 'F', _('F (Less than 80)')
+        D = 'D', _('D (70.0 - 79.9)')
+        F = 'F', _('F (Less than 70)')
 
     template = models.ForeignKey(
         AuditTemplate, on_delete=models.CASCADE, related_name="audits")

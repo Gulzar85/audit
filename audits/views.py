@@ -16,7 +16,7 @@ from django.template.loader import get_template
 from django.utils import timezone
 from django.views.generic import ListView, CreateView, DetailView, UpdateView, TemplateView, View
 
-from core.models import Notification
+from core.models import BusinessInfo, Notification
 from core.security import rate_limit, log_security_event
 from .forms import AuditForm, AuditScoreForm, CorrectiveActionForm
 from .utils import notify_restaurant_users, notify_auditor_and_manager, auto_generate_corrective_actions
@@ -246,13 +246,14 @@ class AuditScoreView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
                 email_context = {
                     'subject': f'Audit Completed: {audit.restaurant.name}',
                     'restaurant_name': audit.restaurant.name,
-                    'score': audit.total_percentage,
-                    'grade': audit.get_grade_display(),
+                    'score': audit.total_percentage or 0,
+                    'grade': audit.grade,
                     'audit_date': audit.audit_date,
                     'template_name': audit.template.name,
                     'template_version': audit.template.version,
                     'auditor_name': audit.auditor.get_full_name() or audit.auditor.username if audit.auditor else 'N/A',
                     'result_url': request.build_absolute_uri(reverse('audits:result', args=[audit.pk])),
+                    'company_name': BusinessInfo.load().company_name,
                 }
                 extra_recipients = [audit.auditor, audit.auditor.manager] if audit.auditor and audit.auditor.manager else [audit.auditor] if audit.auditor else None
                 notify_restaurant_users(

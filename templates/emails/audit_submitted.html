@@ -1,17 +1,23 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
         <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Audit Submitted</title>
+        <!--[if mso]>
+        <style>table{border-collapse:collapse;}</style>
+        <![endif]-->
     </head>
     <body style="margin:0;
                  padding:0;
                  background:#f4f4f5;
                  font-family:'Inter',Arial,sans-serif">
+        <div style="display:none;max-height:0;overflow:hidden;">Audit {{ score|floatformat:1 }}% — {{ restaurant_name }}</div>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
             <tr>
                 <td align="center" style="padding:40px 16px;">
                     <table role="presentation"
-                           width="560"
+                           width="100%"
                            cellpadding="0"
                            cellspacing="0"
                            style="max-width:560px;
@@ -34,7 +40,7 @@
                                         <td align="center" style="padding-bottom:24px;">
                                             <span style="font-size:48px;
                                                          font-weight:800;
-                                                         {% if grade == 'A' %}color:#059669{% elif grade == 'B' %}color:#2563eb{% elif grade == 'C' %}color:#d97706{% else %}color:#dc2626{% endif %}">{{ score|floatformat:1 }}%</span>
+                                                         {% if grade == 'A' %}color:#059669{% elif grade == 'B' %}color:#2563eb{% elif grade == 'C' %}color:#d97706{% elif grade == 'D' %}color:#ea580c{% else %}color:#dc2626{% endif %}">{{ score|floatformat:1 }}%</span>
                                             <span style="display:inline-block;
                                                          margin-left:8px;
                                                          padding:4px 12px;
@@ -44,7 +50,8 @@
                                                          {% if grade == 'A' %}background:#d1fae5;
                                                          color:#065f46{% elif grade == 'B' %}background:#dbeafe;
                                                          color:#1e40af{% elif grade == 'C' %}background:#fef3c7;
-                                                         color:#92400e{% else %}background:#fee2e2;
+                                                         color:#92400e{% elif grade == 'D' %}background:#ffedd5;
+                                                         color:#9a3412{% else %}background:#fee2e2;
                                                          color:#991b1b{% endif %}">Grade {{ grade }}</span>
                                         </td>
                                     </tr>
@@ -95,6 +102,7 @@
                                     <tr>
                                         <td align="center" style="padding:24px 0 0;">
                                             <a href="{{ result_url }}"
+                                               title="View Full Audit Report"
                                                style="display:inline-block;
                                                       padding:14px 32px;
                                                       background:linear-gradient(135deg,#DA291C 0%,#8B0000 100%);
@@ -114,7 +122,7 @@
                                        font-size:12px;
                                        color:#9ca3af;
                                        border-top:1px solid #e5e7eb">
-                                &copy; {% now "Y" %} McDonald's Pakistan &mdash; Audit Management System
+                                &copy; {% now "Y" %} {{ company_name }} &mdash; Audit Management System
                             </td>
                         </tr>
                     </table>

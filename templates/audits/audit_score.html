@@ -5,6 +5,7 @@
 {% block title %}{{ business_info.company_name }} — {{ title }}{% endblock %}
 
 {% block content %}
+<style>[x-cloak] { display: none !important; }</style>
 <div x-data="scoreApp({{ sections_json }}, {{ audit.id }})"
      x-init="init()"
      @keydown.alt.arrow-left.window="navigateSection('prev')"
@@ -45,6 +46,10 @@
           <button type="button" @click="fillAllAJAX()"
                   class="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors min-h-[36px]">
             <i data-lucide="zap" class="w-3.5 h-3.5"></i> Fill All
+          </button>
+          <button type="button" @click="confirmClearAll()"
+                  class="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-red-200 bg-white text-xs font-bold text-red-600 hover:bg-red-50 transition-colors min-h-[36px]">
+            <i data-lucide="eraser" class="w-3.5 h-3.5"></i> Clear All
           </button>
           <button type="button" @click="confirmSubmit()"
                   class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-success text-white text-xs font-bold transition-all shadow-lg shadow-emerald-600/20 hover:shadow-xl hover:shadow-emerald-600/30 active:scale-[0.97] min-h-[36px]">
@@ -113,7 +118,6 @@
               <div class="flex items-center gap-3">
                 <div class="flex-1 h-1.5 bg-slate-200/70 rounded-full overflow-hidden">
                   <div class="h-full rounded-full transition-all duration-500 ease-out"
-                       x-text="''"
                        :style="'width: ' + (sectionTotal({{ forloop.counter0 }}) > 0 ? (sectionAnswered({{ forloop.counter0 }}) / sectionTotal({{ forloop.counter0 }}) * 100) : 0) + '%'"
                        :class="sectionAnswered({{ forloop.counter0 }}) === sectionTotal({{ forloop.counter0 }}) && sectionTotal({{ forloop.counter0 }}) > 0 ? 'bg-emerald-500' : 'bg-primary'">
                   </div>
@@ -179,21 +183,22 @@
           <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Section Breakdown</h4>
           <div class="space-y-2">
             <template x-for="(sec, idx) in sections" :key="idx">
-              <div class="flex items-center gap-2.5">
+              <div class="flex items-center gap-2.5 cursor-pointer group rounded-lg px-2 py-1.5 -mx-2 hover:bg-slate-100 transition-colors"
+                   @click="currentSection = idx; window.scrollTo({top: 0, behavior: 'smooth'})">
                 <span class="w-2 h-2 rounded-full shrink-0"
                       :class="sectionScore(idx).answered === sectionScore(idx).total && sectionScore(idx).total > 0 ? 'bg-emerald-500' : sectionScore(idx).answered > 0 ? 'bg-amber-500' : 'bg-slate-300'">
                 </span>
                 <div class="flex-1 min-w-0">
                   <div class="flex justify-between items-center">
-                    <span class="text-xs font-bold text-slate-700 truncate" x-text="sec.name"></span>
+                    <span class="text-xs font-bold text-slate-700 truncate group-hover:text-primary transition-colors" x-text="sec.name"></span>
                     <span class="text-[10px] font-bold tabular-nums"
-                          :class="sectionScore(idx).pct >= 90 ? 'text-emerald-600' : sectionScore(idx).pct >= 80 ? 'text-amber-600' : sectionScore(idx).answered > 0 ? 'text-red-600' : 'text-slate-400'"
+                          :class="sectionScore(idx).pct >= 90 ? 'text-emerald-600' : sectionScore(idx).pct >= 80 ? 'text-amber-600' : sectionScore(idx).pct >= 70 ? 'text-orange-500' : sectionScore(idx).answered > 0 ? 'text-red-600' : 'text-slate-400'"
                           x-text="sectionScore(idx).pct.toFixed(0) + '%'"></span>
                   </div>
                   <div class="mt-0.5 w-full bg-slate-200 rounded-full h-1 overflow-hidden">
                     <div class="h-full rounded-full transition-all duration-500"
                          :style="'width: ' + sectionScore(idx).pct + '%'"
-                         :class="sectionScore(idx).pct >= 90 ? 'bg-emerald-500' : sectionScore(idx).pct >= 80 ? 'bg-amber-500' : sectionScore(idx).answered > 0 ? 'bg-red-500' : 'bg-slate-300'">
+                         :class="sectionScore(idx).pct >= 90 ? 'bg-emerald-500' : sectionScore(idx).pct >= 80 ? 'bg-amber-500' : sectionScore(idx).pct >= 70 ? 'bg-orange-500' : sectionScore(idx).answered > 0 ? 'bg-red-500' : 'bg-slate-300'">
                     </div>
                   </div>
                 </div>
@@ -340,6 +345,10 @@
                x-text="sections.length > currentSection ? sections[currentSection].name : ''"></div>
           <span class="font-extrabold text-sm" :class="gradeColorClass" x-text="totalPercentage.toFixed(1) + '%'"></span>
         </div>
+        <button type="button" @click="confirmClearAll()"
+                class="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-red-200 bg-white text-red-600 font-bold text-xs hover:bg-red-50 transition-all min-h-[44px] shadow-sm">
+          <i data-lucide="eraser" class="w-4 h-4"></i> Clear
+        </button>
         <button type="button" @click="confirmSubmit()"
                 class="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-gradient-success text-white font-bold text-sm transition-all shadow-lg shadow-emerald-600/20 active:scale-[0.97] min-h-[44px]">
           <i data-lucide="check-circle-2" class="w-4 h-4"></i> Submit
@@ -518,8 +527,8 @@ function scoreApp(sectionsData, auditId) {
 
   scheduleSave(responseId) {
   clearTimeout(this.saveTimeouts[responseId]);
-  this.unsavedCount = Object.keys(this.saveTimeouts).length + 1;
   this.saveTimeouts[responseId] = setTimeout(() => this.saveResponse(responseId), 1500);
+  this.unsavedCount = Object.keys(this.saveTimeouts).length;
   },
 
    saveResponse(responseId) {
@@ -548,11 +557,11 @@ function scoreApp(sectionsData, auditId) {
    const fi = document.getElementById('photo-upload-' + responseId);
    if (fi) { fi.value = ''; }
    window.dispatchEvent(new CustomEvent('photo-cleared-' + responseId));
+   delete this.saveTimeouts[responseId];
    setTimeout(() => {
    if (this.savingStates[responseId] === 'saved') delete this.savingStates[responseId];
    }, 2000);
-   const now = new Date();
-   this.lastSavedAt = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0') + ':' + now.getSeconds().toString().padStart(2, '0');
+   this.lastSavedAt = new Date().toLocaleTimeString();
    this.unsavedCount = Object.keys(this.saveTimeouts).length;
    } else {
    this.savingStates[responseId] = 'error';
@@ -573,13 +582,14 @@ function scoreApp(sectionsData, auditId) {
   const found = sec.responses.find(r => r.id === id);
   if (found) return found;
   }
-  return { scored: 0, max: 0, is_na: false, is_critical: false, comments: '', needs_ca: false, is_answered: false, photo_url: null };
+  return { id: null, scored: 0, max: 0, is_na: false, is_critical: false, comments: '', needs_ca: false, is_answered: false, photo_url: null };
   },
 
    fillSectionAJAX(sIdx) {
   const sec = this.sections[sIdx];
   if (!sec) return;
   this.flushAllSaves();
+  this.openModal('success', 'Filling...', 'Auto-filling unanswered questions for this section.', '', () => {});
   this.modal.loading = true;
   const fd = new FormData();
   fd.append('audit_id', this.auditId);
@@ -610,9 +620,11 @@ function scoreApp(sectionsData, auditId) {
 
    fillAllAJAX() {
    this.flushAllSaves();
+   this.openModal('success', 'Filling...', 'Auto-filling all unanswered questions across all sections.', '', () => {});
    this.modal.loading = true;
    const fd = new FormData();
    fd.append('audit_id', this.auditId);
+   fd.append('section_id', '');
    fetch("{% url 'audits:fill_remaining' %}", {
    method: 'POST',
    headers: { 'X-CSRFToken': this.csrf() },
@@ -702,7 +714,8 @@ function scoreApp(sectionsData, auditId) {
   if (p >= 96) return 'A (96.0 - 100)';
   if (p >= 90) return 'B (90.0 - 95.9)';
   if (p >= 80) return 'C (80.0 - 89.9)';
-  return 'F (Less than 80)';
+  if (p >= 70) return 'D (70.0 - 79.9)';
+  return 'F (Less than 70)';
   },
 
   get gradeColorClass() {
@@ -711,6 +724,7 @@ function scoreApp(sectionsData, auditId) {
   if (this.criticalCount > 0) return 'text-red-600';
   if (p >= 90) return 'text-emerald-600';
   if (p >= 80) return 'text-amber-600';
+  if (p >= 70) return 'text-orange-500';
   return 'text-red-600';
   },
 
@@ -731,6 +745,59 @@ function scoreApp(sectionsData, auditId) {
   confirmSubmit() {
   this.openModal('confirm', 'Submit Audit', 'Are you sure you want to submit this audit? All changes will be locked and results will be finalized.', 'Yes, Submit', () => this.flushAndSubmit());
   this.modal.showScoreSummary = true;
+  },
+
+  confirmClearAll() {
+  this.openModal('confirm', 'Clear All Responses', 'This will reset every question to unanswered, removing all scores, comments, and corrective actions. This cannot be undone.', 'Yes, Clear All', () => this.clearAllResponses());
+  },
+
+  clearAllResponses() {
+  this.flushAllSaves();
+  this.modal.loading = true;
+  const responseIds = [];
+  for (const sec of this.sections) {
+    for (const r of sec.responses) {
+      if (!r.is_na) responseIds.push(r.id);
+      r.scored = 0;
+      r.is_answered = false;
+      r.comments = '';
+      r.needs_ca = false;
+      r.photo_url = null;
+    }
+  }
+  const fi = document.querySelectorAll('input[type="file"]');
+  fi.forEach(el => { el.value = ''; });
+  let saved = 0;
+  const total = responseIds.length;
+  if (total === 0) { this.modal.loading = false; this.closeModal(); return; }
+  for (const id of responseIds) {
+    const fd = new FormData();
+    fd.append('response_id', id);
+    fd.append('scored_points', '0');
+    fd.append('comments', '');
+    fd.append('is_na', 'false');
+    fd.append('needs_ca', 'false');
+    fetch("{% url 'audits:save_response' %}", {
+      method: 'POST',
+      headers: { 'X-CSRFToken': this.csrf() },
+      body: fd
+    })
+    .then(() => {
+      saved++;
+      if (saved >= total) {
+        this.modal.loading = false;
+        this.lastSavedAt = new Date().toLocaleTimeString();
+        this.openModal('success', 'Cleared', 'All responses have been reset.', 'OK', () => this.closeModal());
+      }
+    })
+    .catch(() => {
+      saved++;
+      if (saved >= total) {
+        this.modal.loading = false;
+        this.openModal('error', 'Error', 'Some responses could not be cleared. Please try again.', 'Close', () => this.closeModal());
+      }
+    });
+  }
   },
 
   flushAndSubmit() {
