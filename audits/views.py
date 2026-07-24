@@ -1242,7 +1242,8 @@ class SaveResponseView(LoginRequiredMixin, PermissionRequiredMixin, View):
             resp.scored_points = Decimal('0.00')
             resp.needs_corrective_action = False
         else:
-            resp.is_answered = True
+            has_content = (scored_points and scored_points > 0) or comments.strip() or resp.image
+            resp.is_answered = has_content
 
         resp.save(update_fields=[
             'scored_points', 'comments', 'is_na', 'needs_corrective_action',
