@@ -754,10 +754,8 @@ function scoreApp(sectionsData, auditId) {
   clearAllResponses() {
   this.flushAllSaves();
   this.modal.loading = true;
-  const responseIds = [];
   for (const sec of this.sections) {
     for (const r of sec.responses) {
-      if (!r.is_na) responseIds.push(r.id);
       r.scored = 0;
       r.is_answered = false;
       r.comments = '';
@@ -767,37 +765,27 @@ function scoreApp(sectionsData, auditId) {
   }
   const fi = document.querySelectorAll('input[type="file"]');
   fi.forEach(el => { el.value = ''; });
-  let saved = 0;
-  const total = responseIds.length;
-  if (total === 0) { this.modal.loading = false; this.closeModal(); return; }
-  for (const id of responseIds) {
-    const fd = new FormData();
-    fd.append('response_id', id);
-    fd.append('scored_points', '0');
-    fd.append('comments', '');
-    fd.append('is_na', 'false');
-    fd.append('needs_ca', 'false');
-    fetch("{% url 'audits:save_response' %}", {
-      method: 'POST',
-      headers: { 'X-CSRFToken': this.csrf() },
-      body: fd
-    })
-    .then(() => {
-      saved++;
-      if (saved >= total) {
-        this.modal.loading = false;
-        this.lastSavedAt = new Date().toLocaleTimeString();
-        this.openModal('success', 'Cleared', 'All responses have been reset.', 'OK', () => this.closeModal());
-      }
-    })
-    .catch(() => {
-      saved++;
-      if (saved >= total) {
-        this.modal.loading = false;
-        this.openModal('error', 'Error', 'Some responses could not be cleared. Please try again.', 'Close', () => this.closeModal());
-      }
-    });
-  }
+  const fd = new FormData();
+  fd.append('audit_id', this.auditId);
+  fetch("{% url 'audits:clear_all' %}", {
+    method: 'POST',
+    headers: { 'X-CSRFToken': this.csrf() },
+    body: fd
+  })
+  .then(r => r.json())
+  .then(d => {
+    this.modal.loading = false;
+    if (d.success) {
+      this.lastSavedAt = new Date().toLocaleTimeString();
+      this.openModal('success', 'Cleared', d.message || 'All responses have been reset.', 'OK', () => this.closeModal());
+    } else {
+      this.openModal('error', 'Error', d.message || 'Could not clear responses.', 'Close', () => this.closeModal());
+    }
+  })
+  .catch(() => {
+    this.modal.loading = false;
+    this.openModal('error', 'Connection Error', 'Could not clear responses. Please try again.', 'Close', () => this.closeModal());
+  });
   },
 
   flushAndSubmit() {

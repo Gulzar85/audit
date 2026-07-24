@@ -20,6 +20,7 @@ urlpatterns = [
     path('<int:pk>/delete/', views.AuditDeleteView.as_view(), name='delete'),
     path('save-response/', views.SaveResponseView.as_view(), name='save_response'),
     path('fill-remaining/', views.FillRemainingView.as_view(), name='fill_remaining'),
+    path('clear-all/', views.ClearAllResponsesView.as_view(), name='clear_all'),
     path('corrective-actions/', views.CorrectiveActionListView.as_view(), name='corrective_actions'),
     path('corrective-actions/create/', views.CorrectiveActionCreateView.as_view(), name='corrective_action_create'),
     path('corrective-actions/<int:pk>/detail/', views.CorrectiveActionDetailView.as_view(), name='corrective_action_detail'),

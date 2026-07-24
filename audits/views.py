@@ -1339,6 +1339,62 @@ class FillRemainingView(LoginRequiredMixin, PermissionRequiredMixin, View):
         })
 
 
+class ClearAllResponsesView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    permission_required = 'audits.change_audit'
+
+    @transaction.atomic
+    def post(self, request):
+        from core.security import check_suspicious_activity
+        if check_suspicious_activity(request, 'clear_all', threshold=20):
+            return JsonResponse(
+                {'success': False, 'message': 'Too many requests. Please try again later.'},
+                status=429
+            )
+
+        audit_id = request.POST.get('audit_id')
+        if not audit_id:
+            return JsonResponse({'success': False, 'message': 'Missing audit_id'}, status=400)
+
+        audit = get_object_or_404(Audit.objects.visible_to(request.user), pk=audit_id)
+        audit = type(audit).objects.select_for_update().get(pk=audit.pk)
+
+        if audit.is_submitted:
+            return JsonResponse({'success': False, 'message': 'Audit already submitted'}, status=400)
+
+        affected = AuditQuestionResponse.objects.filter(
+            audit_section__audit=audit,
+            is_na=False,
+        )
+
+        count = affected.update(
+            scored_points=Decimal('0.00'),
+            comments='',
+            needs_corrective_action=False,
+            is_answered=False,
+            image=None,
+        )
+
+        section_ids = set(
+            affected.values_list('audit_section_id', flat=True)
+        )
+        section_progress = {}
+        for sec_id in section_ids:
+            sec = AuditSection.objects.get(pk=sec_id)
+            sec.calculate_section_score()
+            total = sec.responses.filter(is_na=False).count()
+            answered = sec.responses.filter(is_na=False, is_answered=True).count()
+            section_progress[str(sec.pk)] = {'answered': answered, 'total': total}
+
+        audit.calculate_totals()
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Cleared {count} response(s)',
+            'cleared_count': count,
+            'section_progress': section_progress,
+        })
+
+
 class AuditSubmitJSONView(LoginRequiredMixin, PermissionRequiredMixin, View):
     permission_required = 'audits.change_audit'
 
