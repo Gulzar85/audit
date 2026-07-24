@@ -8,6 +8,9 @@ from django.dispatch import receiver
 
 logger = logging.getLogger(__name__)
 
+# Guard flag to prevent infinite recursion in sync_role_to_group
+_syncing_groups = set()
+
 # -----------------------------
 # Role → Group sync
 # -----------------------------
@@ -15,6 +18,8 @@ logger = logging.getLogger(__name__)
 
 @receiver(post_save, sender='accounts.User')
 def sync_role_to_group(sender, instance, created, **kwargs):
+    if instance.pk in _syncing_groups:
+        return
     role_group_map = {
         instance.Roles.ADMIN: 'Admin',
         instance.Roles.AUDITOR: 'Auditor',
@@ -25,10 +30,18 @@ def sync_role_to_group(sender, instance, created, **kwargs):
     if group_name:
         group, _ = Group.objects.get_or_create(name=group_name)
         if instance.groups.count() != 1 or instance.groups.first() != group:
-            instance.groups.set([group])
+            _syncing_groups.add(instance.pk)
+            try:
+                instance.groups.set([group])
+            finally:
+                _syncing_groups.discard(instance.pk)
     else:
         if instance.groups.exists():
-            instance.groups.clear()
+            _syncing_groups.add(instance.pk)
+            try:
+                instance.groups.clear()
+            finally:
+                _syncing_groups.discard(instance.pk)
 
 
 # -----------------------------
@@ -36,6 +49,7 @@ def sync_role_to_group(sender, instance, created, **kwargs):
 # -----------------------------
 
 
+@receiver(m2m_changed, sender='accounts.User.restaurants.through')
 def validate_user_restaurants(sender, instance, action, **kwargs):
     if action not in ('pre_add', 'pre_remove', 'pre_clear'):
         return

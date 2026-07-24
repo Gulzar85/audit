@@ -14,10 +14,15 @@ class UserResource(resources.ModelResource):
         fields = [
             'id', 'email', 'username', 'first_name', 'last_name',
             'role', 'designation', 'department', 'mobile_number',
-            'email_notifications', 'is_active', 'is_staff', 'is_superuser'
+            'email_notifications', 'is_active', 'is_staff',
         ]
         import_id_fields = ['email']
         skip_unchanged = True
+
+    def before_import_row(self, row, row_number=None, **kwargs):
+        # Prevent privilege escalation via CSV import
+        row.pop('is_superuser', None)
+        row.pop('is_staff', None)
 
 
 class DesignationResource(resources.ModelResource):

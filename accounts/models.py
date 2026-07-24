@@ -35,7 +35,13 @@ class Designation(BaseModel):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.name)
+            base_slug = slugify(self.name)
+            slug = base_slug
+            counter = 1
+            while Designation.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            self.slug = slug
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -56,7 +62,13 @@ class Department(BaseModel):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.name)
+            base_slug = slugify(self.name)
+            slug = base_slug
+            counter = 1
+            while Department.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            self.slug = slug
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -169,10 +181,6 @@ class User(AbstractUser):
             if self.manager:
                 raise ValidationError(
                     {"manager": "Manager cannot have a manager."})
-
-            if self.pk and self.restaurants.exists():
-                raise ValidationError(
-                    {"restaurants": "Manager cannot have restaurants."})
 
         # -------------------------
         # RESTAURANT USER RULES

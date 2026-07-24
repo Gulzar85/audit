@@ -11,11 +11,11 @@
              x-data="toast"
              x-show="show"
              x-init="setTimeout(() => dismiss(), 5000)"
-             :class="{ 'bg-emerald-50/90 border-emerald-200/60': '{{ message.tags }}' === 'success', 'bg-red-50/90 border-red-200/60': '{{ message.tags }}' === 'error', 'bg-amber-50/90 border-amber-200/60': '{{ message.tags }}' === 'warning', 'bg-blue-50/90 border-blue-200/60': '{{ message.tags }}' === 'info' }">
+             :class="{ 'bg-emerald-50/90 border-emerald-200/60': '{{ message.tags|escapejs }}' === 'success', 'bg-red-50/90 border-red-200/60': '{{ message.tags|escapejs }}' === 'error', 'bg-amber-50/90 border-amber-200/60': '{{ message.tags|escapejs }}' === 'warning', 'bg-blue-50/90 border-blue-200/60': '{{ message.tags|escapejs }}' === 'info' }">
             <div class="shrink-0 mt-0.5">
-                <div :class="{ 'bg-emerald-100 text-emerald-600': '{{ message.tags }}' === 'success', 'bg-red-100 text-red-600': '{{ message.tags }}' === 'error', 'bg-amber-100 text-amber-600': '{{ message.tags }}' === 'warning', 'bg-blue-100 text-blue-600': '{{ message.tags }}' === 'info' }"
+                <div :class="{ 'bg-emerald-100 text-emerald-600': '{{ message.tags|escapejs }}' === 'success', 'bg-red-100 text-red-600': '{{ message.tags|escapejs }}' === 'error', 'bg-amber-100 text-amber-600': '{{ message.tags|escapejs }}' === 'warning', 'bg-blue-100 text-blue-600': '{{ message.tags|escapejs }}' === 'info' }"
                      class="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm">
-                    <i :data-lucide="{ 'success': 'check-circle-2', 'error': 'alert-circle', 'warning': 'alert-triangle', 'info': 'info' }['{{ message.tags }}'] || 'info'"
+                    <i :data-lucide="{ 'success': 'check-circle-2', 'error': 'alert-circle', 'warning': 'alert-triangle', 'info': 'info' }['{{ message.tags|escapejs }}'] || 'info'"
                        class="h-4 w-4"></i>
                 </div>
             </div>

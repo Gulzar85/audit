@@ -669,7 +669,7 @@
 {% endif %}
 {% endblock %}
 {% block extra_scripts %}
-    <script id="dashboard-data" type="application/json">{{ chart_data_json|safe }}</script>
+    {{ chart_data|json_script:"dashboard-data" }}
     <script>window.DASHBOARD_DATA = JSON.parse(document.getElementById('dashboard-data').textContent);</script>
     <script src="{% static 'js/dashboard-charts.js' %}"></script>
 {% endblock %}

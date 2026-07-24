@@ -252,6 +252,8 @@ class Audit(BaseModel):
             return 'B'
         if percentage >= 80:
             return 'C'
+        if percentage >= 70:
+            return 'D'
         return 'F'
 
 

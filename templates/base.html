@@ -290,7 +290,7 @@
   <script>
   document.addEventListener('alpine:init', () => {
     Alpine.store('notifPoll', {
-      unread: {{ sidebar_badges.unread_notifications|default:0 }},
+      unread: {{ sidebar_badges.unread_notifications|default:0|escapejs }},
       originalTitle: document.title,
       init() {
         this.updateTitle();

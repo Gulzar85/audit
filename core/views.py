@@ -4,8 +4,19 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic import ListView, View, TemplateView
+from urllib.parse import urlparse
 
 from .models import Notification, NotificationPreference
+
+
+def _safe_redirect(url, fallback=None):
+    """Redirect only to internal paths to prevent open redirect attacks."""
+    if not url:
+        return redirect(fallback or reverse('core:notifications'))
+    parsed = urlparse(url)
+    if parsed.netloc:
+        return redirect(fallback or reverse('core:notifications'))
+    return redirect(url)
 
 
 class NotificationListView(LoginRequiredMixin, ListView):
@@ -33,7 +44,7 @@ class NotificationMarkReadView(LoginRequiredMixin, View):
         n.save(update_fields=['is_read'])
         if request.headers.get('x-requested-with') == 'XMLHttpRequest':
             return JsonResponse({'ok': True})
-        return redirect(n.link or reverse('core:notifications'))
+        return _safe_redirect(n.link)
 
 
 class NotificationMarkAllReadView(LoginRequiredMixin, View):

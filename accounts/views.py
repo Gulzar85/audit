@@ -1,9 +1,23 @@
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django.contrib.auth.views import LogoutView as DjangoLogoutView
 from django.db.models import Q, Avg
+from django.http import HttpResponseRedirect
+from django.urls import reverse_lazy
 from django.views.generic import TemplateView, DetailView, ListView
 
 from audits.models import Audit, CorrectiveAction
 from .models import User
+
+
+class PostOnlyLogoutView(DjangoLogoutView):
+    """Logout view that only accepts POST requests to prevent CSRF logout attacks."""
+    next_page = reverse_lazy('accounts:login')
+
+    def get(self, request, *args, **kwargs):
+        return HttpResponseRedirect(reverse_lazy('accounts:login'))
+
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
 
 
 class ProfileView(LoginRequiredMixin, TemplateView):

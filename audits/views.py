@@ -740,7 +740,7 @@ class DashboardView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
             'restaurantTrendSeries': json.loads(ctx.get('restaurant_trend_series', '[]')),
             'restaurantTrendMonths': json.loads(ctx.get('restaurant_trend_months', '[]')),
         }
-        ctx['chart_data_json'] = json.dumps(chart_data)
+        ctx['chart_data'] = chart_data
 
         return ctx
 

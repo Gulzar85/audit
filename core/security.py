@@ -53,7 +53,20 @@ def rate_limit(key_prefix, max_requests=5, window=300):
                         cache.set(cache_key, 1, window)
                         attempts = 1
             except Exception:
-                attempts = 0
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error('Rate limit cache failure — denying request for safety')
+                if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                    return JsonResponse(
+                        {'error': 'Service temporarily unavailable. Please try again later.'},
+                        status=503
+                    )
+                else:
+                    from django.http import HttpResponse
+                    return HttpResponse(
+                        'Service temporarily unavailable.',
+                        status=503
+                    )
             
             if attempts > max_requests:
                 log_security_event(
@@ -82,13 +95,22 @@ def rate_limit(key_prefix, max_requests=5, window=300):
 
 
 def get_client_ip(request):
-    """Extract client IP from request, handling proxies."""
+    """Extract client IP from request, handling proxies safely.
+    
+    Only trusts X-Forwarded-For when the request comes from a known proxy.
+    Returns the rightmost untrusted IP (client's real IP).
+    """
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded_for:
-        ip = x_forwarded_for.split(',')[0].strip()
-    else:
-        ip = request.META.get('REMOTE_ADDR')
-    return ip
+        parts = [p.strip() for p in x_forwarded_for.split(',')]
+        # Return the last IP (original client) unless we have proxy trust config
+        # For single-proxy setups, the client IP is the second-to-last
+        from django.conf import settings
+        trusted_proxies = getattr(settings, 'TRUSTED_PROXY_COUNT', 0)
+        if len(parts) > trusted_proxies:
+            return parts[-(trusted_proxies + 1)]
+        return parts[0]
+    return request.META.get('REMOTE_ADDR')
 
 
 def check_suspicious_activity(request, action_type, threshold=10):
@@ -117,7 +139,10 @@ def check_suspicious_activity(request, action_type, threshold=10):
                 cache.set(cache_key, 1, 3600)
                 attempts = 1
     except Exception:
-        return False
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error('Suspicious activity check cache failure — treating as suspicious for safety')
+        return True
     
     if attempts >= threshold:
         log_security_event(
