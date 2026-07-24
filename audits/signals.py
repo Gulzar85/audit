@@ -178,11 +178,4 @@ def audit_assignment_notification(sender, instance, created, **kwargs):
     _create_notifications(
         Notification.Type.AUDIT_SUBMITTED, title, message, link,
         {instance.auditor},
-        email_context={
-            'subject': title,
-            'restaurant_name': instance.restaurant.name,
-            'audit_date': instance.audit_date,
-            'template_name': instance.template.name,
-            'result_url': link,
-        },
     )
