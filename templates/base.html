@@ -1,16 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}">
 <head>
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
  <title>{% block title %}{{ business_info.company_name }}{% endblock %}</title>
  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
- <script src="https://unpkg.com/lucide@0.468.0"></script>
+ <script src="https://unpkg.com/lucide@0.468.0" defer></script>
  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
  <link rel="preconnect" href="https://fonts.googleapis.com">
  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
  {% block extra_head %}{% endblock %}
  {% if business_info.favicon %}
  <link rel="icon" type="image/png" href="{{ business_info.favicon.url }}">
@@ -18,13 +17,13 @@
  {% else %}
  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📋</text></svg>">
  {% endif %}
- <style>
+ <style type="text/tailwindcss">
   :root {
   --primary: {{ business_info.primary_color|default:'#DA291C' }};
-  --primary-dark: #B71C1C;
-  --primary-light: #FF6B6B;
+  --primary-dark: {{ business_info.primary_color_dark|default:'#B71C1C' }};
+  --primary-light: {{ business_info.primary_color_light|default:'#FF6B6B' }};
   --secondary: {{ business_info.secondary_color|default:'#FFC72C' }};
-  --secondary-light: #FFE066;
+  --secondary-light: {{ business_info.secondary_color_light|default:'#FFE066' }};
   --accent: {{ business_info.accent_color|default:'#27251F' }};
   --surface: #F8F9FC;
   --surface-elevated: #FFFFFF;
@@ -203,7 +202,8 @@
   }
  </style>
  </head>
-<body class="bg-surface pattern-grid overflow-hidden text-slate-800 antialiased">
+<body class="bg-surface pattern-grid overflow-hidden text-slate-800 antialiased"
+ x-data>
 
  <a href="#main-content"
  class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:px-5 focus:py-3 focus:bg-white focus:text-primary focus:font-bold focus:rounded-xl focus:shadow-2xl focus:ring-2 focus:ring-primary">
@@ -282,44 +282,47 @@
   this.confirmTarget = null;
   }
   });
+  Alpine.store('notifPoll', {
+    unread: {{ sidebar_badges.unread_notifications|default:0|escapejs }},
+    originalTitle: document.title,
+    init() {
+      this.updateTitle();
+      setInterval(() => this.poll(), 30000);
+    },
+    poll() {
+      fetch('/core/notifications/count/')
+        .then(r => {
+          if (!r.ok) throw new Error(`Notification poll failed: ${r.status}`);
+          return r.json();
+        })
+        .then(d => {
+          if (d.count !== this.unread) {
+            this.unread = d.count;
+            this.updateTitle();
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+          }
+        })
+        .catch(err => {
+          // Fail silently in the UI (no badge update), but log for diagnostics.
+          console.warn('Notification poll error:', err);
+        });
+    },
+    updateTitle() {
+      const base = this.originalTitle;
+      document.title = this.unread ? `(${this.unread}) ${base}` : base;
+    }
+  });
+  Alpine.store('notifPoll').init();
  if (typeof lucide !== 'undefined') lucide.createIcons();
  Alpine.data('toast', () => ({
  show: true,
  dismiss() { this.show = false; }
  }));
  });
- document.addEventListener('alpine:after-render', () => {
- if (typeof lucide !== 'undefined') lucide.createIcons();
- });
- </script>
-  <script>
-  document.addEventListener('alpine:init', () => {
-    Alpine.store('notifPoll', {
-      unread: {{ sidebar_badges.unread_notifications|default:0|escapejs }},
-      originalTitle: document.title,
-      init() {
-        this.updateTitle();
-        setInterval(() => this.poll(), 30000);
-      },
-      poll() {
-        fetch('/core/notifications/count/')
-          .then(r => r.json())
-          .then(d => {
-            if (d.count !== this.unread) {
-              this.unread = d.count;
-              this.updateTitle();
-              if (typeof lucide !== 'undefined') lucide.createIcons();
-            }
-          });
-      },
-      updateTitle() {
-        const base = this.originalTitle;
-        document.title = this.unread ? `(${this.unread}) ${base}` : base;
-      }
-    });
-    Alpine.store('notifPoll').init();
+  document.addEventListener('alpine:initialized', () => {
+  if (typeof lucide !== 'undefined') lucide.createIcons();
   });
-  </script>
+ </script>
   {% block extra_scripts %}{% endblock %}
 
  <!-- Global Confirm Modal -->
@@ -332,7 +335,12 @@
  x-transition:leave="transition ease-in duration-200"
  x-transition:leave-start="opacity-100"
  x-transition:leave-end="opacity-0"
- role="dialog" aria-modal="true"
+ x-init="
+   $watch('$store.confirm.show', (val) => {
+     if (val) { $nextTick(() => $refs.confirmBtn && $refs.confirmBtn.focus()); }
+   })
+ "
+ role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title" aria-describedby="confirm-modal-message"
  class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
  <div @click.away="$store.confirm.cancel()"
  x-transition:enter="transition ease-out duration-300"
@@ -341,19 +349,19 @@
  class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200/60 shadow-xl">
  <div class="px-6 py-5 flex items-center gap-3 bg-gradient-gold text-accent">
  <i data-lucide="alert-circle" class="w-6 h-6 text-accent shrink-0"></i>
- <h3 class="text-lg font-bold text-accent" x-text="$store.confirm.title"></h3>
+ <h3 id="confirm-modal-title" class="text-lg font-bold text-accent" x-text="$store.confirm.title"></h3>
  </div>
  <div class="px-6 py-6">
- <p class="text-slate-700 text-base leading-relaxed" x-text="$store.confirm.message"></p>
+ <p id="confirm-modal-message" class="text-slate-700 text-base leading-relaxed" x-text="$store.confirm.message"></p>
  <p class="text-sm text-slate-500 mt-3 italic">This action cannot be undone.</p>
  </div>
  <div class="px-6 py-5 border-t border-slate-100 flex justify-end gap-3">
  <button @click="$store.confirm.cancel()"
- class="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-sm hover:bg-slate-50 transition-colors">
+ class="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-sm hover:bg-slate-50 transition-colors focus-ring">
  Cancel
  </button>
- <button @click="$store.confirm.confirm()"
- class="px-5 py-2.5 rounded-xl bg-gradient-gold text-accent font-bold text-sm transition-all hover:shadow-lg active:scale-[0.98]">
+ <button x-ref="confirmBtn" @click="$store.confirm.confirm()"
+ class="px-5 py-2.5 rounded-xl bg-gradient-gold text-accent font-bold text-sm transition-all hover:shadow-lg active:scale-[0.98] focus-ring">
  Confirm
  </button>
  </div>

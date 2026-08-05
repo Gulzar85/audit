@@ -115,28 +115,28 @@
                                             <form method="post"
                                                   action="{% url 'audits:corrective_action_complete' action.pk %}"
                                                   class="inline"
-                                                  @submit.prevent="$store.confirm.open('Complete Action', 'Mark this corrective action as complete?', (form) => form.submit(), $event.currentTarget)">{% csrf_token %}<button type="submit"
+                                                  @submit.prevent="$store.confirm?.open ? $store.confirm.open('Complete Action', 'Mark this corrective action as complete?', (form) => form.submit(), $event.currentTarget) : (confirm('Mark this corrective action as complete?') && $event.currentTarget.submit())">{% csrf_token %}<button type="submit"
         class="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
         title="Mark Complete"><i data-lucide="check-circle" class="h-4 w-4 text-green-500"></i></button></form>
                                         {% elif action.status == 'COMPLETED' and perms.audits.verify_correctiveaction %}
                                             <form method="post"
                                                   action="{% url 'audits:corrective_action_verify' action.pk %}"
                                                   class="inline"
-                                                  @submit.prevent="$store.confirm.open('Verify Action', 'Verify this corrective action as resolved?', (form) => form.submit(), $event.currentTarget)">{% csrf_token %}<button type="submit"
+                                                  @submit.prevent="$store.confirm?.open ? $store.confirm.open('Verify Action', 'Verify this corrective action as resolved?', (form) => form.submit(), $event.currentTarget) : (confirm('Verify this corrective action as resolved?') && $event.currentTarget.submit())">{% csrf_token %}<button type="submit"
         class="p-1.5 rounded-lg hover:bg-blue-50 transition-colors"
         title="Verify"><i data-lucide="shield-check" class="h-4 w-4 text-blue-500"></i></button></form>
                                         {% elif action.status == 'VERIFIED' and perms.audits.verify_correctiveaction %}
                                             <form method="post"
                                                   action="{% url 'audits:corrective_action_close' action.pk %}"
                                                   class="inline"
-                                                  @submit.prevent="$store.confirm.open('Close Action', 'Close this corrective action?', (form) => form.submit(), $event.currentTarget)">{% csrf_token %}<button type="submit"
+                                                  @submit.prevent="$store.confirm?.open ? $store.confirm.open('Close Action', 'Close this corrective action?', (form) => form.submit(), $event.currentTarget) : (confirm('Close this corrective action?') && $event.currentTarget.submit())">{% csrf_token %}<button type="submit"
         class="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
         title="Close"><i data-lucide="check-circle-2" class="h-4 w-4 text-gray-500"></i></button></form>
                                         {% elif action.completed and perms.audits.verify_correctiveaction %}
                                             <form method="post"
                                                   action="{% url 'audits:corrective_action_complete' action.pk %}"
                                                   class="inline"
-                                                  @submit.prevent="$store.confirm.open('Reopen Action', 'Reopen this corrective action?', (form) => form.submit(), $event.currentTarget)">{% csrf_token %}<button type="submit"
+                                                  @submit.prevent="$store.confirm?.open ? $store.confirm.open('Reopen Action', 'Reopen this corrective action?', (form) => form.submit(), $event.currentTarget) : (confirm('Reopen this corrective action?') && $event.currentTarget.submit())">{% csrf_token %}<button type="submit"
         class="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
         title="Reopen"><i data-lucide="rotate-ccw" class="h-4 w-4 text-gray-400"></i></button></form>
                                         {% endif %}
@@ -145,7 +145,7 @@
                                         <form method="post"
                                               action="{% url 'audits:corrective_action_delete' action.pk %}"
                                               class="inline"
-                                              @submit.prevent="$store.confirm.open('Delete Action', 'Delete this corrective action?', (form) => form.submit(), $event.currentTarget)">{% csrf_token %}<button type="submit"
+                                              @submit.prevent="$store.confirm?.open ? $store.confirm.open('Delete Action', 'Delete this corrective action?', (form) => form.submit(), $event.currentTarget) : (confirm('Delete this corrective action?') && $event.currentTarget.submit())">{% csrf_token %}<button type="submit"
         class="p-1.5 rounded-lg hover:bg-red-50 transition-colors"
         title="Delete" aria-label="Delete corrective action"><i data-lucide="trash-2" class="h-4 w-4 text-red-400"></i></button></form>
                                     {% endif %}

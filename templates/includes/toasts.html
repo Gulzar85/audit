@@ -15,7 +15,7 @@
             <div class="shrink-0 mt-0.5">
                 <div :class="{ 'bg-emerald-100 text-emerald-600': '{{ message.tags|escapejs }}' === 'success', 'bg-red-100 text-red-600': '{{ message.tags|escapejs }}' === 'error', 'bg-amber-100 text-amber-600': '{{ message.tags|escapejs }}' === 'warning', 'bg-blue-100 text-blue-600': '{{ message.tags|escapejs }}' === 'info' }"
                      class="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm">
-                    <i :data-lucide="{ 'success': 'check-circle-2', 'error': 'alert-circle', 'warning': 'alert-triangle', 'info': 'info' }['{{ message.tags|escapejs }}'] || 'info'"
+                    <i data-lucide="{% if message.level_tag == 'success' %}check-circle-2{% elif message.level_tag == 'error' %}alert-circle{% elif message.level_tag == 'warning' %}alert-triangle{% else %}info{% endif %}"
                        class="h-4 w-4"></i>
                 </div>
             </div>
