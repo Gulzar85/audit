@@ -16,6 +16,7 @@ from django.shortcuts import redirect, get_object_or_404, reverse
 from django.template.loader import get_template
 from django.utils import timezone
 from django.views.generic import ListView, CreateView, DetailView, UpdateView, TemplateView, View
+import datetime
 
 from core.models import BusinessInfo, Notification
 from core.security import rate_limit, log_security_event
@@ -495,18 +496,16 @@ class DashboardView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
         seven_days_ago = now - timezone.timedelta(days=7)
         open_cas = ca_qs.exclude(status__in=['COMPLETED', 'VERIFIED', 'CLOSED'])
         ctx['ca_aging'] = {
-            'critical': open_cas.filter(
-                created_at__lte=thirty_days_ago,
-            ).count(),
+            'critical': open_cas.filter(created_at__lte=thirty_days_ago).count(),
             'over_14': open_cas.filter(
-                created_at__range=[fourteen_days_ago, thirty_days_ago],
+                created_at__gt=thirty_days_ago,
+                created_at__lte=fourteen_days_ago,
             ).count(),
             '7_14': open_cas.filter(
-                created_at__range=[seven_days_ago, fourteen_days_ago],
+                created_at__gt=fourteen_days_ago,
+                created_at__lte=seven_days_ago,
             ).count(),
-            '0_7': open_cas.filter(
-                created_at__gte=seven_days_ago,
-            ).count(),
+            '0_7': open_cas.filter(created_at__gte=seven_days_ago).count(),
         }
         ctx['ca_aging_labels'] = json.dumps(['Critical', '14-30d', '7-14d', '0-7d'])
         ctx['ca_aging_data'] = json.dumps([
@@ -529,9 +528,21 @@ class DashboardView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
             .annotate(count=Count('id'))
             .order_by('month')
         )
+        monthly_close_map = {
+            m['month'].strftime('%b %Y'): m['count']
+            for m in monthly_closed if m['month']
+        }
+        current_month = now.replace(day=1)
+        last_six_months = []
+        for _ in range(6):
+            last_six_months.insert(0, current_month)
+            current_month = (current_month - datetime.timedelta(days=1)).replace(day=1)
         ctx['ca_monthly_close'] = json.dumps([
-            {'month': m['month'].strftime('%b') if m['month'] else '', 'count': m['count']}
-            for m in monthly_closed
+            {
+                'month': month.strftime('%b'),
+                'count': monthly_close_map.get(month.strftime('%b %Y'), 0),
+            }
+            for month in last_six_months
         ])
 
         grade_counts = submitted.values('grade').annotate(count=Count('grade')).order_by('grade')
@@ -1037,7 +1048,7 @@ class CorrectiveActionDetailView(LoginRequiredMixin, PermissionRequiredMixin, De
         ctx['title'] = f'CA: {action.restaurant.name} — {action.description[:60]}'
 
         # Build timeline from django-simple-history records
-        history = action.history.all().order_by('history_date')
+        history = action.history.all().order_by('history_date', 'history_id')
         timeline = []
         previous_status = None
         for h in history:
@@ -1058,7 +1069,7 @@ class CorrectiveActionDetailView(LoginRequiredMixin, PermissionRequiredMixin, De
             previous_status = h.status
             timeline.append(entry)
 
-        ctx['timeline'] = reversed(timeline)  # newest first
+        ctx['timeline'] = list(reversed(timeline))  # newest first
         ctx['audit'] = action.audit
         return ctx
 

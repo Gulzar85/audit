@@ -40,11 +40,11 @@
                             <a href="{% url 'audits:result' audit.pk %}"
                                class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white/15 text-white hover:bg-white/25 font-bold transition-all border-2 border-white/30"><i data-lucide="bar-chart-3" class="w-4 h-4"></i> Full Report</a>
                         {% endif %}
-                        {% if perms.audits.delete_audit %}
+                        {% if not audit.is_submitted and perms.audits.delete_audit %}
                             <form method="post"
                                   action="{% url 'audits:delete' audit.pk %}"
                                   class="inline"
-                                  onsubmit="return confirm('Delete this audit? This cannot be undone.')">{% csrf_token %}<button type="submit"
+                                  @submit.prevent="$store.confirm.open('Delete Audit', 'Delete this audit? This cannot be undone.', (form) => form.submit(), $event.currentTarget)">{% csrf_token %}<button type="submit"
         class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white/10 text-white/70 hover:bg-red-500/30 hover:text-red-200 font-semibold transition-all border-2 border-white/20 hover:border-red-400/50"><i data-lucide="trash-2" class="w-4 h-4"></i> Delete</button></form>
                         {% endif %}
                         <a href="{% url 'audits:list' %}"
