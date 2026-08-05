@@ -17,6 +17,22 @@ class Command(BaseCommand):
 
         # Define Groups
         roles_groups = {
+            'Admin': {
+                'models': [
+                    (Audit, ['view', 'add', 'change', 'delete']),
+                    (AuditTemplate, ['view', 'add', 'change', 'delete']),
+                    (Section, ['view', 'add', 'change', 'delete']),
+                    (Question, ['view', 'add', 'change', 'delete']),
+                    (AuditSection, ['view', 'add', 'change', 'delete']),
+                    (AuditQuestionResponse, ['view', 'add', 'change', 'delete']),
+                    (CorrectiveAction, ['view', 'add', 'change', 'delete']),
+                    (Restaurant, ['view', 'add', 'change', 'delete']),
+                    (Region, ['view', 'add', 'change', 'delete']),
+                    (User, ['view', 'add', 'change', 'delete']),
+                    (Designation, ['view', 'add', 'change', 'delete']),
+                    (Department, ['view', 'add', 'change', 'delete']),
+                ]
+            },
             'Manager': {
                 'models': [
                     (Audit, ['view']),

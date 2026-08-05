@@ -1,5 +1,5 @@
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Avg
 from django.views.generic import ListView, DetailView
 
 from .models import Region, Restaurant
@@ -12,12 +12,15 @@ class RestaurantListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
     paginate_by = 20
     permission_required = 'restaurants.view_restaurant'
 
-    def get_queryset(self):
-        qs = Restaurant.objects.select_related('region').filter(is_archived=False)
-
+    def _base_qs(self):
+        qs = Restaurant.objects.filter(is_archived=False)
         user = self.request.user
         if not user.is_superuser:
             qs = qs.filter(pk__in=user.restaurants.values_list('pk', flat=True))
+        return qs
+
+    def get_queryset(self):
+        qs = self._base_qs().select_related('region')
 
         search = self.request.GET.get('q', '').strip()
         if search:
@@ -48,10 +51,17 @@ class RestaurantListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
         ctx['current_filters'] = {
             k: v for k, v in self.request.GET.items() if v
         }
-        ctx['cities'] = Restaurant.objects.filter(is_archived=False).values_list('city', flat=True).distinct().order_by('city')
-        ctx['regions'] = Region.objects.annotate(
-            restaurant_count=Count('restaurants', filter=Q(restaurants__is_archived=False))
-        ).order_by('name')
+        visible = self._base_qs()
+        ctx['cities'] = visible.values_list('city', flat=True).distinct().order_by('city')
+        region_counts = {
+            rc['region_id']: rc['restaurant_count']
+            for rc in visible.values('region_id').annotate(
+                restaurant_count=Count('id'))
+        }
+        regions = list(Region.objects.filter(pk__in=region_counts).order_by('name'))
+        for region in regions:
+            region.restaurant_count = region_counts.get(region.pk, 0)
+        ctx['regions'] = regions
         return ctx
 
 
@@ -72,11 +82,14 @@ class RestaurantDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailVi
         ctx = super().get_context_data(**kwargs)
         restaurant = self.object
         ctx['title'] = f'Restaurant: {restaurant.name}'
-        audits = restaurant.audits.select_related('template', 'auditor').filter(is_submitted=True, is_archived=False).order_by('-audit_date')[:10]
-        ctx['recent_audits'] = audits
-        ctx['audit_count'] = restaurant.submitted_audit_count
-        ctx['avg_score'] = restaurant.submitted_average_score
-        ctx['latest_audit'] = restaurant.latest_audit
+        audits = restaurant.audits.visible_to(self.request.user).filter(
+            is_submitted=True, is_archived=False)
+        ctx['recent_audits'] = audits.select_related(
+            'template', 'auditor').order_by('-audit_date')[:10]
+        ctx['audit_count'] = audits.count()
+        ctx['avg_score'] = audits.aggregate(
+            avg_score=Avg('total_percentage'))['avg_score']
+        ctx['latest_audit'] = audits.order_by('-audit_date').first()
         return ctx
 
 

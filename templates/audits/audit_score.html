@@ -60,7 +60,7 @@
       </div>
 
       <!-- Section tabs (mobile, hidden on lg) -->
-      <div class="flex lg:hidden gap-1.5 mt-2 overflow-x-auto scrollbar-hide -mx-1 px-1 pb-0.5">
+      <div id="jump-section" class="flex lg:hidden gap-1.5 mt-2 overflow-x-auto scrollbar-hide -mx-1 px-1 pb-0.5">
         <template x-for="(sec, idx) in sections" :key="idx">
           <button type="button"
                   @click="currentSection = idx; window.scrollTo({top: 0, behavior: 'smooth'})"

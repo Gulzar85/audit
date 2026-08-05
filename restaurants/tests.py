@@ -1,6 +1,14 @@
+from decimal import Decimal
+
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
+from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase
 
+from audits.models import Audit, AuditTemplate
 from restaurants.models import Region, Restaurant
+
+User = get_user_model()
 
 
 class RegionModelTest(TestCase):
@@ -76,3 +84,71 @@ class RestaurantModelTest(TestCase):
         self.assertIsNone(r.latest_audit)
         self.assertEqual(r.submitted_audit_count, 0)
         self.assertIsNone(r.submitted_average_score)
+
+
+class RestaurantDetailViewTest(TestCase):
+    def setUp(self):
+        self.region = Region.objects.create(name='Test')
+        self.restaurant = Restaurant.objects.create(
+            code='1270010', name='R1', city='C', address='A', region=self.region)
+        self.template = AuditTemplate.objects.create(name='T')
+        self.auditor = User.objects.create_user(
+            'aud1', 'a1@t.com', 'pass', role=User.Roles.AUDITOR)
+        self.auditor.restaurants.add(self.restaurant)
+        ct_rest = ContentType.objects.get_for_model(Restaurant)
+        self.auditor.user_permissions.add(
+            Permission.objects.get(
+                content_type=ct_rest, codename='view_restaurant'))
+        other = User.objects.create_user('aud2', 'a2@t.com', 'pass')
+        Audit.objects.create(
+            template=self.template, restaurant=self.restaurant,
+            audit_date='2026-07-01', manager_on_duty='M',
+            auditor=self.auditor, is_submitted=True,
+            total_scored='9', total_possible='10',
+        )
+        Audit.objects.create(
+            template=self.template, restaurant=self.restaurant,
+            audit_date='2026-07-05', manager_on_duty='M',
+            auditor=other, is_submitted=True,
+            total_scored='3', total_possible='10',
+        )
+
+    def test_auditor_sees_only_own_audits_on_restaurant_page(self):
+        self.client.force_login(self.auditor)
+        resp = self.client.get(self.restaurant.get_absolute_url())
+        self.assertEqual(resp.status_code, 200)
+        ctx = resp.context
+        recent = list(ctx['recent_audits'])
+        self.assertEqual(len(recent), 1)
+        self.assertEqual(recent[0].auditor_id, self.auditor.pk)
+        self.assertEqual(ctx['audit_count'], 1)
+        self.assertEqual(ctx['avg_score'], Decimal('90'))
+        self.assertEqual(ctx['latest_audit'].auditor_id, self.auditor.pk)
+
+
+class RestaurantListViewTest(TestCase):
+    def setUp(self):
+        self.region1 = Region.objects.create(name='North')
+        self.region2 = Region.objects.create(name='South')
+        self.restaurant = Restaurant.objects.create(
+            code='1270020', name='Mine', city='Lahore',
+            address='A', region=self.region1)
+        Restaurant.objects.create(
+            code='1270021', name='Other', city='Karachi',
+            address='B', region=self.region2)
+        self.auditor = User.objects.create_user(
+            'aud_list', 'al@t.com', 'pass', role=User.Roles.AUDITOR)
+        self.auditor.restaurants.add(self.restaurant)
+        ct_rest = ContentType.objects.get_for_model(Restaurant)
+        self.auditor.user_permissions.add(
+            Permission.objects.get(
+                content_type=ct_rest, codename='view_restaurant'))
+
+    def test_cities_and_region_counts_scoped_to_visible_restaurants(self):
+        self.client.force_login(self.auditor)
+        resp = self.client.get('/restaurants/')
+        self.assertEqual(resp.status_code, 200)
+        ctx = resp.context
+        self.assertEqual(list(ctx['cities']), ['Lahore'])
+        self.assertEqual([r.name for r in ctx['regions']], ['North'])
+        self.assertEqual(ctx['regions'][0].restaurant_count, 1)

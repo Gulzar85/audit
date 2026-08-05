@@ -5,7 +5,7 @@ import re
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from django.db import transaction
 from django.db.models import Q, Count, Avg, F, Sum, Value, Subquery
 from django.db.models.functions import TruncMonth, Coalesce
@@ -56,11 +56,7 @@ class AuditListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
         if grade in dict(Audit.Grade.choices):
             qs = qs.filter(grade=grade)
 
-        restaurant_id = self.request.GET.get('restaurant', '')
-        if restaurant_id and restaurant_id.isdigit():
-            qs = qs.filter(restaurant_id=int(restaurant_id))
-
-        return qs
+        return qs.order_by('-audit_date', '-created_at', '-pk')
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -69,6 +65,7 @@ class AuditListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
         ctx['current_filters'] = {
             k: v for k, v in self.request.GET.items() if v and k != 'page'
         }
+        ctx['has_active_filters'] = any(k != 'page' for k in self.request.GET)
         return ctx
 
 
@@ -1187,86 +1184,167 @@ class SaveResponseView(LoginRequiredMixin, PermissionRequiredMixin, View):
 
     @transaction.atomic
     def post(self, request):
-        # Rate limiting: max 30 requests per minute
-        from core.security import check_suspicious_activity, get_client_ip
+        # Rate limiting
+        from core.security import check_suspicious_activity
+
         if check_suspicious_activity(request, 'save_response', threshold=100):
             return JsonResponse(
-                {'success': False, 'message': 'Too many requests. Please try again later.'},
+                {
+                    'success': False,
+                    'message': 'Too many requests. Please try again later.'
+                },
                 status=429
             )
-        
+
         response_id = request.POST.get('response_id')
         if not response_id:
-            return JsonResponse({'success': False, 'message': 'Missing response_id'}, status=400)
+            return JsonResponse(
+                {
+                    'success': False,
+                    'message': 'Missing response_id'
+                },
+                status=400
+            )
 
         qs = AuditQuestionResponse.objects.select_related(
-            'audit_section__audit', 'question'
+            'audit_section__audit',
+            'question'
         )
+
         user = request.user
+
         if not user.is_superuser:
-            qs = qs.filter(
-                Q(audit_section__audit__auditor=user) |
-                Q(audit_section__audit__restaurant__in=user.restaurants.all()) |
-                Q(audit_section__audit__auditor__manager=user)
-            )
+            role = getattr(user, 'role', None)
+            if role == user.Roles.AUDITOR:
+                qs = qs.filter(audit_section__audit__auditor=user)
+            elif role == user.Roles.RESTAURANT_USER:
+                qs = qs.filter(
+                    audit_section__audit__restaurant__in=user.restaurants.all(),
+                    audit_section__audit__is_submitted=True,
+                )
+            else:
+                qs = qs.filter(
+                    Q(audit_section__audit__auditor=user) |
+                    Q(audit_section__audit__restaurant__in=user.restaurants.all()) |
+                    Q(audit_section__audit__auditor__manager=user)
+                )
+
         resp = get_object_or_404(qs, pk=response_id)
 
         if resp.audit_section.audit.is_submitted:
-            return JsonResponse({'success': False, 'message': 'Audit already submitted'}, status=400)
+            return JsonResponse(
+                {
+                    'success': False,
+                    'message': 'Audit already submitted'
+                },
+                status=400
+            )
 
         scored_points = request.POST.get('scored_points')
-        comments = request.POST.get('comments', '')
+        comments = request.POST.get('comments', '').strip()
         is_na = request.POST.get('is_na') == 'true'
         needs_ca = request.POST.get('needs_ca') == 'true'
 
-        if 'image' in request.FILES:
-            from .models import validate_uploaded_image
-            resp.image = request.FILES['image']
+        interaction_detected = False
 
-        if scored_points is not None:
+        # -----------------------------
+        # Score (Pass / Fail / Manual)
+        # -----------------------------
+        if scored_points not in (None, ''):
+            interaction_detected = True
+
             try:
                 scored_points = Decimal(scored_points)
-            except Exception:
-                return JsonResponse({'success': False, 'message': 'Invalid score'}, status=400)
+            except InvalidOperation:
+                return JsonResponse(
+                    {
+                        'success': False,
+                        'message': 'Invalid score'
+                    },
+                    status=400
+                )
+
             max_points = resp.question.possible_points or Decimal('0')
-            if scored_points > max_points:
-                return JsonResponse({'success': False, 'message': f'Score cannot exceed {max_points}'}, status=400)
+
+            if scored_points < 0 or scored_points > max_points:
+                return JsonResponse(
+                    {
+                        'success': False,
+                        'message': f'Score cannot exceed {max_points}'
+                    },
+                    status=400
+                )
+
             resp.scored_points = scored_points
 
-        resp.comments = comments
-        resp.is_na = is_na
-        resp.needs_corrective_action = needs_ca
+        # -----------------------------
+        # Comment
+        # -----------------------------
+        if comments:
+            interaction_detected = True
 
+        resp.comments = comments
+
+        # -----------------------------
+        # Photo
+        # -----------------------------
+        if 'image' in request.FILES:
+            interaction_detected = True
+            resp.image = request.FILES['image']
+
+        # -----------------------------
+        # N/A
+        # -----------------------------
         if is_na:
-            resp.is_answered = False
+            interaction_detected = True
             resp.scored_points = Decimal('0.00')
             resp.needs_corrective_action = False
-        else:
-            has_content = (scored_points and scored_points > 0) or comments.strip() or resp.image
-            resp.is_answered = has_content
 
-        resp.save(update_fields=[
-            'scored_points', 'comments', 'is_na', 'needs_corrective_action',
-            'is_answered', 'image', 'updated_at'
-        ])
+        resp.is_na = is_na
+
+        # -----------------------------
+        # Corrective Action
+        # -----------------------------
+        if needs_ca and not is_na:
+            interaction_detected = True
+
+        resp.needs_corrective_action = needs_ca and not is_na
+
+        # -----------------------------
+        # Final Answered Status
+        # -----------------------------
+        resp.is_answered = interaction_detected and not is_na
+
+        resp.save()
+
+        # Recalculate section score
         sec = resp.audit_section
         sec.calculate_section_score()
 
         responses = sec.responses.all()
+
         total = responses.filter(is_na=False).count()
-        answered = responses.filter(is_na=False, is_answered=True).count()
+        answered = responses.filter(
+            is_na=False,
+            is_answered=True
+        ).count()
 
         photo_url = None
         if resp.image:
             try:
                 photo_url = resp.image.url
             except Exception:
-                photo_url = None
+                pass
 
         return JsonResponse({
             'success': True,
             'photo_url': photo_url,
-            'section_progress': {str(sec.pk): {'answered': answered, 'total': total}},
+            'section_progress': {
+                str(sec.pk): {
+                    'answered': answered,
+                    'total': total
+                }
+            }
         })
 
 
@@ -1465,14 +1543,25 @@ class AuditQuestionResponsesJSONView(LoginRequiredMixin, PermissionRequiredMixin
     def get(self, request, audit_pk):
         qs = AuditQuestionResponse.objects.filter(
             audit_section__audit__pk=audit_pk,
+            audit_section__audit__is_archived=False,
         ).select_related('question', 'audit_section__section').order_by('audit_section__section__order', 'question__order')
 
         user = request.user
-        if not user.is_superuser:
-            qs = qs.filter(
-                Q(audit_section__audit__auditor=user) |
-                Q(audit_section__audit__restaurant__in=user.restaurants.all())
-            )
+        if not user.is_superuser and getattr(user, 'role', None) != user.Roles.ADMIN:
+            role = getattr(user, 'role', None)
+            if role == user.Roles.AUDITOR:
+                qs = qs.filter(audit_section__audit__auditor=user)
+            elif role == user.Roles.RESTAURANT_USER:
+                qs = qs.filter(
+                    audit_section__audit__restaurant__in=user.restaurants.all(),
+                    audit_section__audit__is_submitted=True,
+                )
+            else:
+                qs = qs.filter(
+                    Q(audit_section__audit__auditor=user) |
+                    Q(audit_section__audit__restaurant__in=user.restaurants.all()) |
+                    Q(audit_section__audit__auditor__manager=user)
+                )
 
         data = [{
             'id': r.pk,
@@ -1482,7 +1571,7 @@ class AuditQuestionResponsesJSONView(LoginRequiredMixin, PermissionRequiredMixin
 
 
 class AuditUsersJSONView(LoginRequiredMixin, PermissionRequiredMixin, View):
-    permission_required = 'accounts.view_user'
+    permission_required = 'audits.view_correctiveaction'
 
     def get(self, request, audit_pk):
         from django.contrib.auth import get_user_model
@@ -1491,8 +1580,11 @@ class AuditUsersJSONView(LoginRequiredMixin, PermissionRequiredMixin, View):
         audit = get_object_or_404(Audit.objects.visible_to(request.user), pk=audit_pk)
         qs = User.objects.filter(is_active=True, restaurants=audit.restaurant).distinct()
         user = request.user
-        if not user.is_superuser:
-            qs = qs.filter(restaurants__in=user.restaurants.all())
+        if not user.is_superuser and getattr(user, 'role', None) != user.Roles.ADMIN:
+            qs = qs.filter(
+                Q(restaurants__in=user.restaurants.all()) |
+                Q(restaurants=audit.restaurant, role=User.Roles.RESTAURANT_USER)
+            )
         data = [{
             'id': u.pk,
             'label': u.get_full_name() or u.username,

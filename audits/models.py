@@ -2,6 +2,7 @@ import logging
 import os
 from decimal import Decimal
 
+from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, MaxValueValidator, FileExtensionValidator
 from django.db import models
 from django.db.models import Q, UniqueConstraint, CheckConstraint
@@ -132,14 +133,35 @@ class Question(BaseModel):
             self.question_text) > 50 else self.question_text
         return f"Q{self.order}: {truncated_q}"
 
+    def clean(self):
+        super().clean()
+        if self.is_critical and not self.critical_failure_condition.strip():
+            raise ValidationError({
+                'critical_failure_condition': _(
+                    'Critical questions must define a critical failure condition.')
+            })
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        return super().save(*args, **kwargs)
+
 
 # -----------------------------
 # Audit Execution
 # -----------------------------
 class AuditQuerySet(models.QuerySet):
     def visible_to(self, user):
-        if user.is_superuser:
+        if user.is_superuser or getattr(user, 'role', None) == user.Roles.ADMIN:
             return self.filter(is_archived=False)
+        role = getattr(user, 'role', None)
+        if role == user.Roles.AUDITOR:
+            return self.filter(auditor=user, is_archived=False)
+        if role == user.Roles.RESTAURANT_USER:
+            return self.filter(
+                restaurant__in=user.restaurants.all(),
+                is_archived=False,
+                is_submitted=True,
+            )
         return self.filter(
             Q(auditor=user) |
             Q(restaurant__in=user.restaurants.all()) |
@@ -359,7 +381,7 @@ class AuditQuestionResponse(BaseModel):
 
 class CorrectiveActionQuerySet(models.QuerySet):
     def visible_to(self, user):
-        if user.is_superuser:
+        if user.is_superuser or getattr(user, 'role', None) == user.Roles.ADMIN:
             return self
         return self.filter(
             Q(restaurant__in=user.restaurants.all()) |

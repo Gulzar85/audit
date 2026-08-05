@@ -434,6 +434,115 @@ class AuditViewTest(TestCase):
         self.assertContains(resp, 'Test R')
         self.assertNotContains(resp, 'Other')
 
+    def test_admin_role_sees_all_restaurants(self):
+        admin = User.objects.create_user('admin1', 'ad@t.com', 'pass')
+        admin.role = User.Roles.ADMIN
+        admin.save()
+        ct = ContentType.objects.get_for_model(Audit)
+        admin.user_permissions.add(
+            Permission.objects.get(content_type=ct, codename='view_audit')
+        )
+        other_restaurant = Restaurant.objects.create(
+            code='9999998', name='Admin Other', city='Other', address='Other')
+        other_user = User.objects.create_user('other_admin', 'oa@t.com', 'pass')
+        Audit.objects.create(
+            template=self.template, restaurant=other_restaurant,
+            audit_date='2026-06-15', manager_on_duty='M',
+            auditor=other_user,
+        )
+        self.client.force_login(admin)
+        resp = self.client.get('/audits/')
+        self.assertContains(resp, 'Test R')
+        self.assertContains(resp, 'Admin Other')
+
+    def test_restaurant_user_cannot_see_draft_audits(self):
+        ru = User.objects.create_user('ru_draft', 'rud@t.com', 'pass')
+        ru.role = User.Roles.RESTAURANT_USER
+        ru.save()
+        ru.restaurants.add(self.restaurant)
+        ct = ContentType.objects.get_for_model(Audit)
+        ru.user_permissions.add(
+            Permission.objects.get(content_type=ct, codename='view_audit')
+        )
+        self.client.force_login(ru)
+
+        resp = self.client.get('/audits/')
+        audit_pks = [a.pk for a in resp.context.get('audits', [])]
+        self.assertNotIn(self.audit.pk, audit_pks)
+
+        self.audit.is_submitted = True
+        self.audit.save()
+        resp = self.client.get('/audits/')
+        audit_pks = [a.pk for a in resp.context.get('audits', [])]
+        self.assertIn(self.audit.pk, audit_pks)
+
+    def test_auditor_only_sees_own_audits(self):
+        # An AUDITOR linked to a restaurant must NOT see audits conducted by
+        # other auditors at that restaurant.
+        auditor = User.objects.create_user('aud_only', 'ao@t.com', 'pass')
+        auditor.role = User.Roles.AUDITOR
+        auditor.save()
+        auditor.restaurants.add(self.restaurant)
+        ct = ContentType.objects.get_for_model(Audit)
+        auditor.user_permissions.add(
+            Permission.objects.get(content_type=ct, codename='view_audit')
+        )
+        own_audit = Audit.objects.create(
+            template=self.template, restaurant=self.restaurant,
+            audit_date='2026-06-14', manager_on_duty='M', auditor=auditor,
+        )
+        other_auditor = User.objects.create_user('other_aud', 'oth@t.com', 'pass')
+        other_audit = Audit.objects.create(
+            template=self.template, restaurant=self.restaurant,
+            audit_date='2026-06-13', manager_on_duty='M', auditor=other_auditor,
+        )
+        self.client.force_login(auditor)
+        resp = self.client.get('/audits/')
+        audit_pks = [a.pk for a in resp.context.get('audits', [])]
+        self.assertIn(own_audit.pk, audit_pks)
+        self.assertNotIn(other_audit.pk, audit_pks)
+
+    def test_manager_of_auditor_sees_draft_and_audit_responses(self):
+        manager = self.user.manager
+        ct = ContentType.objects.get_for_model(Audit)
+        manager.user_permissions.add(
+            Permission.objects.get(content_type=ct, codename='view_audit')
+        )
+        ct_aqr = ContentType.objects.get_for_model(AuditQuestionResponse)
+        manager.user_permissions.add(
+            *Permission.objects.filter(content_type=ct_aqr)
+        )
+        self.client.force_login(manager)
+
+        resp = self.client.get('/audits/')
+        audit_pks = [a.pk for a in resp.context.get('audits', [])]
+        self.assertIn(self.audit.pk, audit_pks)
+
+        resp = self.client.get(
+            f'/audits/ajax/audit-responses/{self.audit.pk}/')
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(len(data['responses']), 1)
+        self.assertEqual(data['responses'][0]['id'], self.resp.pk)
+
+    def test_audit_list_pagination_urlencodes_filter_values(self):
+        # More than paginate_by (20) submitted audits matching the same filter
+        # value containing special characters that must be URL-encoded.
+        for i in range(22):
+            Audit.objects.create(
+                template=self.template, restaurant=self.restaurant,
+                audit_date=date(2026, 5, 1) - timedelta(days=i),
+                manager_on_duty='A&B M',
+                auditor=self.user, is_submitted=True,
+            )
+        resp = self.client.get('/audits/?q=A%26B&status=submitted')
+        self.assertEqual(resp.status_code, 200)
+        body = resp.content.decode()
+        self.assertIn('A%26B', body)
+        self.assertIn('page=2', body)
+        # The raw ampersand must never be emitted inside the filter value
+        self.assertNotIn('&q=A&B&', body)
+
     def test_audit_users_json(self):
         # Create a restaurant and a user assigned to it
         from django.contrib.auth import get_user_model
@@ -441,9 +550,9 @@ class AuditViewTest(TestCase):
         from django.contrib.auth.models import Permission
         User = get_user_model()
 
-        # AuditUsersJSONView requires accounts.view_user; grant it to self.user.
-        ct_user = ContentType.objects.get_for_model(User)
-        perm = Permission.objects.get(content_type=ct_user, codename='view_user')
+        # AuditUsersJSONView requires view_correctiveaction; grant it to self.user.
+        ct_ca = ContentType.objects.get_for_model(CorrectiveAction)
+        perm = Permission.objects.get(content_type=ct_ca, codename='view_correctiveaction')
         self.user.user_permissions.add(perm)
 
         user = User.objects.create_user('test_user', 'u@t.com', 'pass')
@@ -573,6 +682,17 @@ class SetupGroupsCommandTest(TestCase):
         self.assertIn('Manager', group_names)
         self.assertIn('Auditor', group_names)
         self.assertIn('Restaurant User', group_names)
+        self.assertIn('Admin', group_names)
+
+    def test_admin_group_has_view_audit_permission(self):
+        from django.contrib.auth.models import Group
+        from django.contrib.contenttypes.models import ContentType
+        from django.contrib.auth.models import Permission
+        self._run_command()
+        group = Group.objects.get(name='Admin')
+        ct = ContentType.objects.get_for_model(Audit)
+        perm = Permission.objects.get(content_type=ct, codename='view_audit')
+        self.assertIn(perm, group.permissions.all())
 
     def test_manager_has_view_audit_permission(self):
         from django.contrib.auth.models import Group
