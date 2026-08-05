@@ -49,24 +49,28 @@
                                 {% if action.status == 'OPEN' or action.status == 'IN_PROGRESS' %}
                                     <form method="post"
                                           action="{% url 'audits:corrective_action_complete' action.pk %}"
+                                          onsubmit="return confirm('Mark this corrective action as complete?')"
                                           @submit.prevent="$store.confirm.open('Complete Action', 'Mark this corrective action as complete?', (form) => form.submit(), $event.currentTarget)"
                                           class="inline">{% csrf_token %}<button type="submit"
         class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-500/20 text-emerald-200 hover:bg-emerald-500/30 font-bold text-sm transition-all border border-emerald-400/30"><i data-lucide="check-circle" class="w-4 h-4"></i> Complete</button></form>
                                 {% elif action.status == 'COMPLETED' and perms.audits.verify_correctiveaction %}
                                     <form method="post"
                                           action="{% url 'audits:corrective_action_verify' action.pk %}"
+                                          onsubmit="return confirm('Verify this corrective action as resolved?')"
                                           @submit.prevent="$store.confirm.open('Verify Action', 'Verify this corrective action as resolved?', (form) => form.submit(), $event.currentTarget)"
                                           class="inline">{% csrf_token %}<button type="submit"
         class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-blue-500/20 text-blue-200 hover:bg-blue-500/30 font-bold text-sm transition-all border border-blue-400/30"><i data-lucide="shield-check" class="w-4 h-4"></i> Verify</button></form>
                                 {% elif action.status == 'VERIFIED' and perms.audits.verify_correctiveaction %}
                                     <form method="post"
                                           action="{% url 'audits:corrective_action_close' action.pk %}"
+                                          onsubmit="return confirm('Close this corrective action?')"
                                           @submit.prevent="$store.confirm.open('Close Action', 'Close this corrective action?', (form) => form.submit(), $event.currentTarget)"
                                           class="inline">{% csrf_token %}<button type="submit"
         class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gray-500/20 text-gray-200 hover:bg-gray-500/30 font-bold text-sm transition-all border border-gray-400/30"><i data-lucide="check-circle-2" class="w-4 h-4"></i> Close</button></form>
                                 {% elif action.completed and perms.audits.verify_correctiveaction %}
                                     <form method="post"
                                           action="{% url 'audits:corrective_action_complete' action.pk %}"
+                                          onsubmit="return confirm('Reopen this corrective action?')"
                                           @submit.prevent="$store.confirm.open('Reopen Action', 'Reopen this corrective action?', (form) => form.submit(), $event.currentTarget)"
                                           class="inline">{% csrf_token %}<button type="submit"
         class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-amber-500/20 text-amber-200 hover:bg-amber-500/30 font-bold text-sm transition-all border border-amber-400/30"><i data-lucide="rotate-ccw" class="w-4 h-4"></i> Reopen</button></form>
@@ -79,6 +83,7 @@
                             {% if perms.audits.delete_correctiveaction %}
                                 <form method="post"
                                       action="{% url 'audits:corrective_action_delete' action.pk %}"
+                                      onsubmit="return confirm('Delete this corrective action? This cannot be undone.')"
                                       @submit.prevent="$store.confirm.open('Delete Action', 'Delete this corrective action? This cannot be undone.', (form) => form.submit(), $event.currentTarget)"
                                       class="inline">{% csrf_token %}<button type="submit"
         class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-red-500/20 text-red-200 hover:bg-red-500/30 font-bold text-sm transition-all border border-red-400/30"><i data-lucide="trash-2" class="w-4 h-4"></i> Delete</button></form>
