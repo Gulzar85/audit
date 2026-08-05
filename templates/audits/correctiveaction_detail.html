@@ -209,7 +209,7 @@
                                     <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Auditor</span>
                                     <span class="text-xs font-bold text-right">{{ audit.auditor.get_full_name|default:audit.auditor.username|default:'N/A' }}</span>
                                 </div>
-                                {% if action.status not in ('VERIFIED', 'CLOSED') %}
+                                {% if action.status != 'VERIFIED' and action.status != 'CLOSED' %}
                                     <div class="pt-2">
                                         <a href="{% url 'audits:result' audit.pk %}"
                                            class="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:text-primary-dark transition-colors">
