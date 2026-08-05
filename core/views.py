@@ -26,20 +26,20 @@ class NotificationListView(LoginRequiredMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        return Notification.objects.filter(recipient=self.request.user)
+        return Notification.objects.filter(recipient=self.request.user, is_archived=False)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['title'] = 'Notifications'
         ctx['unread_count'] = Notification.objects.filter(
-            recipient=self.request.user, is_read=False
+            recipient=self.request.user, is_read=False, is_archived=False
         ).count()
         return ctx
 
 
 class NotificationMarkReadView(LoginRequiredMixin, View):
     def post(self, request, pk):
-        n = get_object_or_404(Notification, pk=pk, recipient=request.user)
+        n = get_object_or_404(Notification, pk=pk, recipient=request.user, is_archived=False)
         n.is_read = True
         n.save(update_fields=['is_read'])
         if request.headers.get('x-requested-with') == 'XMLHttpRequest':
@@ -47,9 +47,19 @@ class NotificationMarkReadView(LoginRequiredMixin, View):
         return _safe_redirect(n.link)
 
 
+class NotificationArchiveView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        n = get_object_or_404(Notification, pk=pk, recipient=request.user, is_archived=False)
+        n.is_archived = True
+        n.save(update_fields=['is_archived'])
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'ok': True})
+        return redirect('core:notifications')
+
+
 class NotificationMarkAllReadView(LoginRequiredMixin, View):
     def post(self, request):
-        Notification.objects.filter(recipient=request.user, is_read=False).update(is_read=True)
+        Notification.objects.filter(recipient=request.user, is_read=False, is_archived=False).update(is_read=True)
         if request.headers.get('x-requested-with') == 'XMLHttpRequest':
             return JsonResponse({'ok': True})
         return redirect('core:notifications')
@@ -57,7 +67,7 @@ class NotificationMarkAllReadView(LoginRequiredMixin, View):
 
 class NotificationCountView(LoginRequiredMixin, View):
     def get(self, request):
-        count = Notification.objects.filter(recipient=request.user, is_read=False).count()
+        count = Notification.objects.filter(recipient=request.user, is_read=False, is_archived=False).count()
         return JsonResponse({'count': count})
 
 

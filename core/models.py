@@ -105,6 +105,7 @@ class Notification(BaseModel):
     message = models.TextField()
     link = models.CharField(max_length=500, blank=True)
     is_read = models.BooleanField(default=False)
+    is_archived = models.BooleanField(default=False, db_index=True)
 
     class Meta:
         ordering = ['-created_at']

@@ -21,7 +21,7 @@ def sidebar_badges(request):
             deadline__lt=timezone.now().date()
         ).exclude(status__in=['COMPLETED', 'VERIFIED', 'CLOSED']).count()
         ctx['sidebar_badges']['unread_notifications'] = Notification.objects.filter(
-            recipient=user, is_read=False
+            recipient=user, is_read=False, is_archived=False
         ).count()
     else:
         ctx['sidebar_badges'] = {'draft_count': 0, 'overdue_ca': 0, 'unread_notifications': 0}

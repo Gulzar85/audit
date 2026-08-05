@@ -105,6 +105,15 @@
                             </button>
                         </form>
                         {% endif %}
+                        <form method="post" action="{% url 'core:notification_archive' n.pk %}"
+                              @submit.prevent="$store.confirm.open('Archive Notification', 'Hide this notification from your list?', (form) => form.submit(), $event.currentTarget)">
+                            {% csrf_token %}
+                            <button type="submit"
+                                    class="p-2 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+                                    title="Archive notification">
+                                <i data-lucide="archive" class="w-4 h-4"></i>
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
