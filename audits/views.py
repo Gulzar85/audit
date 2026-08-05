@@ -1051,18 +1051,22 @@ class CorrectiveActionDetailView(LoginRequiredMixin, PermissionRequiredMixin, De
         history = action.history.all().order_by('history_date', 'history_id')
         timeline = []
         previous_status = None
+        status_labels = dict(CorrectiveAction.Status.choices)
         for h in history:
             entry = {
                 'date': h.history_date,
                 'user': h.history_user,
                 'type': h.history_type,
                 'status': h.status,
+                'status_display': status_labels.get(h.status, h.status),
                 'changed_fields': h.get_changed_fields() if hasattr(h, 'get_changed_fields') else [],
             }
             # Detect status transitions
             if h.status != previous_status and previous_status is not None:
                 entry['from_status'] = previous_status
                 entry['to_status'] = h.status
+                entry['from_status_display'] = status_labels.get(previous_status, previous_status)
+                entry['to_status_display'] = status_labels.get(h.status, h.status)
                 entry['is_status_change'] = True
             else:
                 entry['is_status_change'] = False
