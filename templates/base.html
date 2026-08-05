@@ -162,6 +162,9 @@
   /* ── Sidebar Transitions ── */
   .sidebar-transition { transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
   .sidebar-margin-transition { transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
+  /* Disable sidebar transitions during initial page load to avoid flash */
+  .preload .sidebar-transition { transition: none !important; }
+  .preload .sidebar-margin-transition { transition: none !important; }
 
   /* ── Scrollbar ── */
   .scrollbar-thin::-webkit-scrollbar { width: 4px; height: 4px; }
@@ -201,9 +204,9 @@
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
   html { scroll-behavior: auto; }
   }
- </style>
- </head>
-<body class="bg-surface pattern-grid overflow-hidden text-slate-800 antialiased"
+</style>
+</head>
+<body class="preload bg-surface pattern-grid overflow-hidden text-slate-800 antialiased"
  x-data>
 
  <a href="#main-content"
@@ -291,6 +294,8 @@
    }));
 
    if (typeof lucide !== 'undefined') lucide.createIcons();
+  // Remove preload class to re-enable transitions after Alpine has initialized
+  try { document.body.classList.remove('preload'); } catch (e) { /* ignore */ }
  });
  document.addEventListener('alpine:initialized', () => {
    if (typeof lucide !== 'undefined') lucide.createIcons();
