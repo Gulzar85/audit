@@ -5,9 +5,10 @@ import re
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django.core.exceptions import ValidationError
 from decimal import Decimal, InvalidOperation
 from django.db import transaction
-from django.db.models import Q, Count, Avg, F, Sum, Value, Subquery
+from django.db.models import Q, Count, Avg, Case, When, F, Sum, Value, Subquery, IntegerField
 from django.db.models.functions import TruncMonth, Coalesce
 from django.forms import modelformset_factory
 from django.http import HttpResponse, JsonResponse
@@ -86,6 +87,22 @@ class AuditCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
         return ctx
 
     def form_valid(self, form):
+        cleaned = form.cleaned_data
+        duplicate = Audit.objects.filter(
+            template=cleaned.get('template'),
+            restaurant=cleaned.get('restaurant'),
+            audit_date=cleaned.get('audit_date'),
+            is_archived=False,
+        ).exists()
+        if duplicate:
+            return self.render_to_response(self.get_context_data(
+                form=form,
+                duplicate_error={
+                    'restaurant': cleaned['restaurant'].name,
+                    'template': cleaned['template'].name,
+                    'audit_date': cleaned['audit_date'],
+                },
+            ))
         self.object = form.save()
         logger.info('Audit %s created for %s by %s', self.object.pk, self.object.restaurant, self.request.user)
         messages.success(self.request, 'Audit created successfully.')
@@ -790,6 +807,14 @@ class CorrectiveActionListView(LoginRequiredMixin, PermissionRequiredMixin, List
     paginate_by = 20
     permission_required = 'audits.view_correctiveaction'
 
+    STATUS_PRIORITY = {
+        'OPEN': 0,
+        'IN_PROGRESS': 1,
+        'COMPLETED': 2,
+        'VERIFIED': 3,
+        'CLOSED': 4,
+    }
+
     def get_queryset(self):
         qs = CorrectiveAction.objects.select_related(
             'audit', 'restaurant', 'question_response__question'
@@ -809,17 +834,34 @@ class CorrectiveActionListView(LoginRequiredMixin, PermissionRequiredMixin, List
         if restaurant_id and restaurant_id.isdigit():
             qs = qs.filter(restaurant_id=int(restaurant_id))
 
+        q = self.request.GET.get('q', '').strip()
+        if q:
+            qs = qs.filter(
+                Q(description__icontains=q) |
+                Q(restaurant__name__icontains=q) |
+                Q(assigned_to__username__icontains=q) |
+                Q(assigned_to__first_name__icontains=q) |
+                Q(assigned_to__last_name__icontains=q)
+            )
+
         overdue = self.request.GET.get('overdue', '')
         if overdue == '1':
             qs = qs.filter(deadline__lt=timezone.now().date()).exclude(status__in=['COMPLETED', 'VERIFIED', 'CLOSED'])
 
-        return qs.order_by('status', 'deadline')
+        priority = Case(
+            *[When(status=status_key, then=Value(i)) for status_key, i in self.STATUS_PRIORITY.items()],
+            default=Value(99),
+            output_field=IntegerField(),
+        )
+        return qs.annotate(_status_priority=priority).order_by('_status_priority', 'deadline')
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['title'] = 'Corrective Actions'
         ctx['risk_choices'] = CorrectiveAction.RiskLevel.choices
-        ctx['current_filters'] = {k: v for k, v in self.request.GET.items() if v}
+        filters = {k: v for k, v in self.request.GET.items() if v and k != 'page'}
+        ctx['current_filters'] = filters
+        ctx['has_active_filters'] = any((k, v) != ('status', 'open') for k, v in filters.items())
         return ctx
 
 
@@ -833,23 +875,20 @@ class CorrectiveActionCompleteView(LoginRequiredMixin, PermissionRequiredMixin, 
     def post(self, request, pk):
         action = CorrectiveAction.objects.select_for_update().get(pk=self._get_action_or_404(request, pk).pk)
         user = request.user
-        previous_status = action.status
 
-        # Restaurant users cannot reopen verified or closed
-        if user.role == 'restaurant_user' and action.status in (action.Status.VERIFIED, action.Status.CLOSED):
-            messages.error(request, 'You cannot reopen a verified or closed corrective action.')
+        try:
+            if action.status in (action.Status.COMPLETED, action.Status.VERIFIED, action.Status.CLOSED):
+                action.transition_to(action.Status.OPEN, request.user)
+                msg = 'reopened'
+            elif action.status in (action.Status.OPEN, action.Status.IN_PROGRESS):
+                action.transition_to(action.Status.COMPLETED, request.user)
+                msg = 'completed'
+            else:
+                # Guard against future state additions
+                msg = 'updated'
+        except ValidationError as e:
+            messages.error(request, e.messages[0])
             return redirect('audits:corrective_actions')
-
-        # Initialise msg so it is always bound even if the status check somehow
-        # falls through (guards against future state additions).
-        msg = 'updated'
-        # Determine allowed transitions based on role
-        if action.status in (action.Status.OPEN, action.Status.IN_PROGRESS):
-            action.status = action.Status.COMPLETED
-            msg = 'completed'
-        elif action.status in (action.Status.COMPLETED, action.Status.VERIFIED, action.Status.CLOSED):
-            action.status = action.Status.OPEN
-            msg = 'reopened'
 
         action.save()
 
@@ -879,7 +918,7 @@ class CorrectiveActionCompleteView(LoginRequiredMixin, PermissionRequiredMixin, 
 
 
 class CorrectiveActionVerifyView(LoginRequiredMixin, PermissionRequiredMixin, View):
-    permission_required = 'audits.change_correctiveaction'
+    permission_required = 'audits.verify_correctiveaction'
 
     def _get_action_or_404(self, request, pk):
         return get_object_or_404(CorrectiveAction.objects.visible_to(request.user), pk=pk)
@@ -889,16 +928,12 @@ class CorrectiveActionVerifyView(LoginRequiredMixin, PermissionRequiredMixin, Vi
         action = CorrectiveAction.objects.select_for_update().get(pk=self._get_action_or_404(request, pk).pk)
         user = request.user
 
-        # Only auditors, managers, or admins can verify
-        if user.role not in ('auditor', 'manager') and not user.is_superuser:
-            messages.error(request, 'Only auditors and managers can verify corrective actions.')
+        try:
+            action.transition_to(action.Status.VERIFIED, request.user)
+        except ValidationError as e:
+            messages.error(request, e.messages[0])
             return redirect('audits:corrective_actions')
 
-        if action.status != action.Status.COMPLETED:
-            messages.error(request, 'Only completed corrective actions can be verified.')
-            return redirect('audits:corrective_actions')
-
-        action.status = action.Status.VERIFIED
         action.save()
 
         link = reverse('audits:corrective_action_edit', args=[action.pk])
@@ -929,7 +964,7 @@ class CorrectiveActionVerifyView(LoginRequiredMixin, PermissionRequiredMixin, Vi
 
 
 class CorrectiveActionCloseView(LoginRequiredMixin, PermissionRequiredMixin, View):
-    permission_required = 'audits.change_correctiveaction'
+    permission_required = 'audits.verify_correctiveaction'
 
     def _get_action_or_404(self, request, pk):
         return get_object_or_404(CorrectiveAction.objects.visible_to(request.user), pk=pk)
@@ -939,16 +974,12 @@ class CorrectiveActionCloseView(LoginRequiredMixin, PermissionRequiredMixin, Vie
         action = CorrectiveAction.objects.select_for_update().get(pk=self._get_action_or_404(request, pk).pk)
         user = request.user
 
-        # Only auditors, managers, or admins can close
-        if user.role not in ('auditor', 'manager') and not user.is_superuser:
-            messages.error(request, 'Only auditors and managers can close corrective actions.')
+        try:
+            action.transition_to(action.Status.CLOSED, request.user)
+        except ValidationError as e:
+            messages.error(request, e.messages[0])
             return redirect('audits:corrective_actions')
 
-        if action.status != action.Status.VERIFIED:
-            messages.error(request, 'Only verified corrective actions can be closed.')
-            return redirect('audits:corrective_actions')
-
-        action.status = action.Status.CLOSED
         action.save()
 
         link = reverse('audits:corrective_action_edit', args=[action.pk])
@@ -1078,11 +1109,9 @@ class CorrectiveActionUpdateView(LoginRequiredMixin, PermissionRequiredMixin, Up
     context_object_name = 'action'
 
     def dispatch(self, request, *args, **kwargs):
-        # Use get_queryset() for scoping, then check status.
-        # Store in self.object to avoid a second DB hit later.
         qs = self.get_queryset()
         obj = get_object_or_404(qs, pk=kwargs.get('pk'))
-        if request.user.role == 'restaurant_user' and obj.status in (obj.Status.VERIFIED, obj.Status.CLOSED):
+        if not request.user.has_perm('audits.verify_correctiveaction') and obj.status in (obj.Status.VERIFIED, obj.Status.CLOSED):
             messages.error(request, 'You cannot edit a verified or closed corrective action.')
             return redirect('audits:corrective_actions')
         return super().dispatch(request, *args, **kwargs)
@@ -1120,7 +1149,9 @@ class CorrectiveActionDeleteView(LoginRequiredMixin, PermissionRequiredMixin, Vi
     def post(self, request, pk):
         qs = self.get_queryset()
         action = get_object_or_404(qs, pk=pk)
-        if action.status == 'CLOSED' and not request.user.is_superuser:
+        user = request.user
+        # Closed actions are kept for the audit trail (only admins can remove them)
+        if action.status == 'CLOSED' and user.role != 'admin' and not user.is_superuser:
             messages.error(request, 'Closed corrective actions cannot be deleted.')
             return redirect('audits:corrective_actions')
         logger.info('CorrectiveAction %s deleted by %s', pk, request.user)

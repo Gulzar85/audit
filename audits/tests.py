@@ -331,6 +331,233 @@ class CorrectiveActionModelTest(TestCase):
         self.assertIsNone(ca.days_remaining)
 
 
+# -----------------------------------------------------------
+# CorrectiveAction.transition_to state machine + clean() rules
+# -----------------------------------------------------------
+
+class CorrectiveActionTransitionTest(TestCase):
+    def setUp(self):
+        self.region = Region.objects.create(name='R')
+        self.restaurant = Restaurant.objects.create(
+            code='1270006', name='Trans R', city='C', address='A',
+            region=self.region)
+        self.template = AuditTemplate.objects.create(name='T')
+        self.section = Section.objects.create(
+            template=self.template, name='S', order=1)
+        self.q = Question.objects.create(
+            section=self.section, question_text='Q',
+            possible_points=5, order=1)
+        self.audit = Audit.objects.create(
+            template=self.template, restaurant=self.restaurant,
+            audit_date='2026-06-15', manager_on_duty='M')
+        self.audit_section = AuditSection.objects.create(
+            audit=self.audit, section=self.section, possible_points=5)
+        self.resp = AuditQuestionResponse.objects.create(
+            audit_section=self.audit_section, question=self.q, is_answered=True)
+
+        ct_ca = ContentType.objects.get_for_model(CorrectiveAction)
+        self.approver = User.objects.create_user('appr', 'appr@t.com', 'pass')
+        self.approver.role = User.Roles.AUDITOR
+        self.approver.save()
+        self.approver.restaurants.add(self.restaurant)
+        self.approver.user_permissions.add(
+            *Permission.objects.filter(content_type=ct_ca))
+
+        self.ru = User.objects.create_user('tru', 'tru@t.com', 'pass')
+        self.ru.role = User.Roles.RESTAURANT_USER
+        self.ru.save()
+        self.ru.restaurants.add(self.restaurant)
+        self.ru.user_permissions.add(
+            *Permission.objects.filter(
+                content_type=ct_ca,
+                codename__in=['view_correctiveaction', 'change_correctiveaction']))
+
+        self.ca = CorrectiveAction.objects.create(
+            audit=self.audit, restaurant=self.restaurant,
+            question_response=self.resp, description='Fix',
+            risk_level=CorrectiveAction.RiskLevel.HIGH,
+            deadline=date.today() + timedelta(days=30))
+
+    def test_full_forward_flow(self):
+        ca = self.ca
+        ca.transition_to(ca.Status.IN_PROGRESS, self.approver)
+        ca.transition_to(ca.Status.COMPLETED, self.approver)
+        ca.transition_to(ca.Status.VERIFIED, self.approver)
+        ca.transition_to(ca.Status.CLOSED, self.approver)
+        ca.save()
+        self.assertEqual(ca.status, ca.Status.CLOSED)
+
+    def test_invalid_forward_transition_raises(self):
+        from django.core.exceptions import ValidationError
+        with self.assertRaises(ValidationError):
+            self.ca.transition_to(self.ca.Status.CLOSED, self.approver)
+
+    def test_verified_requires_verify_permission(self):
+        from django.core.exceptions import ValidationError
+        self.ca.status = self.ca.Status.COMPLETED
+        self.ca.save()
+        with self.assertRaises(ValidationError):
+            self.ca.transition_to(self.ca.Status.VERIFIED, self.ru)
+
+    def test_reopen_requires_verify_permission(self):
+        from django.core.exceptions import ValidationError
+        self.ca.status = self.ca.Status.COMPLETED
+        self.ca.save()
+        with self.assertRaises(ValidationError):
+            self.ca.transition_to(self.ca.Status.OPEN, self.ru)
+
+    def test_reopen_resets_escalation_sent_at(self):
+        self.ca.status = self.ca.Status.COMPLETED
+        self.ca.escalation_sent_at = timezone.now()
+        self.ca.save()
+        self.ca.transition_to(self.ca.Status.OPEN, self.approver)
+        self.assertIsNone(self.ca.escalation_sent_at)
+
+    def test_same_status_is_noop(self):
+        previous = self.ca.transition_to(self.ca.Status.OPEN, self.approver)
+        self.assertEqual(previous, self.ca.Status.OPEN)
+        self.assertEqual(self.ca.status, self.ca.Status.OPEN)
+
+    def test_clean_rejects_question_response_from_other_audit(self):
+        from django.core.exceptions import ValidationError
+        other_restaurant = Restaurant.objects.create(
+            code='1270007', name='Other', city='C', address='A')
+        other_audit = Audit.objects.create(
+            template=self.template, restaurant=other_restaurant,
+            audit_date='2026-06-20', manager_on_duty='M')
+        other_section = AuditSection.objects.create(
+            audit=other_audit, section=self.section, possible_points=5)
+        other_resp = AuditQuestionResponse.objects.create(
+            audit_section=other_section, question=self.q, is_answered=True)
+        self.ca.question_response = other_resp
+        with self.assertRaises(ValidationError):
+            self.ca.full_clean()
+
+    def test_clean_rejects_restaurant_mismatch(self):
+        from django.core.exceptions import ValidationError
+        other_restaurant = Restaurant.objects.create(
+            code='1270008', name='Other R', city='C', address='A')
+        self.ca.restaurant = other_restaurant
+        with self.assertRaises(ValidationError):
+            self.ca.full_clean()
+
+    def test_clean_rejects_assignee_outside_restaurant(self):
+        from django.core.exceptions import ValidationError
+        self.ca.assigned_to = self.approver
+        with self.assertRaises(ValidationError):
+            self.ca.full_clean()
+
+    def test_clean_accepts_restaurant_user_assignee(self):
+        self.ca.assigned_to = self.ru
+        self.ca.full_clean()  # should not raise
+
+    def test_form_assignee_queryset_scoped_to_restaurant_users(self):
+        from audits.forms import CorrectiveActionForm
+        form = CorrectiveActionForm(
+            data={'audit': self.audit.pk}, user=self.approver)
+        self.assertEqual(set(form.fields['assigned_to'].queryset), {self.ru})
+
+    def test_form_rejects_assignee_outside_restaurant(self):
+        from audits.forms import CorrectiveActionForm
+        form = CorrectiveActionForm(
+            data={
+                'audit': self.audit.pk,
+                'question_response': self.resp.pk,
+                'description': 'Fix',
+                'risk_level': 'HIGH',
+                'status': 'OPEN',
+                'deadline': date.today() + timedelta(days=5),
+                'comments': '',
+                'evidence_image': '',
+                'assigned_to': self.approver.pk,
+            },
+            instance=CorrectiveAction(
+                audit=self.audit, restaurant=self.restaurant),
+            user=self.approver,
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn('assigned_to', form.errors)
+
+
+# -----------------------------------------------------------
+# Overdue escalation command (throttled by escalation_sent_at)
+# -----------------------------------------------------------
+
+class EscalateOverdueCommandTest(TestCase):
+    def setUp(self):
+        self.region = Region.objects.create(name='R')
+        self.restaurant = Restaurant.objects.create(
+            code='1270009', name='Esc R', city='C', address='A',
+            region=self.region)
+        self.auditor = User.objects.create_user('esca', 'esca@t.com', 'pass')
+        self.auditor.role = User.Roles.AUDITOR
+        self.auditor.save()
+        self.auditor.restaurants.add(self.restaurant)
+        self.manager = User.objects.create_user('escm', 'escm@t.com', 'pass')
+        self.manager.role = User.Roles.MANAGER
+        self.manager.save()
+        self.auditor.manager = self.manager
+        self.auditor.save()
+        self.ru = User.objects.create_user('escu', 'escu@t.com', 'pass')
+        self.ru.role = User.Roles.RESTAURANT_USER
+        self.ru.save()
+        self.ru.restaurants.add(self.restaurant)
+
+        self.template = AuditTemplate.objects.create(name='T')
+        self.audit = Audit.objects.create(
+            template=self.template, restaurant=self.restaurant,
+            audit_date='2026-06-15', manager_on_duty='M', auditor=self.auditor)
+        self.ca = CorrectiveAction.objects.create(
+            audit=self.audit, restaurant=self.restaurant,
+            description='Escalate me', risk_level=CorrectiveAction.RiskLevel.HIGH,
+            deadline=date.today() - timedelta(days=10))
+
+    def _run(self):
+        from django.core.management import call_command
+        from io import StringIO
+        out = StringIO()
+        call_command('escalate_overdue_cas', stdout=out)
+        return out.getvalue()
+
+    def test_escalates_and_stamps_marker(self):
+        from core.models import Notification
+        self._run()
+        self.ca.refresh_from_db()
+        self.assertIsNotNone(self.ca.escalation_sent_at)
+        self.assertTrue(
+            Notification.objects.filter(
+                notification_type=Notification.Type.CA_ESCALATED).exists())
+
+    def test_does_not_re_escalate_within_window(self):
+        from core.models import Notification
+        self._run()
+        first = Notification.objects.filter(
+            notification_type=Notification.Type.CA_ESCALATED).count()
+        self.assertGreater(first, 0)
+        self._run()
+        second = Notification.objects.filter(
+            notification_type=Notification.Type.CA_ESCALATED).count()
+        self.assertEqual(first, second)
+
+    def test_skips_when_already_escalated_recently(self):
+        from core.models import Notification
+        self.ca.escalation_sent_at = timezone.now()
+        self.ca.save(update_fields=['escalation_sent_at'])
+        self._run()
+        self.assertEqual(
+            Notification.objects.filter(
+                notification_type=Notification.Type.CA_ESCALATED).count(), 0)
+
+    def test_reescalates_after_reminder_window(self):
+        from core.models import Notification
+        self.ca.escalation_sent_at = timezone.now() - timedelta(days=8)
+        self.ca.save(update_fields=['escalation_sent_at'])
+        self._run()
+        self.assertGreater(
+            Notification.objects.filter(
+                notification_type=Notification.Type.CA_ESCALATED).count(), 0)
+
+
 class AuditViewTest(TestCase):
     def setUp(self):
         self.user = User.objects.create_user('auditor1', 'a@t.com', 'pass')
@@ -394,6 +621,31 @@ class AuditViewTest(TestCase):
         resp = self.client.get('/audits/create/')
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, 'New Audit')
+
+    def test_duplicate_audit_create_shows_modal(self):
+        before = Audit.objects.count()
+        resp = self.client.post('/audits/create/', {
+            'template': self.template.pk,
+            'restaurant': self.restaurant.pk,
+            'audit_date': '2026-06-15',
+            'manager_on_duty': 'M',
+        })
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'Audit Already Exists')
+        self.assertEqual(Audit.objects.count(), before)
+
+    def test_duplicate_archived_audit_allows_recreate(self):
+        self.audit.is_archived = True
+        self.audit.save()
+        before = Audit.objects.count()
+        resp = self.client.post('/audits/create/', {
+            'template': self.template.pk,
+            'restaurant': self.restaurant.pk,
+            'audit_date': '2026-06-15',
+            'manager_on_duty': 'M',
+        })
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(Audit.objects.count(), before + 1)
 
     def test_audit_detail_loads(self):
         resp = self.client.get(f'/audits/{self.audit.pk}/')
@@ -730,11 +982,39 @@ class SetupGroupsCommandTest(TestCase):
         self._run_command()
         group = Group.objects.get(name='Auditor')
         ct = ContentType.objects.get_for_model(CorrectiveAction)
-        for action in ('view', 'add', 'change', 'delete'):
+        for action in ('view', 'add', 'change', 'verify'):
             perm = Permission.objects.get(
                 content_type=ct, codename=f'{action}_correctiveaction')
             self.assertIn(perm, group.permissions.all(),
                           msg=f'Auditor missing {action}_correctiveaction')
+        delete_perm = Permission.objects.get(
+            content_type=ct, codename='delete_correctiveaction')
+        self.assertNotIn(delete_perm, group.permissions.all(),
+                         msg='Auditor should not be able to delete corrective actions')
+
+    def test_manager_has_delete_and_verify_corrective_action_permissions(self):
+        from django.contrib.auth.models import Group
+        from django.contrib.contenttypes.models import ContentType
+        from django.contrib.auth.models import Permission
+        self._run_command()
+        group = Group.objects.get(name='Manager')
+        ct = ContentType.objects.get_for_model(CorrectiveAction)
+        for action in ('delete', 'verify'):
+            perm = Permission.objects.get(
+                content_type=ct, codename=f'{action}_correctiveaction')
+            self.assertIn(perm, group.permissions.all(),
+                          msg=f'Manager missing {action}_correctiveaction')
+
+    def test_restaurant_user_group_lacks_verify_permission(self):
+        from django.contrib.auth.models import Group
+        from django.contrib.contenttypes.models import ContentType
+        from django.contrib.auth.models import Permission
+        self._run_command()
+        group = Group.objects.get(name='Restaurant User')
+        ct = ContentType.objects.get_for_model(CorrectiveAction)
+        verify_perm = Permission.objects.get(
+            content_type=ct, codename='verify_correctiveaction')
+        self.assertNotIn(verify_perm, group.permissions.all())
 
 
 # -----------------------------------------------------------
@@ -762,10 +1042,15 @@ class CorrectiveActionWorkflowProtectionTest(TestCase):
         self.ru.restaurants.add(self.restaurant)
 
         ct_ca = ContentType.objects.get_for_model(CorrectiveAction)
-        for u in (self.auditor, self.ru):
-            u.user_permissions.add(
-                *Permission.objects.filter(content_type=ct_ca)
-            )
+        auditor_perms = Permission.objects.filter(
+            content_type=ct_ca, codename__in=[
+                'view_correctiveaction', 'add_correctiveaction',
+                'change_correctiveaction', 'verify_correctiveaction'])
+        self.auditor.user_permissions.add(*auditor_perms)
+        ru_perms = Permission.objects.filter(
+            content_type=ct_ca, codename__in=[
+                'view_correctiveaction', 'change_correctiveaction'])
+        self.ru.user_permissions.add(*ru_perms)
 
         self.template = AuditTemplate.objects.create(name='WF T')
         self.section = Section.objects.create(
@@ -834,6 +1119,190 @@ class CorrectiveActionWorkflowProtectionTest(TestCase):
         self.ca.refresh_from_db()
         # Status must remain VERIFIED — not changed by restaurant user
         self.assertEqual(self.ca.status, CorrectiveAction.Status.VERIFIED)
+
+    def test_restaurant_user_cannot_reopen_completed_ca(self):
+        self.ca.status = CorrectiveAction.Status.COMPLETED
+        self.ca.save()
+        self.client.force_login(self.ru)
+        url = f'/audits/corrective-actions/{self.ca.pk}/complete/'
+        self.client.post(url)
+        self.ca.refresh_from_db()
+        self.assertEqual(self.ca.status, CorrectiveAction.Status.COMPLETED)
+
+    def test_list_search_filters_by_description(self):
+        self.client.force_login(self.auditor)
+        resp = self.client.get('/audits/corrective-actions/', {'q': 'Fix the issue'})
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'Fix the issue')
+        resp = self.client.get('/audits/corrective-actions/', {'q': 'does-not-exist'})
+        self.assertNotContains(resp, 'Fix the issue')
+
+    def test_list_has_active_filters_context(self):
+        self.client.force_login(self.auditor)
+        resp = self.client.get('/audits/corrective-actions/')
+        self.assertFalse(resp.context['has_active_filters'])
+        resp = self.client.get('/audits/corrective-actions/', {'status': 'open'})
+        self.assertFalse(resp.context['has_active_filters'])
+        resp = self.client.get('/audits/corrective-actions/', {'risk': 'LOW'})
+        self.assertTrue(resp.context['has_active_filters'])
+        self.assertNotIn('page', resp.context['current_filters'])
+        resp = self.client.get('/audits/corrective-actions/', {'page': '1', 'status': 'open'})
+        self.assertNotIn('page', resp.context['current_filters'])
+
+
+# -----------------------------------------------------------
+# CorrectiveAction delete / verify / close permission rules
+# -----------------------------------------------------------
+
+class CorrectiveActionRoleRulesTest(TestCase):
+
+    def setUp(self):
+        self.region = Region.objects.create(name='R')
+        self.restaurant = Restaurant.objects.create(
+            code='9990002', name='Del CA R', city='C', address='A',
+            region=self.region)
+
+        self.manager = User.objects.create_user('mgr', 'm@t.com', 'pass')
+        self.manager.role = User.Roles.MANAGER
+        self.manager.save()
+
+        self.auditor = User.objects.create_user('aud', 'ad@t.com', 'pass')
+        self.auditor.role = User.Roles.AUDITOR
+        self.auditor.manager = self.manager
+        self.auditor.save()
+        self.auditor.restaurants.add(self.restaurant)
+
+        self.admin = User.objects.create_user('admin', 'adm@t.com', 'pass')
+        self.admin.role = User.Roles.ADMIN
+        self.admin.save()
+
+        self.ru = User.objects.create_user('ru', 'ru@t.com', 'pass')
+        self.ru.role = User.Roles.RESTAURANT_USER
+        self.ru.save()
+        self.ru.restaurants.add(self.restaurant)
+
+        ct_ca = ContentType.objects.get_for_model(CorrectiveAction)
+        perm_names = {
+            'view_correctiveaction',
+            'add_correctiveaction',
+            'change_correctiveaction',
+            'delete_correctiveaction',
+            'verify_correctiveaction',
+        }
+        perms = {
+            p.codename: p
+            for p in Permission.objects.filter(content_type=ct_ca)
+            if p.codename in perm_names
+        }
+        self.manager.user_permissions.add(
+            perms['view_correctiveaction'], perms['add_correctiveaction'],
+            perms['change_correctiveaction'], perms['delete_correctiveaction'],
+            perms['verify_correctiveaction'])
+        self.auditor.user_permissions.add(
+            perms['view_correctiveaction'], perms['add_correctiveaction'],
+            perms['change_correctiveaction'], perms['verify_correctiveaction'])
+        self.admin.user_permissions.add(
+            perms['view_correctiveaction'], perms['add_correctiveaction'],
+            perms['change_correctiveaction'], perms['delete_correctiveaction'],
+            perms['verify_correctiveaction'])
+        self.ru.user_permissions.add(
+            perms['view_correctiveaction'], perms['change_correctiveaction'])
+
+        self.template = AuditTemplate.objects.create(name='T')
+        self.section = Section.objects.create(
+            template=self.template, name='S', order=1)
+        Question.objects.create(
+            section=self.section, question_text='Q',
+            possible_points=5, order=1)
+        self.audit = Audit.objects.create(
+            template=self.template, restaurant=self.restaurant,
+            audit_date='2026-06-15', manager_on_duty='M',
+            auditor=self.auditor,
+        )
+        audit_section = AuditSection.objects.create(
+            audit=self.audit, section=self.section, possible_points=5)
+        self.response = AuditQuestionResponse.objects.create(
+            audit_section=audit_section,
+            question=self.section.questions.first(), is_answered=True)
+        self.ca = CorrectiveAction.objects.create(
+            audit=self.audit, restaurant=self.restaurant,
+            question_response=self.response, description='Fix the issue',
+            risk_level=CorrectiveAction.RiskLevel.LOW,
+            assigned_to=self.ru,
+            deadline=date.today() + timedelta(days=30),
+        )
+
+    def test_auditor_cannot_delete(self):
+        self.client.force_login(self.auditor)
+        self.client.post(f'/audits/corrective-actions/{self.ca.pk}/delete/')
+        self.assertTrue(CorrectiveAction.objects.filter(pk=self.ca.pk).exists())
+
+    def test_restaurant_user_cannot_delete(self):
+        self.client.force_login(self.ru)
+        self.client.post(f'/audits/corrective-actions/{self.ca.pk}/delete/')
+        self.assertTrue(CorrectiveAction.objects.filter(pk=self.ca.pk).exists())
+
+    def test_manager_can_delete(self):
+        self.client.force_login(self.manager)
+        self.client.post(f'/audits/corrective-actions/{self.ca.pk}/delete/')
+        self.assertFalse(CorrectiveAction.objects.filter(pk=self.ca.pk).exists())
+
+    def test_manager_cannot_delete_closed(self):
+        self.ca.status = CorrectiveAction.Status.CLOSED
+        self.ca.save()
+        self.client.force_login(self.manager)
+        self.client.post(f'/audits/corrective-actions/{self.ca.pk}/delete/')
+        self.assertTrue(CorrectiveAction.objects.filter(pk=self.ca.pk).exists())
+
+    def test_admin_role_can_delete_closed(self):
+        self.ca.status = CorrectiveAction.Status.CLOSED
+        self.ca.save()
+        self.client.force_login(self.admin)
+        self.client.post(f'/audits/corrective-actions/{self.ca.pk}/delete/')
+        self.assertFalse(CorrectiveAction.objects.filter(pk=self.ca.pk).exists())
+
+    def test_admin_role_can_verify(self):
+        self.ca.status = CorrectiveAction.Status.COMPLETED
+        self.ca.save()
+        self.client.force_login(self.admin)
+        self.client.post(f'/audits/corrective-actions/{self.ca.pk}/verify/')
+        self.ca.refresh_from_db()
+        self.assertEqual(self.ca.status, CorrectiveAction.Status.VERIFIED)
+
+    def test_admin_role_can_close(self):
+        self.ca.status = CorrectiveAction.Status.VERIFIED
+        self.ca.save()
+        self.client.force_login(self.admin)
+        self.client.post(f'/audits/corrective-actions/{self.ca.pk}/close/')
+        self.ca.refresh_from_db()
+        self.assertEqual(self.ca.status, CorrectiveAction.Status.CLOSED)
+
+    def test_auditor_can_reopen_completed_ca(self):
+        self.ca.status = CorrectiveAction.Status.COMPLETED
+        self.ca.save()
+        self.client.force_login(self.auditor)
+        self.client.post(f'/audits/corrective-actions/{self.ca.pk}/complete/')
+        self.ca.refresh_from_db()
+        self.assertEqual(self.ca.status, CorrectiveAction.Status.OPEN)
+
+    def test_user_without_verify_perm_cannot_reopen(self):
+        user = User.objects.create_user('noverify', 'nv@t.com', 'pass')
+        user.role = User.Roles.AUDITOR
+        user.save()
+        user.restaurants.add(self.restaurant)
+        ct_ca = ContentType.objects.get_for_model(CorrectiveAction)
+        user.user_permissions.add(
+            *Permission.objects.filter(
+                content_type=ct_ca, codename__in=[
+                    'view_correctiveaction', 'change_correctiveaction'])
+        )
+
+        self.ca.status = CorrectiveAction.Status.COMPLETED
+        self.ca.save()
+        self.client.force_login(user)
+        self.client.post(f'/audits/corrective-actions/{self.ca.pk}/complete/')
+        self.ca.refresh_from_db()
+        self.assertEqual(self.ca.status, CorrectiveAction.Status.COMPLETED)
 
 
 # -----------------------------------------------------------

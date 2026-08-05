@@ -1,5 +1,5 @@
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
-from django.db.models import Q, Count, Avg
+from django.db.models import Q, Count, Avg, Prefetch
 from django.views.generic import ListView, DetailView
 
 from .models import Region, Restaurant
@@ -100,7 +100,13 @@ class RegionDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     permission_required = 'restaurants.view_region'
 
     def get_queryset(self):
-        return Region.objects.prefetch_related('restaurants').annotate(
+        user = self.request.user
+        restaurants = Restaurant.objects.filter(is_archived=False).select_related('region')
+        if not user.is_superuser:
+            restaurants = restaurants.filter(pk__in=user.restaurants.values_list('pk', flat=True))
+        return Region.objects.prefetch_related(
+            Prefetch('restaurants', queryset=restaurants)
+        ).annotate(
             restaurant_count=Count('restaurants', filter=Q(restaurants__is_archived=False))
         )
 

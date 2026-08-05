@@ -295,10 +295,13 @@ class CANotificationFlowTest(TestCase):
             content_type=ca_ct, codename='change_correctiveaction')
         view_ca = Permission.objects.get(
             content_type=ca_ct, codename='view_correctiveaction')
+        verify_ca = Permission.objects.get(
+            content_type=ca_ct, codename='verify_correctiveaction')
         audit_ct = ContentType.objects.get_for_model(Audit)
         view_audit = Permission.objects.get(
             content_type=audit_ct, codename='view_audit')
-        self.auditor.user_permissions.add(change_ca, view_ca, view_audit)
+        self.auditor.user_permissions.add(
+            change_ca, view_ca, view_audit, verify_ca)
         self.ru.user_permissions.add(change_ca, view_ca, view_audit)
 
     def test_ca_complete_notifies_auditor_and_manager(self):

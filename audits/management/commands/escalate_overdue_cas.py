@@ -16,6 +16,10 @@ class Command(BaseCommand):
         'Run daily via cron/scheduler.'
     )
 
+    # Only re-notify an already-escalated action once this many days have passed,
+    # otherwise a daily cron would re-send the same escalation every day.
+    ESCALATION_REMINDER_DAYS = 7
+
     def handle(self, *args, **options):
         now = timezone.now()
         today = now.date()
@@ -24,9 +28,12 @@ class Command(BaseCommand):
         # 1. Escalate CAs past deadline + 3 days (OPEN / IN_PROGRESS)
         # ---------------------------------------------------------------
         escalation_threshold = today - timedelta(days=3)
+        reminder_threshold = now - timedelta(days=self.ESCALATION_REMINDER_DAYS)
         overdue = CorrectiveAction.objects.filter(
             deadline__lt=escalation_threshold,
             status__in=['OPEN', 'IN_PROGRESS'],
+        ).filter(
+            Q(escalation_sent_at__isnull=True) | Q(escalation_sent_at__lt=reminder_threshold)
         ).select_related('audit__auditor__manager', 'restaurant', 'assigned_to')
 
         escalated_count = 0
@@ -62,6 +69,8 @@ class Command(BaseCommand):
                     email_context=email_context,
                 )
 
+            # Stamp the marker so this action is not re-escalated on every cron run
+            CorrectiveAction.objects.filter(pk=ca.pk).update(escalation_sent_at=now)
             escalated_count += 1
 
         if escalated_count:

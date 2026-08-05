@@ -406,6 +406,16 @@ class CorrectiveAction(BaseModel):
         VERIFIED = 'VERIFIED', _('Verified')
         CLOSED = 'CLOSED', _('Closed')
 
+    # Single source of truth for allowed forward transitions.
+    # OPEN is always reachable (reopen) from any other status.
+    VALID_TRANSITIONS = {
+        Status.OPEN: {Status.IN_PROGRESS, Status.COMPLETED},
+        Status.IN_PROGRESS: {Status.COMPLETED},
+        Status.COMPLETED: {Status.VERIFIED},
+        Status.VERIFIED: {Status.CLOSED},
+        Status.CLOSED: set(),
+    }
+
     audit = models.ForeignKey(
         Audit, on_delete=models.CASCADE, related_name="corrective_actions")
     restaurant = models.ForeignKey(
@@ -427,12 +437,24 @@ class CorrectiveAction(BaseModel):
         help_text=_("Upload proof of completion"),
         validators=[validate_uploaded_image]
     )
+    escalation_sent_at = models.DateTimeField(
+        null=True, blank=True,
+        verbose_name=_("Last Escalation Sent"),
+        help_text=_("Timestamp of the last overdue-escalation notification sent for this action"),
+    )
 
     class Meta:
         verbose_name = _("Corrective Action")
         verbose_name_plural = _("Corrective Actions")
         ordering = ['-created_at']
-        indexes = [models.Index(fields=['restaurant', 'status'])]
+        indexes = [
+            models.Index(fields=['restaurant', 'status']),
+            models.Index(fields=['status', 'deadline']),
+            models.Index(fields=['status']),
+        ]
+        permissions = [
+            ('verify_correctiveaction', 'Can verify and close corrective actions'),
+        ]
 
     def __str__(self) -> str:
         return f"{self.audit} - {self.risk_level}"
@@ -452,6 +474,66 @@ class CorrectiveAction(BaseModel):
         if self.completed:
             return None
         return (self.deadline - timezone.now().date()).days
+
+    def clean(self):
+        if self.question_response_id and self.question_response.audit_section_id:
+            response_audit_id = self.question_response.audit_section.audit_id
+            if response_audit_id and response_audit_id != self.audit_id:
+                raise ValidationError({
+                    'question_response': 'The question response must belong to the selected audit.'
+                })
+        if self.audit_id and self.restaurant_id and self.restaurant_id != self.audit.restaurant_id:
+            raise ValidationError({
+                'restaurant': 'The restaurant must match the selected audit.'
+            })
+        if self.assigned_to_id and self.restaurant_id:
+            assignee = self.assigned_to
+            if (getattr(assignee, 'role', None) != 'restaurant_user'
+                    or not assignee.restaurants.filter(pk=self.restaurant_id).exists()):
+                raise ValidationError({
+                    'assigned_to': 'Assignee must be a restaurant user of the selected restaurant.'
+                })
+
+    @classmethod
+    def validate_transition(cls, from_status, to_status, user):
+        """Raise ValidationError if the transition (or the user) is not allowed."""
+        if from_status == to_status:
+            return
+
+        allowed = set(cls.VALID_TRANSITIONS.get(from_status, set())) | {cls.Status.OPEN}
+        if to_status not in allowed:
+            raise ValidationError(
+                f'Cannot change from {from_status} to {to_status}. '
+                f'Allowed: {", ".join(sorted(a.value for a in allowed))}'
+            )
+
+        has_verify = bool(user and user.has_perm('audits.verify_correctiveaction'))
+
+        # Setting VERIFIED / CLOSED is an approval action
+        if to_status in (cls.Status.VERIFIED, cls.Status.CLOSED) and not has_verify:
+            raise ValidationError(
+                'Only users with verification permission can verify or close corrective actions.'
+            )
+
+        # Reopening a completed action is an approval action
+        if to_status == cls.Status.OPEN and from_status in (
+                cls.Status.COMPLETED, cls.Status.VERIFIED, cls.Status.CLOSED):
+            if getattr(user, 'role', None) == 'restaurant_user':
+                raise ValidationError('Restaurant users cannot reopen a completed corrective action.')
+            if not has_verify:
+                raise ValidationError(
+                    'Only auditors, managers, and admins can reopen corrective actions.'
+                )
+
+    def transition_to(self, new_status, user):
+        """Validate and apply a status transition. Returns the previous status."""
+        previous = self.status
+        self.validate_transition(previous, new_status, user)
+        self.status = new_status
+        if previous != new_status and new_status == self.Status.OPEN:
+            # Reopened: reset the escalation marker so a fresh reminder is sent
+            self.escalation_sent_at = None
+        return previous
 
     def save(self, *args, **kwargs):
         if not self.restaurant and self.audit:

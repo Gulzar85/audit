@@ -257,26 +257,31 @@
  sidebarOpen: true,
  mobileSidebarOpen: false
  });
- Alpine.store('confirm', {
- show: false,
- title: 'Confirm',
- message: 'Are you sure?',
- confirmAction: null,
- open(title, message, callback) {
- this.title = title;
- this.message = message;
- this.confirmAction = callback;
- this.show = true;
- },
- confirm() {
- if (this.confirmAction) this.confirmAction();
- this.show = false;
- },
- cancel() {
- this.show = false;
- this.confirmAction = null;
- }
- });
+  Alpine.store('confirm', {
+  show: false,
+  title: 'Confirm',
+  message: 'Are you sure?',
+  confirmAction: null,
+  confirmTarget: null,
+  open(title, message, callback, target) {
+  this.title = title;
+  this.message = message;
+  this.confirmAction = callback;
+  this.confirmTarget = target;
+  this.show = true;
+  },
+  confirm() {
+  if (this.confirmAction) this.confirmAction(this.confirmTarget);
+  this.show = false;
+  this.confirmAction = null;
+  this.confirmTarget = null;
+  },
+  cancel() {
+  this.show = false;
+  this.confirmAction = null;
+  this.confirmTarget = null;
+  }
+  });
  if (typeof lucide !== 'undefined') lucide.createIcons();
  Alpine.data('toast', () => ({
  show: true,

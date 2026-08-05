@@ -1,5 +1,4 @@
 from django import forms
-from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.contrib.auth import get_user_model
 from crispy_forms.helper import FormHelper
@@ -193,17 +192,36 @@ class CorrectiveActionForm(forms.ModelForm):
         self.fields['assigned_to'].required = False
         if user:
             from .models import Audit, AuditQuestionResponse
-            qs = get_user_model().objects.filter(is_active=True)
             if not user.is_superuser:
-                qs = qs.filter(restaurants__in=user.restaurants.all()).distinct()
                 self.fields['audit'].queryset = Audit.objects.filter(
                     restaurant__in=user.restaurants.all(), is_archived=False
                 )
                 self.fields['question_response'].queryset = AuditQuestionResponse.objects.filter(
                     audit_section__audit__restaurant__in=user.restaurants.all()
                 ).select_related('question', 'audit_section__section')
-            self.fields['assigned_to'].queryset = qs
-            self.fields['assigned_to'].initial = user
+
+            # Assignee must be a restaurant user of the selected audit's restaurant
+            audit_id = self.data.get('audit') if self.data else None
+            if not audit_id and self.instance.pk:
+                audit_id = self.instance.audit_id
+            if not audit_id:
+                audit_id = self.initial.get('audit')
+            restaurant_id = None
+            if audit_id:
+                restaurant_id = Audit.objects.filter(
+                    pk=audit_id).values_list('restaurant_id', flat=True).first()
+
+            assignee_qs = get_user_model().objects.filter(is_active=True)
+            if restaurant_id:
+                assignee_qs = assignee_qs.filter(
+                    role='restaurant_user', restaurants__id=restaurant_id
+                ).distinct()
+            elif not user.is_superuser:
+                assignee_qs = assignee_qs.filter(
+                    restaurants__in=user.restaurants.all()).distinct()
+            self.fields['assigned_to'].queryset = assignee_qs
+            if not restaurant_id:
+                self.fields['assigned_to'].initial = user
 
             # Restaurant users: lock sensitive fields on existing CAs
             if user.role == 'restaurant_user' and self.instance.pk:
@@ -285,28 +303,7 @@ class CorrectiveActionForm(forms.ModelForm):
         previous = CorrectiveAction.objects.get(pk=self.instance.pk).status
         user = getattr(self, 'user', None)
 
-        VALID_TRANSITIONS = {
-            CorrectiveAction.Status.OPEN: {'IN_PROGRESS', 'COMPLETED'},
-            CorrectiveAction.Status.IN_PROGRESS: {'COMPLETED'},
-            CorrectiveAction.Status.COMPLETED: {'VERIFIED'},
-            CorrectiveAction.Status.VERIFIED: {'CLOSED'},
-            CorrectiveAction.Status.CLOSED: set(),
-        }
-
-        if status != previous:
-            allowed = VALID_TRANSITIONS.get(previous, set()) | {'OPEN'}
-            if status not in allowed:
-                raise ValidationError(
-                    f'Cannot change from {previous} to {status}. '
-                    f'Allowed: {", ".join(sorted(allowed))}'
-                )
-
-            # Restaurant users cannot set VERIFIED or CLOSED
-            if user and user.role == 'restaurant_user' and status in ('VERIFIED', 'CLOSED'):
-                raise ValidationError(
-                    'Restaurant users cannot verify or close corrective actions.'
-                )
-
+        CorrectiveAction.validate_transition(previous, status, user)
         return status
 
     def clean(self):
@@ -318,4 +315,14 @@ class CorrectiveActionForm(forms.ModelForm):
             if deadline and deadline < timezone.now().date():
                 self.add_error('deadline', 'Deadline cannot be in the past.')
 
+        audit = cleaned_data.get('audit')
+        assigned_to = cleaned_data.get('assigned_to')
+        if audit and assigned_to:
+            if (getattr(assigned_to, 'role', None) != 'restaurant_user'
+                    or not assigned_to.restaurants.filter(
+                        pk=audit.restaurant_id).exists()):
+                self.add_error(
+                    'assigned_to',
+                    'Assignee must be a restaurant user of the selected restaurant.'
+                )
         return cleaned_data

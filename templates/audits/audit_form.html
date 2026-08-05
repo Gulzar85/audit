@@ -88,4 +88,39 @@
     {% else %}
         {% include 'includes/no_access.html' %}
     {% endif %}
+    {% if duplicate_error %}
+        <div x-data="{ show: true }" x-cloak>
+            <div x-show="show"
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0"
+                 x-transition:enter-end="opacity-100"
+                 x-transition:leave="transition ease-in duration-200"
+                 x-transition:leave-start="opacity-100"
+                 x-transition:leave-end="opacity-0"
+                 role="dialog" aria-modal="true"
+                 class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+                <div x-transition:enter="transition ease-out duration-300"
+                     x-transition:enter-start="opacity-0 scale-90"
+                     x-transition:enter-end="opacity-100 scale-100"
+                     class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200/60">
+                    <div class="px-6 py-5 flex items-center gap-3 bg-gradient-gold text-accent">
+                        <i data-lucide="alert-circle" class="w-6 h-6 text-accent shrink-0"></i>
+                        <h3 class="text-lg font-bold text-accent">Audit Already Exists</h3>
+                    </div>
+                    <div class="px-6 py-6">
+                        <p class="text-slate-700 text-base leading-relaxed">
+                            An audit for <strong>{{ duplicate_error.restaurant }}</strong> on
+                            <strong>{{ duplicate_error.audit_date|date:"M d, Y" }}</strong> has already been created.
+                        </p>
+                    </div>
+                    <div class="px-6 py-5 border-t border-slate-100 flex justify-end gap-3">
+                        <button @click="window.location.href = '{% url 'audits:dashboard' %}'"
+                                class="px-5 py-2.5 rounded-xl bg-gradient-gold text-accent font-bold text-sm transition-all hover:shadow-lg active:scale-[0.98]">
+                            OK
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
 {% endblock %}

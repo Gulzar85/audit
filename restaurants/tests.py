@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase
+from django.urls import reverse
 
 from audits.models import Audit, AuditTemplate
 from restaurants.models import Region, Restaurant
@@ -152,3 +153,46 @@ class RestaurantListViewTest(TestCase):
         self.assertEqual(list(ctx['cities']), ['Lahore'])
         self.assertEqual([r.name for r in ctx['regions']], ['North'])
         self.assertEqual(ctx['regions'][0].restaurant_count, 1)
+
+
+class RegionDetailViewTest(TestCase):
+    def setUp(self):
+        self.region = Region.objects.create(name='Central')
+        self.assigned = Restaurant.objects.create(
+            code='1270030', name='Mine', city='Lahore',
+            address='A', region=self.region)
+        self.unassigned = Restaurant.objects.create(
+            code='1270031', name='Other', city='Karachi',
+            address='B', region=self.region)
+        self.auditor = User.objects.create_user(
+            'aud_region', 'ar@t.com', 'pass', role=User.Roles.AUDITOR)
+        self.auditor.restaurants.add(self.assigned)
+        ct_rest = ContentType.objects.get_for_model(Restaurant)
+        self.auditor.user_permissions.add(
+            Permission.objects.get(
+                content_type=ct_rest, codename='view_restaurant'))
+        ct_region = ContentType.objects.get_for_model(Region)
+        self.auditor.user_permissions.add(
+            Permission.objects.get(
+                content_type=ct_region, codename='view_region'))
+
+    def test_region_page_shows_only_assigned_restaurants(self):
+        self.client.force_login(self.auditor)
+        resp = self.client.get(
+            reverse('restaurants:region_detail', args=[self.region.pk]))
+        self.assertEqual(resp.status_code, 200)
+        restaurant_names = [
+            r.name for r in resp.context['region'].restaurants.all()]
+        self.assertEqual(restaurant_names, ['Mine'])
+        self.assertNotIn('Other', restaurant_names)
+
+    def test_region_page_superuser_sees_all_restaurants(self):
+        self.auditor.is_superuser = True
+        self.auditor.save()
+        self.client.force_login(self.auditor)
+        resp = self.client.get(
+            reverse('restaurants:region_detail', args=[self.region.pk]))
+        self.assertEqual(resp.status_code, 200)
+        restaurant_names = [
+            r.name for r in resp.context['region'].restaurants.all()]
+        self.assertEqual(sorted(restaurant_names), ['Mine', 'Other'])
