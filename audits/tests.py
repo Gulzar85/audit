@@ -1129,6 +1129,50 @@ class CorrectiveActionWorkflowProtectionTest(TestCase):
         self.ca.refresh_from_db()
         self.assertEqual(self.ca.status, CorrectiveAction.Status.COMPLETED)
 
+    def test_restaurant_user_status_field_is_editable_in_form(self):
+        self.client.force_login(self.ru)
+        url = reverse('audits:corrective_action_edit', args=[self.ca.pk])
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+        # Status must not be disabled so the restaurant can mark complete.
+        self.assertNotContains(resp, 'id="id_status" disabled')
+
+    def test_restaurant_user_can_complete_open_ca_via_form(self):
+        self.client.force_login(self.ru)
+        url = reverse('audits:corrective_action_edit', args=[self.ca.pk])
+        resp = self.client.post(url, {
+            'status': CorrectiveAction.Status.COMPLETED,
+            'deadline': self.ca.deadline.isoformat(),
+        })
+        self.assertEqual(resp.status_code, 302)
+        self.ca.refresh_from_db()
+        self.assertEqual(self.ca.status, CorrectiveAction.Status.COMPLETED)
+
+    def test_restaurant_user_cannot_set_verified_via_form(self):
+        self.client.force_login(self.ru)
+        url = reverse('audits:corrective_action_edit', args=[self.ca.pk])
+        resp = self.client.post(url, {
+            'status': CorrectiveAction.Status.VERIFIED,
+            'deadline': self.ca.deadline.isoformat(),
+        })
+        # Form re-rendered with a validation error, status unchanged.
+        self.assertEqual(resp.status_code, 200)
+        self.ca.refresh_from_db()
+        self.assertEqual(self.ca.status, CorrectiveAction.Status.OPEN)
+
+    def test_restaurant_user_cannot_reopen_completed_ca_via_form(self):
+        self.ca.status = CorrectiveAction.Status.COMPLETED
+        self.ca.save()
+        self.client.force_login(self.ru)
+        url = reverse('audits:corrective_action_edit', args=[self.ca.pk])
+        resp = self.client.post(url, {
+            'status': CorrectiveAction.Status.OPEN,
+            'deadline': self.ca.deadline.isoformat(),
+        })
+        self.assertEqual(resp.status_code, 200)
+        self.ca.refresh_from_db()
+        self.assertEqual(self.ca.status, CorrectiveAction.Status.COMPLETED)
+
     def test_list_search_filters_by_description(self):
         self.client.force_login(self.auditor)
         resp = self.client.get('/audits/corrective-actions/', {'q': 'Fix the issue'})

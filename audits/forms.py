@@ -223,9 +223,11 @@ class CorrectiveActionForm(forms.ModelForm):
             if not restaurant_id:
                 self.fields['assigned_to'].initial = user
 
-            # Restaurant users: lock sensitive fields on existing CAs
+            # Restaurant users: lock sensitive fields on existing CAs.
+            # Status stays editable so the restaurant can mark the action
+            # complete; validate_transition guards illegal transitions.
             if user.role == 'restaurant_user' and self.instance.pk:
-                for field in ('audit', 'question_response', 'risk_level', 'assigned_to', 'status'):
+                for field in ('audit', 'question_response', 'risk_level', 'assigned_to'):
                     self.fields[field].disabled = True
                 self.fields['description'].disabled = True
         css = 'w-full rounded-xl border-slate-300 focus:border-red-400 focus:ring-2 focus:ring-red-200 outline-none'
