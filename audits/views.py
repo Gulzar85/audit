@@ -346,23 +346,33 @@ class AuditReportPdfView(LoginRequiredMixin, PermissionRequiredMixin, DetailView
         from xhtml2pdf import pisa
         from core.models import BusinessInfo
         from django.utils.text import slugify
+        from django.conf import settings
+        import os
         import re
         audit = self.object
         template = get_template('audits/audit_report_pdf.html')
 
-        def abs_url(url):
-            if not url:
-                return None
-            if url.startswith('http'):
-                return url
-            req = self.request
-            return req.build_absolute_uri(url) if req else url
+        def link_callback(uri, rel):
+            # Resolve /media/ and /static/ URIs to local filesystem paths so
+            # xhtml2pdf reads files directly instead of fetching them over
+            # HTTP. A self-referential HTTP fetch (the app calling its own
+            # public URL) can hang or fail on hosts with a single worker
+            # process or restricted outbound networking (e.g. PythonAnywhere).
+            if uri.startswith(settings.MEDIA_URL):
+                path = os.path.join(
+                    settings.MEDIA_ROOT, uri.replace(settings.MEDIA_URL, '', 1))
+            elif uri.startswith(settings.STATIC_URL):
+                path = os.path.join(
+                    settings.STATIC_ROOT, uri.replace(settings.STATIC_URL, '', 1))
+            else:
+                return uri
+            return path if os.path.isfile(path) else uri
 
         for sec in audit.audit_sections.all():
             for resp in sec.responses.all():
                 if resp.image:
                     try:
-                        resp.pdf_image_url = abs_url(resp.image.url)
+                        resp.pdf_image_url = resp.image.url
                     except Exception:
                         resp.pdf_image_url = None
 
@@ -412,7 +422,8 @@ class AuditReportPdfView(LoginRequiredMixin, PermissionRequiredMixin, DetailView
             filename = f'audit_{restaurant_code}_{audit_date}.pdf'
             response = HttpResponse(content_type='application/pdf')
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
-            pisa.CreatePDF(html_str, dest=response, encoding='utf-8')
+            pisa.CreatePDF(html_str, dest=response, encoding='utf-8',
+                           link_callback=link_callback)
             return response
         except Exception:
             logger.exception('Failed to generate PDF report for audit %s', audit.pk)
