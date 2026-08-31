@@ -11,7 +11,7 @@ from django.db import transaction
 from django.db.models import Q, Count, Avg, Case, When, F, Sum, Value, Subquery, IntegerField
 from django.db.models.functions import TruncMonth, Coalesce
 from django.forms import modelformset_factory
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, Http404
 from django.shortcuts import redirect, get_object_or_404, reverse
 from django.template.loader import get_template
 from django.utils import timezone
@@ -326,6 +326,21 @@ class AuditReportPdfView(LoginRequiredMixin, PermissionRequiredMixin, DetailView
             'corrective_actions',
         ).visible_to(self.request.user)
         return qs
+
+    def get(self, request, *args, **kwargs):
+        try:
+            return super().get(request, *args, **kwargs)
+        except Http404:
+            raise
+        except Exception:
+            logger.exception(
+                'Failed to generate PDF report (audit pk=%s)', kwargs.get('pk'))
+            return HttpResponse(
+                'Unable to generate the PDF report for this audit. '
+                'Please try again or contact support if the problem persists.',
+                status=500,
+                content_type='text/plain',
+            )
 
     def render_to_response(self, context, **response_kwargs):
         from xhtml2pdf import pisa
