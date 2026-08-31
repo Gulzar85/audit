@@ -42,7 +42,8 @@ class AuditForm(forms.ModelForm):
             if not user.is_superuser:
                 auditor_qs = auditor_qs.filter(restaurants__in=user.restaurants.all())
             self.fields['auditor'].queryset = auditor_qs.distinct()
-            self.fields['auditor'].disabled = True
+            if user.role == User.Roles.AUDITOR:
+                self.fields['auditor'].disabled = True
             self.fields['auditor'].initial = user
 
         self.helper.layout = Layout(

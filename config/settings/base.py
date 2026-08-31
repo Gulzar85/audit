@@ -153,6 +153,14 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 
+# Number of trusted reverse proxies in front of this app that append to
+# X-Forwarded-For (e.g. a single nginx/load balancer hop = 1). Used by
+# core.security.get_client_ip() to safely extract the real client IP.
+# Leave at 0 (the default) unless the deployment actually sits behind a
+# reverse proxy you control — otherwise X-Forwarded-For is fully
+# attacker-controlled and must not be trusted.
+TRUSTED_PROXY_COUNT = 0
+
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

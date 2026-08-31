@@ -375,29 +375,38 @@ class AuditReportPdfView(LoginRequiredMixin, PermissionRequiredMixin, DetailView
         if audit.submitted_at and audit.created_at:
             duration = audit.submitted_at - audit.created_at
 
-        html_str = template.render({
-            'audit': audit,
-            'corrective_actions': audit.corrective_actions.all(),
-            'business_info': BusinessInfo.load(),
-            'summary': {
-                'total': total_questions,
-                'answered': total_answered,
-                'passed': passed,
-                'failed': failed,
-                'partial': partial,
-                'na': na,
-            },
-            'duration': duration,
-        })
+        try:
+            html_str = template.render({
+                'audit': audit,
+                'corrective_actions': audit.corrective_actions.all(),
+                'business_info': BusinessInfo.load(),
+                'summary': {
+                    'total': total_questions,
+                    'answered': total_answered,
+                    'passed': passed,
+                    'failed': failed,
+                    'partial': partial,
+                    'na': na,
+                },
+                'duration': duration,
+            })
 
-        # Sanitize filename to prevent path traversal and special characters
-        restaurant_code = re.sub(r'[^\w\-.]', '', audit.restaurant.code)
-        audit_date = audit.audit_date.isoformat()
-        filename = f'audit_{restaurant_code}_{audit_date}.pdf'
-        response = HttpResponse(content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
-        pisa.CreatePDF(html_str, dest=response, encoding='utf-8')
-        return response
+            # Sanitize filename to prevent path traversal and special characters
+            restaurant_code = re.sub(r'[^\w\-.]', '', audit.restaurant.code)
+            audit_date = audit.audit_date.isoformat()
+            filename = f'audit_{restaurant_code}_{audit_date}.pdf'
+            response = HttpResponse(content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            pisa.CreatePDF(html_str, dest=response, encoding='utf-8')
+            return response
+        except Exception:
+            logger.exception('Failed to generate PDF report for audit %s', audit.pk)
+            return HttpResponse(
+                'Unable to generate the PDF report for this audit. '
+                'Please try again or contact support if the problem persists.',
+                status=500,
+                content_type='text/plain',
+            )
 
 
 class AuditTemplateListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):

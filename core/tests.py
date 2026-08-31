@@ -45,10 +45,22 @@ class GetClientIpTest(TestCase):
         req = factory.get('/', REMOTE_ADDR='10.0.0.1')
         self.assertEqual(get_client_ip(req), '10.0.0.1')
 
-    def test_prefers_x_forwarded_for(self):
+    def test_ignores_x_forwarded_for_when_no_trusted_proxies(self):
+        # Without TRUSTED_PROXY_COUNT configured, X-Forwarded-For is fully
+        # attacker-controlled and must not be trusted over REMOTE_ADDR.
         factory = RequestFactory()
-        req = factory.get('/', HTTP_X_FORWARDED_FOR='203.0.113.5, 10.0.0.1')
-        self.assertEqual(get_client_ip(req), '203.0.113.5')
+        req = factory.get(
+            '/', REMOTE_ADDR='10.0.0.1',
+            HTTP_X_FORWARDED_FOR='203.0.113.5, 9.9.9.9')
+        self.assertEqual(get_client_ip(req), '10.0.0.1')
+
+    @override_settings(TRUSTED_PROXY_COUNT=1)
+    def test_uses_x_forwarded_for_with_trusted_proxy(self):
+        factory = RequestFactory()
+        req = factory.get(
+            '/', REMOTE_ADDR='127.0.0.1',
+            HTTP_X_FORWARDED_FOR='203.0.113.5, 10.0.0.1')
+        self.assertEqual(get_client_ip(req), '10.0.0.1')
 
 
 # -----------------------------------------------------------

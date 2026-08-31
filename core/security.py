@@ -96,20 +96,24 @@ def rate_limit(key_prefix, max_requests=5, window=300):
 
 def get_client_ip(request):
     """Extract client IP from request, handling proxies safely.
-    
-    Only trusts X-Forwarded-For when the request comes from a known proxy.
-    Returns the rightmost untrusted IP (client's real IP).
+
+    X-Forwarded-For is fully attacker-controlled unless the request actually
+    passed through a known number of trusted reverse proxies (TRUSTED_PROXY_COUNT).
+    Without that configuration, trusting it lets a client bypass IP-based rate
+    limiting simply by sending a different header value on every request, so we
+    fall back to REMOTE_ADDR (which the client cannot spoof) by default.
     """
-    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-    if x_forwarded_for:
-        parts = [p.strip() for p in x_forwarded_for.split(',')]
-        # Return the last IP (original client) unless we have proxy trust config
-        # For single-proxy setups, the client IP is the second-to-last
-        from django.conf import settings
-        trusted_proxies = getattr(settings, 'TRUSTED_PROXY_COUNT', 0)
-        if len(parts) > trusted_proxies:
-            return parts[-(trusted_proxies + 1)]
-        return parts[0]
+    from django.conf import settings
+    trusted_proxies = getattr(settings, 'TRUSTED_PROXY_COUNT', 0)
+    if trusted_proxies > 0:
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            parts = [p.strip() for p in x_forwarded_for.split(',') if p.strip()]
+            if parts:
+                # The last `trusted_proxies` entries were appended by our own
+                # trusted proxies; the entry just before them is the real client.
+                index = max(0, len(parts) - trusted_proxies)
+                return parts[index]
     return request.META.get('REMOTE_ADDR')
 
 
