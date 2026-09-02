@@ -335,12 +335,8 @@ class AuditReportPdfView(LoginRequiredMixin, PermissionRequiredMixin, DetailView
         except Exception:
             logger.exception(
                 'Failed to generate PDF report (audit pk=%s)', kwargs.get('pk'))
-            return HttpResponse(
-                'Unable to generate the PDF report for this audit. '
-                'Please try again or contact support if the problem persists.',
-                status=500,
-                content_type='text/plain',
-            )
+            from django.shortcuts import render
+            return render(self.request, '500.html', status=500)
 
     def render_to_response(self, context, **response_kwargs):
         from xhtml2pdf import pisa
@@ -427,12 +423,8 @@ class AuditReportPdfView(LoginRequiredMixin, PermissionRequiredMixin, DetailView
             return response
         except Exception:
             logger.exception('Failed to generate PDF report for audit %s', audit.pk)
-            return HttpResponse(
-                'Unable to generate the PDF report for this audit. '
-                'Please try again or contact support if the problem persists.',
-                status=500,
-                content_type='text/plain',
-            )
+            from django.shortcuts import render
+            return render(self.request, '500.html', status=500)
 
 
 class AuditTemplateListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
