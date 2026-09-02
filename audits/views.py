@@ -418,6 +418,12 @@ class AuditReportPdfView(LoginRequiredMixin, PermissionRequiredMixin, DetailView
             filename = f'audit_{restaurant_code}_{audit_date}.pdf'
             response = HttpResponse(content_type='application/pdf')
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            # Tolerate floating-point rounding in table cell widths. Without
+            # this, reportlab raises "negative availWidth" (a tiny ~1e-8
+            # negative value) on tightly-packed nested PDF tables and the
+            # whole report fails to build.
+            from reportlab import rl_config as _rl_config
+            _rl_config.allowTableBoundsErrors = 3
             pisa.CreatePDF(html_str, dest=response, encoding='utf-8',
                            link_callback=link_callback)
             return response
