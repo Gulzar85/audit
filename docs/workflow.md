@@ -89,7 +89,7 @@ flowchart TD
     end
 
     subgraph Result["4. View Results"]
-        R1[AuditResultView\nShow grade, score, sections] --> R2[Download PDF\nAuditReportPdfView\nxhtml2pdf → attachment]
+        R1[AuditResultView\nShow grade, score, sections] --> R2[Download PDF\nAuditReportPdfView\nreportlab → attachment]
         R2 --> R3[Dashboard analytics\nDashboardView:\ntrends, charts, grades,\nCA aging, region scores]
     end
 

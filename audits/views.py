@@ -13,7 +13,6 @@ from django.db.models.functions import TruncMonth, Coalesce
 from django.forms import modelformset_factory
 from django.http import HttpResponse, JsonResponse, Http404
 from django.shortcuts import redirect, get_object_or_404, reverse
-from django.template.loader import get_template
 from django.utils import timezone
 from django.views.generic import ListView, CreateView, DetailView, UpdateView, TemplateView, View
 import datetime
@@ -339,41 +338,13 @@ class AuditReportPdfView(LoginRequiredMixin, PermissionRequiredMixin, DetailView
             return render(self.request, '500.html', status=500)
 
     def render_to_response(self, context, **response_kwargs):
-        from xhtml2pdf import pisa
         from core.models import BusinessInfo
-        from django.utils.text import slugify
-        from django.conf import settings
-        import os
         import re
+        from .pdf_report import generate_pdf
         audit = self.object
-        template = get_template('audits/audit_report_pdf.html')
-
-        def link_callback(uri, rel):
-            # Resolve /media/ and /static/ URIs to local filesystem paths so
-            # xhtml2pdf reads files directly instead of fetching them over
-            # HTTP. A self-referential HTTP fetch (the app calling its own
-            # public URL) can hang or fail on hosts with a single worker
-            # process or restricted outbound networking (e.g. PythonAnywhere).
-            if uri.startswith(settings.MEDIA_URL):
-                path = os.path.join(
-                    settings.MEDIA_ROOT, uri.replace(settings.MEDIA_URL, '', 1))
-            elif uri.startswith(settings.STATIC_URL):
-                path = os.path.join(
-                    settings.STATIC_ROOT, uri.replace(settings.STATIC_URL, '', 1))
-            else:
-                return uri
-            return path if os.path.isfile(path) else uri
-
-        for sec in audit.audit_sections.all():
-            for resp in sec.responses.all():
-                if resp.image:
-                    try:
-                        resp.pdf_image_url = resp.image.url
-                    except Exception:
-                        resp.pdf_image_url = None
 
         # Compute summary stats
-        passed = failed = partial = na = total_answered = 0
+        passed = failed = partial = na = total_answered = critical_fail_count = 0
         for sec in audit.audit_sections.all():
             for resp in sec.responses.all():
                 if not resp.is_answered:
@@ -387,39 +358,33 @@ class AuditReportPdfView(LoginRequiredMixin, PermissionRequiredMixin, DetailView
                     failed += 1
                 else:
                     partial += 1
+                if (resp.question.is_critical and not resp.is_na
+                        and resp.scored_points == 0):
+                    critical_fail_count += 1
 
-        total_questions = sum(
-            len(sec.responses.all()) for sec in audit.audit_sections.all())
-
-        # Duration
-        duration = None
-        if audit.submitted_at and audit.created_at:
-            duration = audit.submitted_at - audit.created_at
+        sections = audit.audit_sections.all()
+        total_questions = sum(len(sec.responses.all()) for sec in sections)
+        summary = {
+            'total': total_questions,
+            'answered': total_answered,
+            'passed': passed,
+            'failed': failed,
+            'partial': partial,
+            'na': na,
+            'sections': len(sections),
+            'critical': critical_fail_count,
+        }
 
         try:
-            html_str = template.render({
-                'audit': audit,
-                'corrective_actions': audit.corrective_actions.all(),
-                'business_info': BusinessInfo.load(),
-                'summary': {
-                    'total': total_questions,
-                    'answered': total_answered,
-                    'passed': passed,
-                    'failed': failed,
-                    'partial': partial,
-                    'na': na,
-                },
-                'duration': duration,
-            })
+            pdf_bytes = generate_pdf(
+                audit, summary, BusinessInfo.load(), critical_fail_count)
 
             # Sanitize filename to prevent path traversal and special characters
             restaurant_code = re.sub(r'[^\w\-.]', '', audit.restaurant.code)
             audit_date = audit.audit_date.isoformat()
             filename = f'audit_{restaurant_code}_{audit_date}.pdf'
-            response = HttpResponse(content_type='application/pdf')
+            response = HttpResponse(pdf_bytes, content_type='application/pdf')
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
-            pisa.CreatePDF(html_str, dest=response, encoding='utf-8',
-                           link_callback=link_callback)
             return response
         except Exception:
             logger.exception('Failed to generate PDF report for audit %s', audit.pk)
